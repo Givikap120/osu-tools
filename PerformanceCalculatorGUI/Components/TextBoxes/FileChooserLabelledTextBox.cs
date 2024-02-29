@@ -68,6 +68,10 @@ namespace PerformanceCalculatorGUI.Components.TextBoxes
                 return;
 
             this.HidePopover();
+
+            if (Current.Value == file.NewValue.FullName)
+                Current.TriggerChange();
+
             Current.Value = file.NewValue.FullName;
         }
 
@@ -116,7 +120,7 @@ namespace PerformanceCalculatorGUI.Components.TextBoxes
                 {
                     Padding = new MarginPadding { Horizontal = 15, Bottom = 15 },
                     Size = new Vector2(800, 600),
-                    Child = new ExtendedOsuFileSelector(currentFile.Value?.DirectoryName ?? initialPath?.Value ?? Assembly.GetEntryAssembly()?.Location, handledExtensions)
+                    Child = new OsuFileSelector(currentFile.Value?.DirectoryName ?? initialPath?.Value ?? Assembly.GetEntryAssembly()?.Location, handledExtensions)
                     {
                         RelativeSizeAxes = Axes.Both,
                         CurrentFile = { BindTarget = currentFile }
