@@ -240,7 +240,9 @@ namespace PerformanceCalculatorGUI.Screens
 
                         var difficultyCalculator = rulesetInstance.CreateDifficultyCalculator(working);
                         var difficultyAttributes = difficultyCalculator.Calculate(RulesetHelper.ConvertToLegacyDifficultyAdjustmentMods(rulesetInstance, mods));
+
                         var performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
+                        if (rulesetInstance.ShortName == "osu") performanceCalculator = new OsuSkillsPerformanceCalculator();
 
                         var livePp = score.PP ?? 0.0;
                         var perfAttributes = performanceCalculator?.Calculate(parsedScore.ScoreInfo, difficultyAttributes);
@@ -273,6 +275,32 @@ namespace PerformanceCalculatorGUI.Screens
 
             index = 0;
             decimal nonBonusLivePP = (decimal)liveOrdered.Select(x => x.LivePP).Sum(play => Math.Pow(0.95, index++) * play);
+
+            if (rulesetInstance.ShortName == "osu")
+            {
+                List<List<double>> skillTops =
+                [
+                    plays.Select(x => ((OsuSkillsPerformanceAttributes)x.PerformanceAttributes).SliderlessAim).OrderDescending().ToList(),
+                    plays.Select(x => ((OsuSkillsPerformanceAttributes)x.PerformanceAttributes).Speed).OrderDescending().ToList(),
+                    plays.Select(x => ((OsuSkillsPerformanceAttributes)x.PerformanceAttributes).Accuracy).OrderDescending().ToList(),
+                    plays.Select(x => ((OsuSkillsPerformanceAttributes)x.PerformanceAttributes).Flashlight).OrderDescending().ToList(),
+                    plays.Select(x => ((OsuSkillsPerformanceAttributes)x.PerformanceAttributes).SliderAim).OrderDescending().ToList(),
+                    plays.Select(x => ((OsuSkillsPerformanceAttributes)x.PerformanceAttributes).Hidden).OrderDescending().ToList(),
+                    plays.Select(x => ((OsuSkillsPerformanceAttributes)x.PerformanceAttributes).HighAR).OrderDescending().ToList(),
+                    plays.Select(x => ((OsuSkillsPerformanceAttributes)x.PerformanceAttributes).LowAR).OrderDescending().ToList(),
+                ];
+
+                List<double> skillValues = skillTops
+                    .Select(s =>
+                    {
+                        int index = 0;
+                        return s.Sum(play => (Math.Pow(0.95, index++) * play));
+                    })
+                    .ToList();
+
+                index = 0;
+                totalLocalPP = (decimal)skillValues.Sum(play => Math.Pow(0.8, index++) * play);
+            }
 
             //todo: implement properly. this is pretty damn wrong.
             var playcountBonusPP = (totalLivePP - nonBonusLivePP);

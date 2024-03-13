@@ -567,6 +567,8 @@ namespace PerformanceCalculatorGUI.Screens
             var rulesetInstance = ruleset.Value.CreateInstance();
             difficultyCalculator.Value = RulesetHelper.GetExtendedDifficultyCalculator(ruleset.Value, working);
             performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
+
+            if (rulesetInstance.ShortName == "osu") performanceCalculator = new OsuSkillsPerformanceCalculator();
         }
 
         private void calculateDifficulty()
