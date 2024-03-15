@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Humanizer;
-using NuGet.Packaging.Rules;
 using osu.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
@@ -29,10 +28,8 @@ using osu.Game.Graphics.Sprites;
 using osu.Game.Graphics.UserInterface;
 using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Overlays;
-using osu.Game.Replays;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Difficulty;
-using osu.Game.Rulesets.Difficulty.Skills;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Scoring;
@@ -147,14 +144,16 @@ namespace PerformanceCalculatorGUI.Screens
         private ReplayAttributeNumberBox lazerScoreIDBox;
         private ReplayAttributeTextBox clientVersionBox;
 
-        private OsuCheckbox createCheckBox(string text, bool defaultValue = true) => new OsuCheckbox(nubOnRight: false)
+        private StatisticsContainer statisticsContainer;
+
+        private static OsuCheckbox createCheckBox(string text, bool defaultValue = true) => new OsuCheckbox(nubOnRight: false)
         {
             LabelText = text,
             Current = { Value = defaultValue },
             Origin = Anchor.Centre,
             Anchor = Anchor.Centre
         };
-        private LabelledTextBox createTextDisplay(string name, string placeholder = "") => new LabelledTextBox
+        private static LabelledTextBox createTextDisplay(string name, string placeholder = "") => new LabelledTextBox
         {
             RelativeSizeAxes = Axes.X,
             Anchor = Anchor.TopLeft,
@@ -162,7 +161,7 @@ namespace PerformanceCalculatorGUI.Screens
             PlaceholderText = placeholder
         };
 
-        private GridContainer createDoubleDisplay(Drawable[] content) => new GridContainer
+        private static GridContainer createDoubleDisplay(Drawable[] content) => new GridContainer
         {
             RelativeSizeAxes = Axes.X,
             AutoSizeAxes = Axes.Y,
@@ -178,7 +177,7 @@ namespace PerformanceCalculatorGUI.Screens
             }
         };
 
-        private GridContainer createDoubleDisplay(Drawable[] content, Dimension[] dimensions) => new GridContainer
+        private static GridContainer createDoubleDisplay(Drawable[] content, Dimension[] dimensions) => new GridContainer
         {
             RelativeSizeAxes = Axes.X,
             AutoSizeAxes = Axes.Y,
@@ -334,7 +333,7 @@ namespace PerformanceCalculatorGUI.Screens
                                                 ]),
                                                 new OsuSpriteText
                                                 {
-                                                    Margin = new MarginPadding { Left = 10f, Top = 5f, Bottom = 10.0f },
+                                                    Margin = new MarginPadding { Vertical = 10f, Bottom = 10.0f },
                                                     Origin = Anchor.TopLeft,
                                                     Height = 20,
                                                     Text = "Lazer-specific info"
@@ -344,6 +343,13 @@ namespace PerformanceCalculatorGUI.Screens
                                                     lazerScoreIDBox = new ReplayAttributeNumberBox("Online ID (lazer)", minValue: -1),
                                                     clientVersionBox = new ReplayAttributeTextBox("Client version"),
                                                 ]),
+                                                statisticsContainer = new StatisticsContainer()
+                                                {
+                                                    RelativeSizeAxes = Axes.X,
+                                                    AutoSizeAxes = Axes.Y,
+                                                    Direction = FillDirection.Vertical,
+                                                    Spacing = new Vector2(0, 2f)
+                                                }
                                             }
                                         }
                                     },
@@ -380,21 +386,12 @@ namespace PerformanceCalculatorGUI.Screens
                                                         Anchor = Anchor.Centre
                                                     }
                                                     ]),
-                                                
                                                 new OsuSpriteText
                                                 {
                                                     Margin = new MarginPadding(10.0f),
                                                     Origin = Anchor.TopLeft,
                                                     Height = 20,
-                                                    Text = "Performance Attributes"
-                                                },
-                                                performanceAttributesContainer = new FillFlowContainer
-                                                {
-                                                    Direction = FillDirection.Vertical,
-                                                    RelativeSizeAxes = Axes.X,
-                                                    Anchor = Anchor.TopLeft,
-                                                    AutoSizeAxes = Axes.Y,
-                                                    Spacing = new Vector2(0, 2f)
+                                                    Text = "Mods Settings"
                                                 },
                                                 new FillFlowContainer
                                                 {
@@ -409,7 +406,7 @@ namespace PerformanceCalculatorGUI.Screens
                                                         new RoundedButton
                                                         {
                                                             Width = 100,
-                                                            Margin = new MarginPadding { Top = 4.0f, Right = 5.0f },
+                                                            Margin = new MarginPadding { Right = 5.0f },
                                                             Action = () => { userModsSelectOverlay.Show(); },
                                                             BackgroundColour = colourProvider.Background1,
                                                             Text = "Mods"
@@ -425,30 +422,22 @@ namespace PerformanceCalculatorGUI.Screens
                                                     Scale = new Vector2(mod_selection_container_scale),
                                                     IsValidMod = mod => mod.HasImplementation && ModUtils.FlattenMod(mod).All(m => m.UserPlayable),
                                                     SelectedMods = { BindTarget = appliedMods }
+                                                },
+                                                new OsuSpriteText
+                                                {
+                                                    Margin = new MarginPadding(10.0f),
+                                                    Origin = Anchor.TopLeft,
+                                                    Height = 20,
+                                                    Text = "Performance Attributes"
+                                                },
+                                                performanceAttributesContainer = new FillFlowContainer
+                                                {
+                                                    Direction = FillDirection.Vertical,
+                                                    RelativeSizeAxes = Axes.X,
+                                                    Anchor = Anchor.TopLeft,
+                                                    AutoSizeAxes = Axes.Y,
+                                                    Spacing = new Vector2(0, 2f)
                                                 }
-
-                                                //new RoundedButton
-                                                //{
-                                                //    Anchor = Anchor.TopCentre,
-                                                //    Origin = Anchor.TopCentre,
-                                                //    Width = 250,
-                                                //    BackgroundColour = colourProvider.Background1,
-                                                //    Text = "Inspect Object Difficulty Data",
-                                                //    Action = () =>
-                                                //    {
-                                                //        if (objectInspector is not null)
-                                                //            RemoveInternal(objectInspector, true);
-
-                                                //        AddInternal(objectInspector = new ObjectInspector(working)
-                                                //        {
-                                                //            RelativeSizeAxes = Axes.Both,
-                                                //            Anchor = Anchor.Centre,
-                                                //            Origin = Anchor.Centre,
-                                                //            Size = new Vector2(0.95f)
-                                                //        });
-                                                //        objectInspector.Show();
-                                                //    }
-                                                //}
                                             }
                                         }
                                     }
@@ -645,10 +634,12 @@ namespace PerformanceCalculatorGUI.Screens
 
             lazerScoreIDBox.Text = score.ScoreInfo.OnlineID.ToString();
             clientVersionBox.Text = score.ScoreInfo.ClientVersion;
+
+            statisticsContainer.ImportContainer(score.ScoreInfo);
         }
 
-        private int safeParseInt(string s) => s == "" ? 0 :int.Parse(s);
-        private long safeParseLong(string s) => s == "" ? 0 : long.Parse(s);
+        private static int safeParseInt(string s) => s == "" ? 0 :int.Parse(s);
+        private static long safeParseLong(string s) => s == "" ? 0 : long.Parse(s);
         private Score getCurrentScore()
         {
             Score currentScore = score.DeepClone();
@@ -678,6 +669,8 @@ namespace PerformanceCalculatorGUI.Screens
 
             currentScore.ScoreInfo.OnlineID = safeParseLong(lazerScoreIDBox.Text);
             currentScore.ScoreInfo.ClientVersion = clientVersionBox.Text;
+
+            statisticsContainer.ExportContainer(ref currentScore.ScoreInfo);
 
             return currentScore;
         }
@@ -900,6 +893,7 @@ namespace PerformanceCalculatorGUI.Screens
             calculateDifficulty();
             calculatePerformance();
             populateScoreParams();
+            statisticsContainer.UpdateStatisticsContainerForRuleset(ruleset.Value);
         }
 
         // This is to make sure combo resets when classic mod is applied
@@ -1019,6 +1013,86 @@ namespace PerformanceCalculatorGUI.Screens
                 Label = name;
                 PlaceholderText = placeholder;
                 Margin = margin;
+            }
+        }
+
+        private partial class StatisticsContainer : FillFlowContainer
+        {
+            public Dictionary<HitResult, ReplayAttributeNumberBox> StatisticsContainers = new Dictionary<HitResult, ReplayAttributeNumberBox>();
+            public Dictionary<HitResult, ReplayAttributeNumberBox> MaxStatisticsContainers = new Dictionary<HitResult, ReplayAttributeNumberBox>();
+            public void UpdateStatisticsContainerForRuleset(RulesetInfo ruleset)
+            {
+                StatisticsContainers.Clear();
+                MaxStatisticsContainers.Clear();
+
+                switch (ruleset.ShortName)
+                {
+                    case "osu":
+                        Children = new Drawable[]
+                        {
+                            createDoubleDisplay(
+                            [
+                                StatisticsContainers[HitResult.LargeTickHit] = new ReplayAttributeNumberBox("Slider Tick"),
+                                MaxStatisticsContainers[HitResult.LargeTickHit] = new ReplayAttributeNumberBox("Max Slider Tick")
+                            ]),
+                            createDoubleDisplay(
+                            [
+                                StatisticsContainers[HitResult.SliderTailHit] = new ReplayAttributeNumberBox("Slider End"),
+                                MaxStatisticsContainers[HitResult.SliderTailHit] = new ReplayAttributeNumberBox("Max Slider End")
+                            ]),
+                            createDoubleDisplay(
+                            [
+                                StatisticsContainers[HitResult.LargeBonus] = new ReplayAttributeNumberBox("Spinner Bonus"),
+                                MaxStatisticsContainers[HitResult.LargeBonus] = new ReplayAttributeNumberBox("Max Spinner Bonus")
+                            ]),
+                            createDoubleDisplay(
+                            [
+                                StatisticsContainers[HitResult.SmallBonus] = new ReplayAttributeNumberBox("Spinner Spin"),
+                                MaxStatisticsContainers[HitResult.SmallBonus] = new ReplayAttributeNumberBox("Max Spinner Spin")
+                            ])
+                        };
+                        return;
+                }
+            }
+
+            public void ImportContainer(ScoreInfo scoreInfo)
+            {
+                foreach (var key in scoreInfo.Statistics.Keys)
+                {
+                    if (StatisticsContainers.TryGetValue(key, out var result))
+                        result.Text = scoreInfo.Statistics[key].ToString();
+                }
+
+                foreach (var key in scoreInfo.MaximumStatistics.Keys)
+                {
+                    if (MaxStatisticsContainers.TryGetValue(key, out var result))
+                        result.Text = scoreInfo.MaximumStatistics[key].ToString();
+                }
+            }
+
+            public void ExportContainer(ref ScoreInfo scoreInfo)
+            {
+                foreach (var key in StatisticsContainers.Keys)
+                {
+                    scoreInfo.Statistics.Add(key, safeParseInt(StatisticsContainers[key].Text));
+                }
+
+                foreach (var key in MaxStatisticsContainers.Keys)
+                {
+                    scoreInfo.MaximumStatistics.Add(key, safeParseInt(MaxStatisticsContainers[key].Text));
+                }
+
+                int c300 = scoreInfo.GetCount300() ?? 0;
+                int c100 = scoreInfo.GetCount100() ?? 0;
+                int c50 = scoreInfo.GetCount50() ?? 0;
+                int c0 = scoreInfo.GetCountMiss() ?? 0;
+
+                scoreInfo.Statistics.TryAdd(HitResult.Great, c300);
+                scoreInfo.Statistics.TryAdd(HitResult.Good, c100);
+                scoreInfo.Statistics.TryAdd(HitResult.Meh, c50);
+                scoreInfo.Statistics.TryAdd(HitResult.Miss, c0);
+
+                scoreInfo.MaximumStatistics.TryAdd(HitResult.Great, c300 + c100 + c50 + c0);
             }
         }
     }
