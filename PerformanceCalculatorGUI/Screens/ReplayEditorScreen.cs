@@ -1074,12 +1074,12 @@ namespace PerformanceCalculatorGUI.Screens
             {
                 foreach (var key in StatisticsContainers.Keys)
                 {
-                    scoreInfo.Statistics.Add(key, safeParseInt(StatisticsContainers[key].Text));
+                    scoreInfo.Statistics[key] = safeParseInt(StatisticsContainers[key].Text);
                 }
 
                 foreach (var key in MaxStatisticsContainers.Keys)
                 {
-                    scoreInfo.MaximumStatistics.Add(key, safeParseInt(MaxStatisticsContainers[key].Text));
+                    scoreInfo.MaximumStatistics[key] = safeParseInt(MaxStatisticsContainers[key].Text);
                 }
 
                 int c300 = scoreInfo.GetCount300() ?? 0;
@@ -1087,12 +1087,12 @@ namespace PerformanceCalculatorGUI.Screens
                 int c50 = scoreInfo.GetCount50() ?? 0;
                 int c0 = scoreInfo.GetCountMiss() ?? 0;
 
-                scoreInfo.Statistics.TryAdd(HitResult.Great, c300);
-                scoreInfo.Statistics.TryAdd(HitResult.Good, c100);
-                scoreInfo.Statistics.TryAdd(HitResult.Meh, c50);
-                scoreInfo.Statistics.TryAdd(HitResult.Miss, c0);
+                scoreInfo.Statistics[HitResult.Great] = c300;
+                scoreInfo.Statistics[HitResult.Ok] = c100;
+                scoreInfo.Statistics[HitResult.Meh] = c50;
+                scoreInfo.Statistics[HitResult.Miss] = c0;
 
-                scoreInfo.MaximumStatistics.TryAdd(HitResult.Great, c300 + c100 + c50 + c0);
+                scoreInfo.MaximumStatistics[HitResult.Great] = c300 + c100 + c50 + c0;
             }
         }
     }
