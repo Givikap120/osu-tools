@@ -31,6 +31,7 @@ using osu.Game.Overlays;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Mods;
+using osu.Game.Rulesets.Osu.Mods;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Scoring;
 using osu.Game.Scoring.Legacy;
@@ -1051,6 +1052,10 @@ namespace PerformanceCalculatorGUI.Screens
                                 MaxStatisticsContainers[HitResult.SmallBonus] = new ReplayAttributeNumberBox("Max Spinner Spin")
                             ])
                         };
+
+                        // Handle CL scores sliderends
+                        StatisticsContainers[HitResult.SmallTickHit] = StatisticsContainers[HitResult.SliderTailHit];
+                        MaxStatisticsContainers[HitResult.SmallTickHit] = MaxStatisticsContainers[HitResult.SliderTailHit];
                         return;
                 }
             }
@@ -1082,17 +1087,16 @@ namespace PerformanceCalculatorGUI.Screens
                     scoreInfo.MaximumStatistics[key] = safeParseInt(MaxStatisticsContainers[key].Text);
                 }
 
-                int c300 = scoreInfo.GetCount300() ?? 0;
-                int c100 = scoreInfo.GetCount100() ?? 0;
-                int c50 = scoreInfo.GetCount50() ?? 0;
-                int c0 = scoreInfo.GetCountMiss() ?? 0;
-
-                scoreInfo.Statistics[HitResult.Great] = c300;
-                scoreInfo.Statistics[HitResult.Ok] = c100;
-                scoreInfo.Statistics[HitResult.Meh] = c50;
-                scoreInfo.Statistics[HitResult.Miss] = c0;
-
-                scoreInfo.MaximumStatistics[HitResult.Great] = c300 + c100 + c50 + c0;
+                if (scoreInfo.Mods.Any(h => h is OsuModClassic cl && cl.NoSliderHeadAccuracy.Value))
+                {
+                    scoreInfo.Statistics.Remove(HitResult.SliderTailHit);
+                    scoreInfo.MaximumStatistics.Remove(HitResult.SliderTailHit);
+                }
+                else if (scoreInfo.Ruleset.ShortName == "osu")
+                {
+                    scoreInfo.MaximumStatistics.Remove(HitResult.SmallTickHit);
+                    scoreInfo.Statistics.Remove(HitResult.SmallTickHit);
+                }
             }
         }
     }
