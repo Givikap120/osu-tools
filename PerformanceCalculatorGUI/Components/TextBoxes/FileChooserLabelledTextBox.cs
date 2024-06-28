@@ -105,7 +105,7 @@ namespace PerformanceCalculatorGUI.Components.TextBoxes
                 OnFocused?.Invoke();
                 base.OnFocus(e);
 
-                GetContainingInputManager().TriggerFocusContention(this);
+                GetContainingFocusManager()?.TriggerFocusContention(this);
             }
         }
 
