@@ -97,7 +97,7 @@ namespace PerformanceCalculatorGUI.Components
         {
             graphsContainer.Clear();
 
-            var skills = val.NewValue.Where(x => x is StrainSkill or StrainDecaySkill).ToArray();
+            var skills = val.NewValue.Where(x => x is StrainSkill or StrainDecaySkill).ToArray(); // GraphSkill StrainSkill
 
             // dont bother if there are no strain skills to draw
             if (skills.Length == 0)
@@ -107,13 +107,13 @@ namespace PerformanceCalculatorGUI.Components
                 return;
             }
 
-            var graphAlpha = Math.Min(1.5f / skills.Length, 0.9f);
+            float graphAlpha = 0.375f;
 
             List<(float val, string tooltip)[]> strainLists = new List<(float val, string tooltip)[]>();
 
             foreach (var skill in skills)
             {
-                var strains = ((StrainSkill)skill).GetCurrentStrainPeaks().ToArray();
+                var strains = ((StrainSkill)skill).GetCurrentStrainPeaks().ToArray();  // GraphSkill StrainSkill
 
                 var skillStrainList = new List<(float val, string tooltip)>();
 
@@ -228,8 +228,12 @@ namespace PerformanceCalculatorGUI.Components
                 colours.Green,
                 colours.Red,
                 colours.Yellow,
-                colours.Pink,
-                colours.Cyan
+                colours.GrayF,
+                colours.Green0,
+                colours.Orange0,
+                colours.Blue0,
+                colours.Red0,
+
             };
 
             Add(new Container
