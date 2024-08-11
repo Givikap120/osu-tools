@@ -7,7 +7,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using osu.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
@@ -17,6 +16,7 @@ using osu.Framework.Platform;
 using osu.Game.Beatmaps;
 using osu.Game.Database;
 using osu.Game.Graphics.Containers;
+using osu.Game.Graphics.UserInterface;
 using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Overlays;
@@ -44,6 +44,8 @@ namespace PerformanceCalculatorGUI.Screens
         private LabelledTextBox usernameTextBox;
         private Container userPanelContainer;
         private UserCard userPanel;
+
+        private OsuCheckbox rankedCheckbox;
 
         private string[] currentUser;
 
@@ -98,6 +100,7 @@ namespace PerformanceCalculatorGUI.Screens
                                 ColumnDimensions = new[]
                                 {
                                     new Dimension(),
+                                    new Dimension(GridSizeMode.Relative, 0.15f),
                                     new Dimension(GridSizeMode.AutoSize)
                                 },
                                 RowDimensions = new[]
@@ -115,6 +118,17 @@ namespace PerformanceCalculatorGUI.Screens
                                             Label = "Username",
                                             PlaceholderText = "peppy",
                                             CommitOnFocusLoss = false
+                                        },
+                                        rankedCheckbox = new OsuCheckbox(nubOnRight: false)
+                                        {
+                                            LabelText = "Allow unranked maps",
+                                            Current = { Value = true },
+                                            Padding = new MarginPadding
+                                            {
+                                                Horizontal = 15f
+                                            },
+                                            Origin = Anchor.Centre,
+                                            Anchor = Anchor.Centre
                                         },
                                         calculationButton = new StatefulButton("Start calculation")
                                         {
@@ -157,8 +171,8 @@ namespace PerformanceCalculatorGUI.Screens
 
             usernameTextBox.OnCommit += (_, _) => { calculateProfile(usernameTextBox.Current.Value); };
 
-            if (RuntimeInfo.IsDesktop)
-                HotReloadCallbackReceiver.CompilationFinished += _ => Schedule(() => { calculateProfile(currentUser[0]); });
+            //if (RuntimeInfo.IsDesktop)
+            //    HotReloadCallbackReceiver.CompilationFinished += _ => Schedule(() => { calculateProfile(currentUser[0]); });
         }
 
         private void calculateProfile(string username)
@@ -211,7 +225,7 @@ namespace PerformanceCalculatorGUI.Screens
                 var storage = gameHost.GetStorage(configManager.GetBindable<string>(Settings.OsuFolderPath).Value);
                 var realmAccess = new RealmAccess(storage, @"client.realm");
 
-                var realmScores = GetRealmScores(realmAccess);
+                var realmScores = getRealmScores(realmAccess);
 
                 foreach (var scoreList in realmScores)
                 {
@@ -237,7 +251,12 @@ namespace PerformanceCalculatorGUI.Screens
                         if (token.IsCancellationRequested)
                             return;
 
-                        var difficultyAttributes = difficultyCalculator.Calculate(RulesetHelper.ConvertToLegacyDifficultyAdjustmentMods(rulesetInstance, score.Mods));
+                        var difficultyAttributes = difficultyCalculator.Calculate(score.Mods);
+
+                        // Sanity check
+                        if (difficultyAttributes.StarRating > 15 && score.BeatmapInfo.Status != BeatmapOnlineStatus.Ranked)
+                            continue;
+
                         var perfAttributes = await performanceCalculator?.CalculateAsync(score, difficultyAttributes, token)!;
 
                         score.PP = perfAttributes?.Total ?? 0.0;
@@ -306,15 +325,17 @@ namespace PerformanceCalculatorGUI.Screens
             calculationCancellatonToken?.Dispose();
             calculationCancellatonToken = null;
         }
-        private List<List<ScoreInfo>> GetRealmScores(RealmAccess realm)
+        private List<List<ScoreInfo>> getRealmScores(RealmAccess realm)
         {
             var realmScores = realm.Run(r => r.All<ScoreInfo>().Detach());
 
+            bool allowUnranked = rankedCheckbox.Current.Value;
+
             realmScores.RemoveAll(x => !currentUser.Contains(x.User.Username)
+                                    || x.BeatmapInfo == null
                                     || x.Ruleset.OnlineID != ruleset.Value.OnlineID
-                                    || x.BeatmapInfo.Status != BeatmapOnlineStatus.Ranked
-                                    || !x.IsLegacyScore && x.OnlineID == -1
-                                    || x.IsLegacyScore && x.LegacyOnlineID == 0);
+                                    || (!allowUnranked && x.BeatmapInfo.Status != BeatmapOnlineStatus.Ranked)
+                                    );
 
             List<List<ScoreInfo>> splitScores = realmScores.GroupBy(g => g.BeatmapHash)
                                                             .Select(s => s.ToList())
