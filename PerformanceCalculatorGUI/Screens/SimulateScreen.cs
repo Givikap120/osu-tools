@@ -9,6 +9,7 @@ using osu.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
 using osu.Framework.Bindables;
+using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
@@ -18,6 +19,7 @@ using osu.Framework.Input.Events;
 using osu.Framework.Input.States;
 using osu.Framework.Logging;
 using osu.Framework.Threading;
+using osu.Game.Beatmaps;
 using osu.Game.Configuration;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
@@ -28,6 +30,8 @@ using osu.Game.Rulesets;
 using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Difficulty.Skills;
 using osu.Game.Rulesets.Mods;
+using osu.Game.Rulesets.Osu.Difficulty;
+using osu.Game.Rulesets.Osu.Mods;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Scoring;
 using osu.Game.Screens.Play.HUD;
@@ -37,6 +41,7 @@ using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
 using PerformanceCalculatorGUI.Screens.ObjectInspection;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PerformanceCalculatorGUI.Screens
 {
@@ -277,7 +282,7 @@ namespace PerformanceCalculatorGUI.Screens
                                                     Label = "Score",
                                                     PlaceholderText = "1000000",
                                                     MinValue = 0,
-                                                    MaxValue = 1000000,
+                                                    MaxValue = int.MaxValue,
                                                     Value = { Value = 1000000 }
                                                 },
                                                 new OsuSpriteText
@@ -290,6 +295,16 @@ namespace PerformanceCalculatorGUI.Screens
                                                 },
                                                 new FillFlowContainer
                                                 {
+                                                    Name = "Test container",
+                                                    Height = 40,
+                                                    Direction = FillDirection.Horizontal,
+                                                    RelativeSizeAxes = Axes.X,
+                                                    Anchor = Anchor.TopLeft,
+                                                    AutoSizeAxes = Axes.Y,
+                                                },
+                                                
+                                                new FillFlowContainer
+                                                {
                                                     Name = "Mods container",
                                                     Height = 40,
                                                     Direction = FillDirection.Horizontal,
@@ -298,6 +313,38 @@ namespace PerformanceCalculatorGUI.Screens
                                                     AutoSizeAxes = Axes.Y,
                                                     Children = new Drawable[]
                                                     {
+                                                        new RoundedButton
+                                                        {
+                                                            Width = 80,
+                                                            Margin = new MarginPadding { Top = 4.0f, Right = 5.0f },
+                                                            Action = testAR,
+                                                            BackgroundColour = colourProvider.Background1,
+                                                            Text = "Test AR"
+                                                        },
+                                                        new RoundedButton
+                                                        {
+                                                            Width = 80,
+                                                            Margin = new MarginPadding { Top = 4.0f, Right = 5.0f },
+                                                            Action = testDT,
+                                                            BackgroundColour = colourProvider.Background1,
+                                                            Text = "Test RA"
+                                                        },
+                                                        new RoundedButton
+                                                        {
+                                                            Width = 120,
+                                                            Margin = new MarginPadding { Top = 4.0f, Right = 5.0f },
+                                                            Action = testDTfixedAR,
+                                                            BackgroundColour = colourProvider.Background1,
+                                                            Text = "Test RA fixed AR"
+                                                        },
+                                                        new RoundedButton
+                                                        {
+                                                            Width = 80,
+                                                            Margin = new MarginPadding { Top = 4.0f, Right = 5.0f },
+                                                            Action = testCS,
+                                                            BackgroundColour = colourProvider.Background1,
+                                                            Text = "Test CS"
+                                                        },
                                                         new RoundedButton
                                                         {
                                                             Width = 100,
@@ -673,6 +720,11 @@ namespace PerformanceCalculatorGUI.Screens
             missesTextBox.Hide();
             scoreTextBox.Hide();
 
+            if (ruleset.Value.ShortName == "osu")
+            {
+                //scoreTextBox.Text = string.Empty;
+                //scoreTextBox.Show();
+            }
             if (ruleset.Value.ShortName == "osu" || ruleset.Value.ShortName == "taiko" || ruleset.Value.ShortName == "fruits")
             {
                 updateAccuracyParams(fullScoreDataSwitch.Current.Value);
@@ -894,6 +946,181 @@ namespace PerformanceCalculatorGUI.Screens
                 Logger.Log(message, level: LogLevel.Error);
 
             notificationDisplay.Display(new Notification(message));
+        }
+
+        private T getModOrAdd<T>(IList<Mod> mods) where T : Mod, new()
+        {
+            T desiredMod;
+            if (appliedMods.Value.Any(m => m is T))
+            {
+                desiredMod = (T)appliedMods.Value.First(m => m is T);
+            }
+            else
+            {
+                desiredMod = new T();
+                mods.Add(desiredMod);
+            }
+            return desiredMod;
+        }
+        private (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance) calc(IReadOnlyList<Mod> mods)
+        {
+            var diffAttributes = difficultyCalculator.Value.Calculate(mods);
+
+            int? countGood = null, countMeh = null;
+
+            if (fullScoreDataSwitch.Current.Value)
+            {
+                countGood = goodsTextBox.Value.Value;
+                countMeh = mehsTextBox.Value.Value;
+            }
+
+            var score = RulesetHelper.AdjustManiaScore(scoreTextBox.Value.Value, appliedMods.Value);
+
+            var beatmap = working.GetPlayableBeatmap(ruleset.Value, appliedMods.Value);
+
+            var accuracy = accuracyTextBox.Value.Value / 100.0;
+            Dictionary<HitResult, int> statistics = new Dictionary<HitResult, int>();
+
+            if (ruleset.Value.OnlineID != -1)
+            {
+                statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, accuracyTextBox.Value.Value / 100.0, beatmap, missesTextBox.Value.Value, countMeh, countGood);
+                accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, statistics);
+            }
+
+            var ppAttributes = performanceCalculator?.Calculate(new ScoreInfo(beatmap.BeatmapInfo, ruleset.Value)
+            {
+                Accuracy = accuracy,
+                MaxCombo = comboTextBox.Value.Value,
+                Statistics = statistics,
+                Mods = [.. appliedMods.Value],
+                TotalScore = score,
+                Ruleset = ruleset.Value
+            }, diffAttributes);
+
+            return ((OsuDifficultyAttributes)diffAttributes, (OsuPerformanceAttributes)ppAttributes);
+        }
+
+        private double getCognition(OsuPerformanceAttributes performance)
+        {
+            //return performance.Cognition;
+            return double.NaN;
+        }
+        private void testAR()
+        {
+            List<Mod> localMods = new List<Mod>(appliedMods.Value);
+
+            OsuModDifficultyAdjust DA = getModOrAdd<OsuModDifficultyAdjust>(localMods);
+            float? savedAR = DA.ApproachRate.Value;
+
+            for (float AR = 0; AR <= 11.01f;)
+            {
+                DA.ApproachRate.Value = AR;
+                var (difficulty, performance) = calc(localMods);
+
+                if (Math.Abs(AR - difficulty.ApproachRate) > 0.01)
+                    Console.WriteLine($"AR{AR:0.##}->{difficulty.ApproachRate:0.##}: {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+                else
+                    Console.WriteLine($"AR{AR:0.##}: {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+
+                if (AR < 3.99f) AR += 0.1f; //1
+                else if (AR < 3.99f) AR += 0.1f; //0.5
+                else if (AR < 6.99f) AR += 0.1f;
+                else if (AR < 9.99f) AR += 0.1f;
+                else AR += 0.1f;
+            }
+
+            if (savedAR != null) DA.ApproachRate.Value = savedAR;
+        }
+
+        private void testDT()
+        {
+            List<Mod> localMods = new List<Mod>(appliedMods.Value);
+
+            // HALF TIME
+            OsuModHalfTime HT = getModOrAdd<OsuModHalfTime>(localMods);
+            for (float rate = 0.5f; rate <= 0.99f; rate += 0.05f)
+            {
+                HT.SpeedChange.Value = rate;
+                var (difficulty, performance) = calc(localMods);
+                Console.WriteLine($"{rate:0.0#}x (AR{difficulty.ApproachRate:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+            }
+
+            // NO MOD
+            localMods = new List<Mod>(appliedMods.Value);
+            {
+                var (difficulty, performance) = calc(localMods);
+                Console.WriteLine($"1.0x (AR{difficulty.ApproachRate:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+            }
+
+            // DOUBLE TIME
+            OsuModDoubleTime DT = getModOrAdd<OsuModDoubleTime>(localMods);
+            for (float rate = 1.05f; rate <= 2.01f; rate += 0.05f)
+            {
+                DT.SpeedChange.Value = rate;
+                var (difficulty, performance) = calc(localMods);
+                Console.WriteLine($"{rate:0.0#}x (AR{difficulty.ApproachRate:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+            }
+        }
+
+        private float getARforRA(float desiredAR, float rate)
+        {
+            double preempt = IBeatmapDifficultyInfo.DifficultyRange(desiredAR, 1800, 1200, 450) * rate;
+            return (float)IBeatmapDifficultyInfo.InverseDifficultyRange(preempt, 1800, 1200, 450);
+        }
+        private void testDTfixedAR()
+        {
+            List<Mod> localMods = new List<Mod>(appliedMods.Value);
+
+            difficultyAttributes = difficultyCalculator.Value.Calculate(localMods);
+            float NMAR = (float)((OsuDifficultyAttributes)difficultyAttributes).ApproachRate;
+
+            // HALF TIME
+            OsuModHalfTime HT = getModOrAdd<OsuModHalfTime>(localMods);
+            OsuModDifficultyAdjust DA = getModOrAdd<OsuModDifficultyAdjust>(localMods);
+            float? savedAR = DA.ApproachRate.Value;
+            for (float rate = 0.5f; rate <= 0.99f; rate += 0.05f)
+            {
+                HT.SpeedChange.Value = rate;
+                DA.ApproachRate.Value = getARforRA(NMAR, rate);
+                var (difficulty, performance) = calc(localMods);
+                Console.WriteLine($"{rate:0.0#}x (AR{DA.ApproachRate.Value:0.##}->{difficulty.ApproachRate:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+            }
+
+            // NO MOD
+            localMods = new List<Mod>(appliedMods.Value);
+            if (savedAR.IsNotNull()) DA = getModOrAdd<OsuModDifficultyAdjust>(localMods);
+            {
+                if (savedAR.IsNotNull()) DA.ApproachRate.Value = savedAR;
+                var (difficulty, performance) = calc(localMods);
+                Console.WriteLine($"1.0x (AR{difficulty.ApproachRate:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+            }
+
+            // DOUBLE TIME
+            OsuModDoubleTime DT = getModOrAdd<OsuModDoubleTime>(localMods);
+            DA = getModOrAdd<OsuModDifficultyAdjust>(localMods);
+            for (float rate = 1.05f; rate <= 2.01f; rate += 0.05f)
+            {
+                DT.SpeedChange.Value = rate;
+                DA.ApproachRate.Value = getARforRA(NMAR, rate);
+                var (difficulty, performance) = calc(localMods);
+                Console.WriteLine($"{rate:0.0#}x (AR{DA.ApproachRate.Value:0.##}->{difficulty.ApproachRate:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+            }
+
+            if (savedAR != null) DA.ApproachRate.Value = savedAR;
+        }
+
+        private void testCS()
+        {
+            List<Mod> localMods = new List<Mod>(appliedMods.Value);
+
+            // HALF TIME
+            OsuModDifficultyAdjust DA = getModOrAdd<OsuModDifficultyAdjust>(localMods);
+            for (float CS = 0f; CS <= 7.01f; CS += 0.5f)
+            {
+                DA.CircleSize.Value = CS;
+                var (difficulty, performance) = calc(localMods);
+                Console.WriteLine($"CS{CS:0.0#} (AR{difficulty.ApproachRate:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+            }
         }
     }
 }

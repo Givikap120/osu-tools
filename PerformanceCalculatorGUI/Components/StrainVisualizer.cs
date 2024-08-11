@@ -51,7 +51,7 @@ namespace PerformanceCalculatorGUI.Components
         {
             graphsContainer.Clear();
 
-            var skills = val.NewValue.Where(x => x is StrainSkill or StrainDecaySkill).ToArray();
+            var skills = val.NewValue.Where(x => x is StrainSkill or StrainDecaySkill).ToArray(); // GraphSkill StrainSkill
 
             // dont bother if there are no strain skills to draw
             if (skills.Length == 0)
@@ -137,8 +137,12 @@ namespace PerformanceCalculatorGUI.Components
                 colours.Green,
                 colours.Red,
                 colours.Yellow,
-                colours.Pink,
-                colours.Cyan
+                colours.GrayF,
+                colours.Green0,
+                colours.Orange0,
+                colours.Blue0,
+                colours.Red0,
+
             };
 
             Add(new Container
