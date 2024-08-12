@@ -9,7 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
-using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Logging;
@@ -17,22 +16,16 @@ using osu.Framework.Platform;
 using osu.Game.Beatmaps;
 using osu.Game.Database;
 using osu.Game.Graphics.Containers;
-using osu.Game.Graphics.UserInterface;
 using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Overlays;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Difficulty;
-using osu.Game.Rulesets.Mania.Mods;
-using osu.Game.Rulesets.Mods;
-using osu.Game.Rulesets.Osu.Mods;
 using osu.Game.Scoring;
-using osu.Game.Utils;
 using osuTK.Graphics;
 using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
-using static osu.Game.Overlays.Mods.BeatmapAttributesDisplay;
 
 namespace PerformanceCalculatorGUI.Screens
 {
@@ -52,7 +45,7 @@ namespace PerformanceCalculatorGUI.Screens
         private Container userPanelContainer;
         private UserCard userPanel;
 
-        private OsuCheckbox rankedCheckbox;
+        private RealmSettingsMenu settingsMenu;
 
         private string[] currentUser;
 
@@ -107,7 +100,7 @@ namespace PerformanceCalculatorGUI.Screens
                                 ColumnDimensions = new[]
                                 {
                                     new Dimension(),
-                                    new Dimension(GridSizeMode.Relative, 0.15f),
+                                    new Dimension(GridSizeMode.AutoSize),
                                     new Dimension(GridSizeMode.AutoSize)
                                 },
                                 RowDimensions = new[]
@@ -126,22 +119,13 @@ namespace PerformanceCalculatorGUI.Screens
                                             PlaceholderText = "peppy",
                                             CommitOnFocusLoss = false
                                         },
-                                        rankedCheckbox = new OsuCheckbox(nubOnRight: false)
-                                        {
-                                            LabelText = "Allow unranked maps",
-                                            Padding = new MarginPadding
-                                            {
-                                                Horizontal = 15f
-                                            },
-                                            Origin = Anchor.Centre,
-                                            Anchor = Anchor.Centre
-                                        },
                                         calculationButton = new StatefulButton("Start calculation")
                                         {
                                             Width = 150,
                                             Height = username_container_height,
                                             Action = () => { calculateProfile(usernameTextBox.Current.Value); }
-                                        }
+                                        },
+                                        settingsMenu = new RealmSettingsMenu()
                                     }
                                 }
                             },
@@ -176,9 +160,6 @@ namespace PerformanceCalculatorGUI.Screens
             };
 
             usernameTextBox.OnCommit += (_, _) => { calculateProfile(usernameTextBox.Current.Value); };
-
-            //if (RuntimeInfo.IsDesktop)
-            //    HotReloadCallbackReceiver.CompilationFinished += _ => Schedule(() => { calculateProfile(currentUser[0]); });
         }
 
         private void calculateProfile(string username)
@@ -257,7 +238,7 @@ namespace PerformanceCalculatorGUI.Screens
                         Schedule(() => loadingLayer.Text.Value = $"Calculating {player.Username}'s scores... {currentScoresCount} / {totalScoresCount}");
 
                         DifficultyAttributes difficultyAttributes;
-                        int modsHash = getModsHash(score.Mods, working.BeatmapInfo.Difficulty, ruleset.Value);
+                        int modsHash = RulesetHelper.GenerateModsHash(score.Mods, working.BeatmapInfo.Difficulty, ruleset.Value);
 
                         if (attributesCache.ContainsKey(modsHash))
                         {
@@ -270,7 +251,7 @@ namespace PerformanceCalculatorGUI.Screens
                         }
 
                         // Sanity check for aspire maps till my slider fix won't get merged
-                        if (difficultyAttributes.StarRating > 15 && score.BeatmapInfo.Status != BeatmapOnlineStatus.Ranked)
+                        if (difficultyAttributes.StarRating > 14 && score.BeatmapInfo.Status != BeatmapOnlineStatus.Ranked)
                             continue;
 
                         var perfAttributes = await performanceCalculator?.CalculateAsync(score, difficultyAttributes, token)!;
@@ -281,6 +262,9 @@ namespace PerformanceCalculatorGUI.Screens
                         currentScoresCount++;
                     }
                     var topScore = tempScores.MaxBy(s => s.SoloScore.PP);
+                    if (topScore == null)
+                        continue;
+
                     plays.Add(topScore);
                     Schedule(() => scores.Add(new DrawableProfileScore(topScore)));
                 }
@@ -341,81 +325,25 @@ namespace PerformanceCalculatorGUI.Screens
             calculationCancellatonToken = null;
         }
 
-        private int getModsHash(Mod[] mods, BeatmapDifficulty difficulty, RulesetInfo ruleset)
-        {
-            // Rate changing mods
-            double rate = ModUtils.CalculateRateWithMods(mods);
-
-            int hash = 0;
-
-            if (ruleset.OnlineID == 0) // For osu we also have attributes CS and OD, and mods CL, FL and FLHD
-            {
-                BeatmapDifficulty d = new BeatmapDifficulty(difficulty);
-
-                foreach (var mod in mods.OfType<IApplicableToDifficulty>())
-                    mod.ApplyToDifficulty(d);
-
-                bool isSliderAccuracy = mods.OfType<OsuModClassic>().All(m => !m.NoSliderHeadAccuracy.Value);
-
-                byte flHash = 0;
-                if (mods.Any(h => h is OsuModFlashlight))
-                {
-                    if (!mods.Any(h => h is OsuModHidden)) flHash = 1;
-                    else flHash = 2;
-                }
-
-                hash = HashCode.Combine(rate, d.CircleSize, d.OverallDifficulty, isSliderAccuracy, flHash);
-            }
-            else if (ruleset.OnlineID == 1) // For taiko we only have rate
-            {
-                hash = rate.GetHashCode();
-            }
-            else if (ruleset.OnlineID == 2) // For catch we have rate and CS
-            {
-                BeatmapDifficulty d = new BeatmapDifficulty(difficulty);
-
-                foreach (var mod in mods.OfType<IApplicableToDifficulty>())
-                    mod.ApplyToDifficulty(d);
-
-                hash = HashCode.Combine(rate, d.CircleSize);
-            }
-            else if (ruleset.OnlineID == 3) // Mania is using rate, and keys data for converts
-            {
-                int keyCount = 0;
-
-                if (mods.FirstOrDefault(h => h is ManiaKeyMod) is ManiaKeyMod mod)
-                    keyCount = mod.KeyCount;
-
-                bool isDualStages = mods.Any(h => h is ManiaModDualStages);
-
-                hash = HashCode.Combine(rate, keyCount, isDualStages);
-            }
-
-            return hash;
-        }
-
         private List<List<ScoreInfo>> getRealmScores(RealmAccess realm)
         {
             Schedule(() => loadingLayer.Text.Value = "Getting user scores...");
             var realmScores = realm.Run(r => r.All<ScoreInfo>().Detach());
 
-            bool allowUnranked = rankedCheckbox.Current.Value;
-
             Schedule(() => loadingLayer.Text.Value = "Filtering scores...");
 
             realmScores.RemoveAll(x => !currentUser.Contains(x.User.Username) // Wrong username
                                     || x.BeatmapInfo == null // No map for score
-                                    || x.Passed == false // Failed score
-                                    || x.DeletePending // Marked for deletion
+                                    || x.Passed == false || x.Rank == ScoreRank.F // Failed score
                                     || x.Ruleset.OnlineID != ruleset.Value.OnlineID // Incorrect ruleset
-                                    || (!allowUnranked && !BeatmapSetOnlineStatusExtensions.GrantsPerformancePoints(x.BeatmapInfo.Status))
+                                    || settingsMenu.ShouldBeFiltered(x) // Customisable filters
                                     );
 
             List<List<ScoreInfo>> splitScores = realmScores.GroupBy(g => g.BeatmapHash)
                                                             .Select(s => s.ToList())
                                                             .ToList();
-            bool enableScorev1ning = true;
-            if (enableScorev1ning)
+            // Simulate scorev1 if enabled
+            if (settingsMenu.IsScorev1ningEnabled)
             {
                 var rulesetInstance = ruleset.Value.CreateInstance();
 
