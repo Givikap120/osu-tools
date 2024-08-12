@@ -218,7 +218,7 @@ namespace PerformanceCalculatorGUI.Screens
                 if (token.IsCancellationRequested)
                     return;
 
-                var plays = new List<ExtendedScore>();
+                var plays = new List<ProfileScore>();
 
                 var rulesetInstance = ruleset.Value.CreateInstance();
 
@@ -244,7 +244,7 @@ namespace PerformanceCalculatorGUI.Screens
                                                             .ToList();
                     sortedScores.AddRange(scoreList.Where(s => !s.IsLegacyScore));
 
-                    List<ExtendedScore> tempScores = [];
+                    List<ProfileScore> tempScores = [];
 
                     foreach (var score in sortedScores)
                     {
@@ -261,12 +261,14 @@ namespace PerformanceCalculatorGUI.Screens
 
                         score.PP = perfAttributes?.Total ?? 0.0;
 
-                        var livePp = 0; //Don't know how to get live pp with this method
-                        tempScores.Add(new ExtendedScore(score, livePp, perfAttributes));
+                        if (score.PP > 400)
+                            continue;
+
+                        tempScores.Add(new ProfileScore(score, perfAttributes));
                     }
                     var topScore = tempScores.MaxBy(s => s.SoloScore.PP);
                     plays.Add(topScore);
-                    Schedule(() => scores.Add(new ExtendedProfileScore(topScore)));
+                    Schedule(() => scores.Add(new DrawableProfileScore(topScore)));
                 }
 
                 if (token.IsCancellationRequested)
@@ -279,7 +281,6 @@ namespace PerformanceCalculatorGUI.Screens
                     foreach (var play in plays)
                     {
                         play.Position.Value = localOrdered.IndexOf(play) + 1;
-                        play.PositionChange.Value = play.Position.Value;
                         scores.SetLayoutPosition(scores[plays.IndexOf(play)], localOrdered.IndexOf(play));
                     }
                 });

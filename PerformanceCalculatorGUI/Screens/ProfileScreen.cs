@@ -197,7 +197,7 @@ namespace PerformanceCalculatorGUI.Screens
                 if (token.IsCancellationRequested)
                     return;
 
-                var plays = new List<ExtendedScore>();
+                var plays = new List<ExtendedProfileScore>();
 
                 var rulesetInstance = ruleset.Value.CreateInstance();
 
@@ -228,10 +228,10 @@ namespace PerformanceCalculatorGUI.Screens
                     var perfAttributes = await performanceCalculator?.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, token)!;
                     score.PP = perfAttributes?.Total ?? 0.0;
 
-                    var extendedScore = new ExtendedScore(score, livePp, perfAttributes);
+                    var extendedScore = new ExtendedProfileScore(score, livePp, perfAttributes);
                     plays.Add(extendedScore);
 
-                    Schedule(() => scores.Add(new ExtendedProfileScore(extendedScore)));
+                    Schedule(() => scores.Add(new DrawableExtendedProfileScore(extendedScore)));
                 }
 
                 if (token.IsCancellationRequested)

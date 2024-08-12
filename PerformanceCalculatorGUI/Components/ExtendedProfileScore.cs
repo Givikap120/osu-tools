@@ -31,7 +31,7 @@ using PerformanceCalculatorGUI.Components.TextBoxes;
 
 namespace PerformanceCalculatorGUI.Components
 {
-    public class ExtendedScore
+    public class ExtendedProfileScore
     {
         public SoloScoreInfo SoloScore { get; }
         public double LivePP { get; }
@@ -41,13 +41,13 @@ namespace PerformanceCalculatorGUI.Components
 
         public PerformanceAttributes PerformanceAttributes { get; }
 
-        public ExtendedScore(SoloScoreInfo score, double livePP, PerformanceAttributes attributes)
+        public ExtendedProfileScore(SoloScoreInfo score, double livePP, PerformanceAttributes attributes)
         {
             SoloScore = score;
             PerformanceAttributes = attributes;
             LivePP = livePP;
         }
-        public ExtendedScore(ScoreInfo score, double livePP, PerformanceAttributes attributes)
+        public ExtendedProfileScore(ScoreInfo score, double livePP, PerformanceAttributes attributes)
         {
             SoloScore = ToSoloScoreInfo(score);
             PerformanceAttributes = attributes;
@@ -85,30 +85,7 @@ namespace PerformanceCalculatorGUI.Components
 
     }
 
-    public partial class ExtendedProfileItemContainer : ProfileItemContainer
-    {
-        public Action OnHoverAction { get; set; }
-        public Action OnUnhoverAction { get; set; }
-
-        public ExtendedProfileItemContainer()
-        {
-            CornerRadius = ExtendedLabelledTextBox.CORNER_RADIUS;
-        }
-
-        protected override bool OnHover(HoverEvent e)
-        {
-            OnHoverAction?.Invoke();
-            return base.OnHover(e);
-        }
-
-        protected override void OnHoverLost(HoverLostEvent e)
-        {
-            OnUnhoverAction?.Invoke();
-            base.OnHoverLost(e);
-        }
-    }
-
-    public partial class ExtendedProfileScore : CompositeDrawable
+    public partial class DrawableExtendedProfileScore : CompositeDrawable
     {
         private const int height = 40;
         private const int performance_width = 100;
@@ -117,7 +94,7 @@ namespace PerformanceCalculatorGUI.Components
 
         private const float performance_background_shear = 0.45f;
 
-        protected readonly ExtendedScore Score;
+        protected readonly ExtendedProfileScore Score;
 
         [Resolved]
         private OsuColour colours { get; set; }
@@ -127,12 +104,35 @@ namespace PerformanceCalculatorGUI.Components
 
         private OsuSpriteText positionChangeText;
 
-        public ExtendedProfileScore(ExtendedScore score)
+        public DrawableExtendedProfileScore(ExtendedProfileScore score)
         {
             Score = score;
 
             RelativeSizeAxes = Axes.X;
             Height = height;
+        }
+
+        private partial class ExtendedProfileItemContainer : ProfileItemContainer
+        {
+            public Action OnHoverAction { get; set; }
+            public Action OnUnhoverAction { get; set; }
+
+            public ExtendedProfileItemContainer()
+            {
+                CornerRadius = ExtendedLabelledTextBox.CORNER_RADIUS;
+            }
+
+            protected override bool OnHover(HoverEvent e)
+            {
+                OnHoverAction?.Invoke();
+                return base.OnHover(e);
+            }
+
+            protected override void OnHoverLost(HoverLostEvent e)
+            {
+                OnUnhoverAction?.Invoke();
+                base.OnHoverLost(e);
+            }
         }
 
         [BackgroundDependencyLoader]
@@ -319,7 +319,7 @@ namespace PerformanceCalculatorGUI.Components
                                         {
                                             var ruleset = rulesets.GetRuleset(Score.SoloScore.RulesetID) ?? throw new InvalidOperationException();
 
-                                            return new ModIcon(ruleset.CreateInstance().CreateModFromAcronym(mod.Acronym)!)
+                                            return new ModIcon(mod.ToMod(ruleset.CreateInstance()))
                                             {
                                                 Scale = new Vector2(0.35f)
                                             };
