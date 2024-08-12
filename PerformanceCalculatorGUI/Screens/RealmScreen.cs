@@ -253,16 +253,13 @@ namespace PerformanceCalculatorGUI.Screens
 
                         var difficultyAttributes = difficultyCalculator.Calculate(score.Mods);
 
-                        // Sanity check
+                        // Sanity check for aspire maps till my slider fix won't get merged
                         if (difficultyAttributes.StarRating > 15 && score.BeatmapInfo.Status != BeatmapOnlineStatus.Ranked)
                             continue;
 
                         var perfAttributes = await performanceCalculator?.CalculateAsync(score, difficultyAttributes, token)!;
 
                         score.PP = perfAttributes?.Total ?? 0.0;
-
-                        if (score.PP > 400)
-                            continue;
 
                         tempScores.Add(new ProfileScore(score, perfAttributes));
                     }
@@ -334,6 +331,7 @@ namespace PerformanceCalculatorGUI.Screens
 
             realmScores.RemoveAll(x => !currentUser.Contains(x.User.Username)
                                     || x.BeatmapInfo == null
+                                    || x.Passed == false
                                     || x.Ruleset.OnlineID != ruleset.Value.OnlineID
                                     || (!allowUnranked && x.BeatmapInfo.Status != BeatmapOnlineStatus.Ranked)
                                     );
