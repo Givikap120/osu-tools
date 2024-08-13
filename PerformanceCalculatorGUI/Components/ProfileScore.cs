@@ -45,11 +45,13 @@ namespace PerformanceCalculatorGUI.Components
             SoloScore = score;
             PerformanceAttributes = attributes;
         }
+
         public ProfileScore(ScoreInfo score, PerformanceAttributes attributes)
         {
             SoloScore = toSoloScoreInfo(score);
             PerformanceAttributes = attributes;
         }
+
         private static SoloScoreInfo toSoloScoreInfo(ScoreInfo score)
         {
             APIBeatmapSet dummySet = new APIBeatmapSet
@@ -87,19 +89,20 @@ namespace PerformanceCalculatorGUI.Components
         private const int height = 40;
         private const int performance_width = 100;
         private const int rank_width = 35;
-        private const int small_text_font_size = 11;
+
+        protected const int SMALL_TEXT_FONT_SIZE = 11;
 
         private const float performance_background_shear = 0.45f;
 
-        protected readonly ProfileScore Score;
+        protected ProfileScore Score { get; }
 
         [Resolved]
         private OsuColour colours { get; set; }
 
         [Resolved]
-        private OverlayColourProvider colourProvider { get; set; }
+        protected OverlayColourProvider ColourProvider { get; private set; }
 
-        private OsuSpriteText positionText;
+        protected OsuSpriteText PositionText;
 
         public DrawableProfileScore(ProfileScore score)
         {
@@ -107,15 +110,6 @@ namespace PerformanceCalculatorGUI.Components
 
             RelativeSizeAxes = Axes.X;
             Height = height;
-        }
-
-        private partial class ExtendedProfileItemContainer : ProfileItemContainer
-        {
-            public ExtendedProfileItemContainer()
-            {
-                //Content.RelativeSizeAxes = Axes.Y;
-                //Content.AutoSizeAxes = Axes.X;
-            }
         }
 
         [BackgroundDependencyLoader]
@@ -129,7 +123,7 @@ namespace PerformanceCalculatorGUI.Components
                     new Box
                     {
                         RelativeSizeAxes = Axes.Both,
-                        Colour = colourProvider.Background5,
+                        Colour = ColourProvider.Background5,
                     },
                     new GridContainer
                     {
@@ -156,25 +150,23 @@ namespace PerformanceCalculatorGUI.Components
                                     Width = rank_width,
                                     Children = new Drawable[]
                                     {
-                                        positionText = new OsuSpriteText
+                                        PositionText = new OsuSpriteText
                                         {
                                             Anchor = Anchor.Centre,
                                             Origin = Anchor.Centre,
-                                            Colour = colourProvider.Light1,
+                                            Colour = ColourProvider.Light1,
                                             Text = Score.Position.Value.ToString()
                                         }
                                     }
                                 },
-                                new ExtendedProfileItemContainer
+                                new ProfileItemContainer
                                 {
                                     RelativeSizeAxes = Axes.Both,
-                                    //Width = 500,
-                                    //AutoSizeAxes = Axes.X,
                                     CornerRadius = ExtendedLabelledTextBox.CORNER_RADIUS,
                                     Children = new Drawable[]
                                     {
                                         createScoreInfo(rulesets),
-                                        createPerformanceInfo()
+                                        createPerformanceContainer()
                                     }
                                 }
                             }
@@ -183,7 +175,7 @@ namespace PerformanceCalculatorGUI.Components
                 }
             });
 
-            Score.Position.BindValueChanged(v => { positionText.Text = v.NewValue.ToString(); });
+            Score.Position.BindValueChanged(v => { PositionText.Text = v.NewValue.ToString(); });
         }
 
         private Container createScoreInfo(RulesetStore rulesets)
@@ -235,7 +227,7 @@ namespace PerformanceCalculatorGUI.Components
                                             },
                                             new DrawableDate(Score.SoloScore.EndedAt, 12)
                                             {
-                                                Colour = colourProvider.Foreground1
+                                                Colour = ColourProvider.Foreground1
                                             }
                                         }
                                     }
@@ -288,8 +280,8 @@ namespace PerformanceCalculatorGUI.Components
                                                 new OsuSpriteText
                                                 {
                                                     Text = $"{Score.SoloScore.MaxCombo}x {{ {formatStatistics(Score.SoloScore.Statistics)} }}",
-                                                    Font = OsuFont.GetFont(size: small_text_font_size, weight: FontWeight.Regular),
-                                                    Colour = colourProvider.Light2,
+                                                    Font = OsuFont.GetFont(size: SMALL_TEXT_FONT_SIZE, weight: FontWeight.Regular),
+                                                    Colour = ColourProvider.Light2,
                                                     Anchor = Anchor.TopCentre,
                                                     Origin = Anchor.TopCentre
                                                 },
@@ -320,7 +312,7 @@ namespace PerformanceCalculatorGUI.Components
             };
         }
 
-        private Container createPerformanceInfo()
+        private Container createPerformanceContainer()
         {
             return new Container
             {
@@ -337,7 +329,7 @@ namespace PerformanceCalculatorGUI.Components
                         Origin = Anchor.TopRight,
                         RelativeSizeAxes = Axes.Both,
                         Height = 0.5f,
-                        Colour = colourProvider.Background4,
+                        Colour = ColourProvider.Background4,
                         Shear = new Vector2(-performance_background_shear, 0),
                         EdgeSmoothness = new Vector2(2, 0),
                     },
@@ -349,27 +341,31 @@ namespace PerformanceCalculatorGUI.Components
                         RelativePositionAxes = Axes.Y,
                         Height = -0.5f,
                         Position = new Vector2(0, 1),
-                        Colour = colourProvider.Background4,
+                        Colour = ColourProvider.Background4,
                         Shear = new Vector2(performance_background_shear, 0),
                         EdgeSmoothness = new Vector2(2, 0),
                     },
-                    new ExtendedOsuSpriteText
-                    {
-                        //AutoSizeAxes = Axes.Both,
-                        Padding = new MarginPadding
-                        {
-                            Vertical = 5,
-                            Left = 30,
-                            Right = 20
-                        },
-                        Font = OsuFont.GetFont(weight: FontWeight.Bold),
-                        Text = $"{Score.SoloScore.PP:0}pp",
-                        Colour = colourProvider.Highlight1,
-                        Anchor = Anchor.Centre,
-                        Origin = Anchor.Centre,
-                        TooltipContent = $"{AttributeConversion.ToReadableString(Score.PerformanceAttributes)}"
-                    }
+                    CreatePerformanceInfo()
                 }
+            };
+        }
+
+        protected virtual Drawable CreatePerformanceInfo()
+        {
+            return new ExtendedOsuSpriteText
+            {
+                Padding = new MarginPadding
+                {
+                    Vertical = 5,
+                    Left = 30,
+                    Right = 20
+                },
+                Font = OsuFont.GetFont(weight: FontWeight.Bold),
+                Text = $"{Score.SoloScore.PP:0}pp",
+                Colour = ColourProvider.Highlight1,
+                Anchor = Anchor.Centre,
+                Origin = Anchor.Centre,
+                TooltipContent = $"{AttributeConversion.ToReadableString(Score.PerformanceAttributes)}"
             };
         }
 

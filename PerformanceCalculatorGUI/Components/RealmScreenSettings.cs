@@ -36,7 +36,7 @@ namespace PerformanceCalculatorGUI.Components
             Add(new Container
             {
                 AutoSizeAxes = Axes.Y,
-                Width = 600,
+                Width = 500,
                 Children = new Drawable[]
                 {
                     new FillFlowContainer

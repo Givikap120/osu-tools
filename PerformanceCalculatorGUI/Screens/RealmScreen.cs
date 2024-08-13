@@ -209,7 +209,15 @@ namespace PerformanceCalculatorGUI.Screens
 
                 var rulesetInstance = ruleset.Value.CreateInstance();
 
-                var storage = gameHost.GetStorage(configManager.GetBindable<string>(Settings.OsuFolderPath).Value);
+                var lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
+
+                if (lazerPath == string.Empty)
+                {
+                    notificationDisplay.Display(new Notification("Please set-up path to lazer database folder in GUI settings"));
+                    return;
+                }
+
+                var storage = gameHost.GetStorage(lazerPath);
                 var realmAccess = new RealmAccess(storage, @"client.realm");
 
                 var realmScores = getRealmScores(realmAccess);
@@ -221,7 +229,7 @@ namespace PerformanceCalculatorGUI.Screens
                 {
                     string beatmapHash = scoreList[0].BeatmapHash;
                     //get the .osu file from lazer file storage
-                    var working = new FlatWorkingBeatmap(Path.Combine(configManager.GetBindable<string>(Settings.OsuFolderPath).Value, "files", beatmapHash[..1], beatmapHash[..2], beatmapHash));
+                    var working = new FlatWorkingBeatmap(Path.Combine(lazerPath, "files", beatmapHash[..1], beatmapHash[..2], beatmapHash));
 
                     var difficultyCalculator = rulesetInstance.CreateDifficultyCalculator(working);
                     var performanceCalculator = rulesetInstance.CreatePerformanceCalculator();

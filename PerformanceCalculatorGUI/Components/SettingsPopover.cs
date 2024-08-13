@@ -41,7 +41,7 @@ namespace PerformanceCalculatorGUI.Components
             clientSecretBindable = configManager.GetBindable<string>(Settings.ClientSecret);
             pathBindable = configManager.GetBindable<string>(Settings.DefaultPath);
             cacheBindable = configManager.GetBindable<string>(Settings.CachePath);
-            osuPathBindable = configManager.GetBindable<string>(Settings.OsuFolderPath);
+            osuPathBindable = configManager.GetBindable<string>(Settings.LazerFolderPath);
             scaleBindable = osuConfig.GetBindable<float>(OsuSetting.UIScale);
 
             Add(new Container
@@ -100,7 +100,7 @@ namespace PerformanceCalculatorGUI.Components
                             new LabelledTextBox
                             {
                                 RelativeSizeAxes = Axes.X,
-                                Label = "Osu folder path",
+                                Label = "Lazer folder path",
                                 Current = { BindTarget = osuPathBindable }
                             },
                             new Box

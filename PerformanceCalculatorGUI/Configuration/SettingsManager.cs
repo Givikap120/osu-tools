@@ -15,7 +15,7 @@ namespace PerformanceCalculatorGUI.Configuration
         ClientSecret,
         DefaultPath,
         CachePath,
-        OsuFolderPath
+        LazerFolderPath
     }
 
     public class SettingsManager : IniConfigManager<Settings>
@@ -33,7 +33,7 @@ namespace PerformanceCalculatorGUI.Configuration
             SetDefault(Settings.ClientSecret, string.Empty);
             SetDefault(Settings.DefaultPath, Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
             SetDefault(Settings.CachePath, Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "cache"));
-            SetDefault(Settings.OsuFolderPath, Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "osu"));
+            SetDefault(Settings.LazerFolderPath, string.Empty);
         }
     }
 }
