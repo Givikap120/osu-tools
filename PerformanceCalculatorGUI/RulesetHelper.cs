@@ -100,7 +100,7 @@ namespace PerformanceCalculatorGUI
 
             int hash = 0;
 
-            if (ruleset.OnlineID == 0) // For osu we also have attributes CS and OD, and mods CL, FL and FLHD
+            if (ruleset.OnlineID == 0) // For osu we have many different things
             {
                 BeatmapDifficulty d = new BeatmapDifficulty(difficulty);
 
@@ -109,14 +109,20 @@ namespace PerformanceCalculatorGUI
 
                 bool isSliderAccuracy = mods.OfType<OsuModClassic>().All(m => !m.NoSliderHeadAccuracy.Value);
 
-                byte flHash = 0;
+                byte flashlightHash = 0;
                 if (mods.Any(h => h is OsuModFlashlight))
                 {
-                    if (!mods.Any(h => h is OsuModHidden)) flHash = 1;
-                    else flHash = 2;
+                    if (!mods.Any(h => h is OsuModHidden)) flashlightHash = 1;
+                    else flashlightHash = 2;
                 }
 
-                hash = HashCode.Combine(rate, d.CircleSize, d.OverallDifficulty, isSliderAccuracy, flHash);
+                byte mirrorHash = 0;
+                if (mods.FirstOrDefault(m => m is OsuModMirror) is OsuModMirror mirror)
+                {
+                    mirrorHash = (byte)(1 + (int)(mirror.Reflection.Value));
+                }
+
+                hash = HashCode.Combine(rate, d.CircleSize, d.OverallDifficulty, isSliderAccuracy, flashlightHash, mirrorHash);
             }
             else if (ruleset.OnlineID == 1) // For taiko we only have rate
             {
