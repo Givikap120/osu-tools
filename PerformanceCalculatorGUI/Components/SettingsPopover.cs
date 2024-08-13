@@ -28,7 +28,7 @@ namespace PerformanceCalculatorGUI.Components
         private Bindable<string> clientSecretBindable;
         private Bindable<string> pathBindable;
         private Bindable<string> cacheBindable;
-        private Bindable<string> osuPathBindable;
+        private Bindable<string> lazerPathBindable;
         private Bindable<float> scaleBindable;
 
         private const string api_key_link = "https://osu.ppy.sh/home/account/edit#new-oauth-application";
@@ -41,7 +41,7 @@ namespace PerformanceCalculatorGUI.Components
             clientSecretBindable = configManager.GetBindable<string>(Settings.ClientSecret);
             pathBindable = configManager.GetBindable<string>(Settings.DefaultPath);
             cacheBindable = configManager.GetBindable<string>(Settings.CachePath);
-            osuPathBindable = configManager.GetBindable<string>(Settings.LazerFolderPath);
+            lazerPathBindable = configManager.GetBindable<string>(Settings.LazerFolderPath);
             scaleBindable = osuConfig.GetBindable<float>(OsuSetting.UIScale);
 
             Add(new Container
@@ -101,7 +101,7 @@ namespace PerformanceCalculatorGUI.Components
                             {
                                 RelativeSizeAxes = Axes.X,
                                 Label = "Lazer folder path",
-                                Current = { BindTarget = osuPathBindable }
+                                Current = { BindTarget = lazerPathBindable }
                             },
                             new Box
                             {
