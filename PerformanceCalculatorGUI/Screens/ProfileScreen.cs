@@ -584,7 +584,7 @@ namespace PerformanceCalculatorGUI.Screens
                                                             .Select(x => x.MaxBy(x => x.LegacyTotalScore))
                                                             .ToList();
                     filteredMapScores.AddRange(mapScores.Where(s => !s.IsLegacyScore));
-                    filteredScores.Add(mapScores);
+                    filteredScores.Add(filteredMapScores);
                 }
 
                 splitScores = filteredScores;
