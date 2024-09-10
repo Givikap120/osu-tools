@@ -42,7 +42,7 @@ namespace PerformanceCalculatorGUI.Screens
 
         private GridContainer layout;
 
-        private FillFlowContainer<ExtendedProfileScore> scores;
+        private FillFlowContainer<DrawableProfileScore> scores;
 
         private LabelledTextBox usernameTextBox;
         private Container userPanelContainer;
@@ -217,7 +217,7 @@ namespace PerformanceCalculatorGUI.Screens
                             new OsuScrollContainer(Direction.Vertical)
                             {
                                 RelativeSizeAxes = Axes.Both,
-                                Child = scores = new FillFlowContainer<ExtendedProfileScore>
+                                Child = scores = new FillFlowContainer<DrawableProfileScore>
                                 {
                                     RelativeSizeAxes = Axes.X,
                                     AutoSizeAxes = Axes.Y,
@@ -660,12 +660,15 @@ namespace PerformanceCalculatorGUI.Screens
             if (!scores.Children.Any())
                 return;
 
-            ExtendedProfileScore[] sortedScores;
+            if (profileImportTypeSwitch.Current.Value)
+                return;
+
+            DrawableProfileScore[] sortedScores;
 
             switch (sortCriteria)
             {
                 case ProfileSortCriteria.Live:
-                    sortedScores = scores.Children.OrderByDescending(x => x.Score.LivePP).ToArray();
+                    sortedScores = scores.Children.OrderByDescending(x => ((ExtendedProfileScore)x.Score).LivePP).ToArray();
                     break;
 
                 case ProfileSortCriteria.Local:
@@ -673,7 +676,7 @@ namespace PerformanceCalculatorGUI.Screens
                     break;
 
                 case ProfileSortCriteria.Difference:
-                    sortedScores = scores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total - x.Score.LivePP).ToArray();
+                    sortedScores = scores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total - ((ExtendedProfileScore)x.Score).LivePP).ToArray();
                     break;
 
                 default:

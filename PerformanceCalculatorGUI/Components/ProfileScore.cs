@@ -97,7 +97,7 @@ namespace PerformanceCalculatorGUI.Components
 
         protected FillFlowContainer RightInfoContainer;
 
-        protected ProfileScore Score { get; }
+        public ProfileScore Score { get; }
 
         [Resolved]
         private OsuColour colours { get; set; }
