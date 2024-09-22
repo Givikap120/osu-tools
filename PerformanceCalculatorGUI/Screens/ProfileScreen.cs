@@ -246,7 +246,6 @@ namespace PerformanceCalculatorGUI.Screens
                     {
                         new Dimension(),
                         new Dimension(GridSizeMode.AutoSize),
-                        new Dimension(GridSizeMode.AutoSize),
                         new Dimension(GridSizeMode.AutoSize)
                     };
                     setupContainer.Content = new[]
@@ -255,7 +254,7 @@ namespace PerformanceCalculatorGUI.Screens
                         {
                             usernameTextBox,
                             profileImportTypeSwitch,
-                            localCalcSetupContainer
+                            localCalcSetupContainer,
                         }
                     };
                 }
@@ -469,7 +468,13 @@ namespace PerformanceCalculatorGUI.Screens
                         RelativeSizeAxes = Axes.X
                     });
 
-                    layout.RowDimensions = new[] { new Dimension(GridSizeMode.Absolute, username_container_height), new Dimension(GridSizeMode.AutoSize), new Dimension() };
+                    layout.RowDimensions = new[]
+                    {
+                        new Dimension(GridSizeMode.Absolute, username_container_height),
+                        new Dimension(GridSizeMode.AutoSize),
+                        new Dimension(GridSizeMode.AutoSize),
+                        new Dimension()
+                    };
                 });
 
                 if (token.IsCancellationRequested)
@@ -499,7 +504,16 @@ namespace PerformanceCalculatorGUI.Screens
                 {
                     string beatmapHash = scoreList[0].BeatmapHash;
                     //get the .osu file from lazer file storage
-                    var working = new FlatWorkingBeatmap(Path.Combine(lazerPath, "files", beatmapHash[..1], beatmapHash[..2], beatmapHash));
+
+                    WorkingBeatmap working;
+                    try
+                    {
+                        working = new FlatWorkingBeatmap(Path.Combine(lazerPath, "files", beatmapHash[..1], beatmapHash[..2], beatmapHash));
+                    }
+                    catch (Exception)
+                    {
+                        continue;
+                    }
 
                     var difficultyCalculator = rulesetInstance.CreateDifficultyCalculator(working);
                     var performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
