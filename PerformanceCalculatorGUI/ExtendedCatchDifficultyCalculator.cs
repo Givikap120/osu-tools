@@ -22,7 +22,8 @@ public class ExtendedCatchDifficultyCalculator : CatchDifficultyCalculator, IExt
     }
 
     public Skill[] GetSkills() => skills;
-    public DifficultyHitObject[] GetDifficultyHitObjects(IBeatmap beatmap, double clockRate) => CreateDifficultyHitObjects(beatmap, clockRate).ToArray();
+
+    public DifficultyHitObject[] GetDifficultyHitObjects(IBeatmap beatmap, double clockRate) => IExtendedDifficultyCalculator.GetDifficultyHitObjects(this, beatmap, clockRate);
 
     protected override DifficultyAttributes CreateDifficultyAttributes(IBeatmap beatmap, Mod[] mods, Skill[] skills, double clockRate)
     {
