@@ -438,7 +438,7 @@ namespace PerformanceCalculatorGUI.Screens
             }, TaskContinuationOptions.None);
         }
 
-        private void calculateProfileFromLazer(string username, bool outputCsv = false)
+        private void calculateProfileFromLazer(string username)
         {
             if (string.IsNullOrEmpty(username))
             {
@@ -569,7 +569,7 @@ namespace PerformanceCalculatorGUI.Screens
                         if (difficultyAttributes.StarRating > 14 && score.BeatmapInfo.Status != BeatmapOnlineStatus.Ranked)
                             continue;
 
-                        if (outputCsv)
+                        if (settingsMenu.ExportInCSV)
                             allScores.Add((score, working, difficultyAttributes));
 
                         tempScores.Add(new ProfileScore(score, perfAttributes));
@@ -607,7 +607,7 @@ namespace PerformanceCalculatorGUI.Screens
                 var playcountBonusPP = (decimal)((417.0 - 1.0 / 3.0) * (1 - Math.Pow(0.995, Math.Min(plays.Count, 1000))));
                 totalLocalPP += playcountBonusPP;
 
-                if (outputCsv)
+                if (settingsMenu.ExportInCSV)
                 {
                     Schedule(() => loadingLayer.Text.Value = $"Exporting to csv...");
                     outputHistoricalScoresCSV(allScores, rulesetInstance, username);

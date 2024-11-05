@@ -72,6 +72,11 @@ namespace PerformanceCalculatorGUI.Components
                                 LabelText = "Enable Scorev1-ning on legacy scores",
                                 Current = { BindTarget = bindables[4] }
                             },
+                            new OsuCheckbox
+                            {
+                                LabelText = "Export historic data into .csv",
+                                Current = { BindTarget = bindables[5] }
+                            },
                         }
                     }
                 }
@@ -88,7 +93,9 @@ namespace PerformanceCalculatorGUI.Components
         private readonly Bindable<bool> calculateUnrankedMods = new(true);
 
         private readonly Bindable<bool> enableScorev1ning = new(false);
+        private readonly Bindable<bool> exportInCsv = new(false);
         public bool IsScorev1ningEnabled => enableScorev1ning.Value;
+        public bool ExportInCSV => exportInCsv.Value;
         protected override Anchor TooltipAnchor => Anchor.TopRight;
 
         public RealmSettingsMenu()
@@ -126,7 +133,7 @@ namespace PerformanceCalculatorGUI.Components
         }
 
         public Popover GetPopover() => new RealmScreenSettingsPopover(
-            new[] { calculateRankedMaps, calculateUnrankedMaps, calculateUnsubmittedScores, calculateUnrankedMods, enableScorev1ning });
+            new[] { calculateRankedMaps, calculateUnrankedMaps, calculateUnsubmittedScores, calculateUnrankedMods, enableScorev1ning, exportInCsv });
 
         protected override bool OnClick(ClickEvent e)
         {
