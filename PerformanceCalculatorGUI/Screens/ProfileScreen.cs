@@ -732,16 +732,20 @@ namespace PerformanceCalculatorGUI.Screens
 
             foreach (var score in allScoresSorted)
             {
-                var relevantScore = score;
-
                 if (previousScore != null && previousScore.Value.score.Date == score.score.Date && previousScore.Value.score.TotalScore == score.score.TotalScore)
                 {
                     // If previous is flawed while this is good - delete previous
                     if ((score.score.LegacyOnlineID > 0 && previousScore.Value.score.LegacyOnlineID <= 0) || (score.score.OnlineID > 0 && previousScore.Value.score.OnlineID <= 0))
                     {
                         allScores.RemoveAt(allScores.Count - 1);
-                        allScores.Add(relevantScore);
+                        allScores.Add(score);
+                        previousScore = score;
                     }
+                }
+                else
+                {
+                    allScores.Add(score);
+                    previousScore = score;
                 }
             }
 
@@ -753,9 +757,11 @@ namespace PerformanceCalculatorGUI.Screens
             int uniquePlaysCount = 0;
 
             StringBuilder csvContent = new StringBuilder();
-            csvContent.AppendLine("ScoreID,Date,pp,Profile pp,#1 score,Legacy score,BeatmapID,Title,Artist,Difficulty Name,Mods,Rate,BPM,Length,Star Rating,CS,HP,OD,AR,Accuracy,Combo,300s,100s,50s,Misses,Sliderbreaks,Sliderend Misses");
+            csvContent.AppendLine("ScoreID,Date,pp,Profile pp,Position,Legacy score,BeatmapID,Title,Artist,Difficulty Name,Mods,Rate,BPM,Length,Star Rating,CS,HP,OD,AR,Accuracy,Combo,300s,100s,50s,Misses,Sliderbreaks,Sliderend Misses");
 
             double profilePp;
+
+            const int max_scores_in_profile = 1000;
 
             foreach (var score in allScores)
             {
@@ -768,7 +774,9 @@ namespace PerformanceCalculatorGUI.Screens
                     allMapHashes.Add(hash);
                 }
 
-                if (currentTopPlaysCount > 200 && pp < topPlays[200].pp) continue;
+                if (currentTopPlaysCount > max_scores_in_profile && pp < topPlays[max_scores_in_profile].pp) continue;
+
+                int position = -1;
 
                 if (topPlayMapHashes.Contains(hash))
                 {
@@ -776,13 +784,13 @@ namespace PerformanceCalculatorGUI.Screens
                     if (item.pp < pp)
                     {
                         topPlays.Remove(item);
-                        topPlays.Add((pp, hash));
+                        position = topPlays.Add((pp, hash)) + 1;
                     }
                 }
                 else
                 {
                     currentTopPlaysCount++;
-                    topPlays.Add((pp, hash));
+                    position = topPlays.Add((pp, hash)) + 1;
                     topPlayMapHashes.Add(hash);
                 }
 
@@ -792,7 +800,7 @@ namespace PerformanceCalculatorGUI.Screens
 
                 profilePp += (417.0 - 1.0 / 3.0) * (1 - Math.Pow(0.995, Math.Min(uniquePlaysCount, 1000)));
 
-                csvContent.AppendLine(getScoreCsv(score.score, score.beatmap, score.attributes, rulesetInstance, profilePp, pp >= topPlays[0].pp));
+                csvContent.AppendLine(getScoreCsv(score.score, score.beatmap, score.attributes, rulesetInstance, profilePp, position));
             }
 
             string filePath = $"historical_scores_{username}.csv";
@@ -801,13 +809,13 @@ namespace PerformanceCalculatorGUI.Screens
             Console.WriteLine($"CSV file created at: {filePath}");
         }
 
-        private string getScoreCsv(ScoreInfo score, WorkingBeatmap working, DifficultyAttributes attributes, Ruleset ruleset, double profilePp, bool isNumberOne)
+        private string getScoreCsv(ScoreInfo score, WorkingBeatmap working, DifficultyAttributes attributes, Ruleset ruleset, double profilePp, int position)
         {
             BeatmapInfo beatmap = working.BeatmapInfo;
 
             long scoreID = score.IsLegacyScore ? score.LegacyOnlineID : score.OnlineID;
 
-            string basicScoreInfo = $"{scoreID},{score.Date},{score.PP:F2},{profilePp:F0},{isNumberOne},{score.IsLegacyScore}";
+            string basicScoreInfo = $"{scoreID},{score.Date},{score.PP:F2},{profilePp:F0},{position},{score.IsLegacyScore}";
             string beatmapInfo = $"{beatmap.OnlineID},{beatmap.Metadata.Title},{beatmap.Metadata.Artist},{beatmap.DifficultyName}";
 
             string modsString = string.Join("",score.APIMods.Select(m => m.Acronym));
