@@ -605,7 +605,11 @@ namespace PerformanceCalculatorGUI.Screens
                 var playcountBonusPP = (decimal)((417.0 - 1.0 / 3.0) * (1 - Math.Pow(0.995, Math.Min(plays.Count, 1000))));
                 totalLocalPP += playcountBonusPP;
 
-                if (outputCsv) outputHistoricalScoresCSV(allScores, rulesetInstance, username);
+                if (outputCsv)
+                {
+                    Schedule(() => loadingLayer.Text.Value = $"Exporting to csv...");
+                    outputHistoricalScoresCSV(allScores, rulesetInstance, username);
+                }
 
                 Schedule(() =>
                 {
