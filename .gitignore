@@ -269,3 +269,4 @@ Staging/
 
 inspectcodereport.xml
 PerformanceCalculator/cache/
+*.csv
