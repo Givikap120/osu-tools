@@ -30,6 +30,13 @@ using PerformanceCalculatorGUI.Configuration;
 using System.IO;
 using osu.Framework.Platform;
 using ButtonState = PerformanceCalculatorGUI.Components.ButtonState;
+using System.Text;
+using osu.Game.Utils;
+using osu.Game.Scoring.Legacy;
+using osu.Game.Rulesets.Scoring;
+using osu.Game.Rulesets.Osu.Difficulty;
+using osu.Game.Rulesets.Osu.Mods;
+using osu.Framework.Lists;
 
 namespace PerformanceCalculatorGUI.Screens
 {
@@ -431,7 +438,7 @@ namespace PerformanceCalculatorGUI.Screens
             }, TaskContinuationOptions.None);
         }
 
-        private void calculateProfileFromLazer(string username)
+        private void calculateProfileFromLazer(string username, bool outputCsv = false)
         {
             if (string.IsNullOrEmpty(username))
             {
@@ -500,6 +507,8 @@ namespace PerformanceCalculatorGUI.Screens
                 int currentScoresCount = 0;
                 var totalScoresCount = realmScores.Sum(childList => childList.Count);
 
+                var allScores = new List<(ScoreInfo score, WorkingBeatmap beatmap, DifficultyAttributes attributes)>();
+
                 foreach (var scoreList in realmScores)
                 {
                     string beatmapHash = scoreList[0].BeatmapHash;
@@ -552,6 +561,9 @@ namespace PerformanceCalculatorGUI.Screens
                         if (difficultyAttributes.StarRating > 14 && score.BeatmapInfo.Status != BeatmapOnlineStatus.Ranked)
                             continue;
 
+                        if (outputCsv)
+                            allScores.Add((score, working, difficultyAttributes));
+
                         tempScores.Add(new ProfileScore(score, perfAttributes));
                     }
 
@@ -586,6 +598,45 @@ namespace PerformanceCalculatorGUI.Screens
                 //Calculate bonusPP based of unique score count on ranked diffs
                 var playcountBonusPP = (decimal)((417.0 - 1.0 / 3.0) * (1 - Math.Pow(0.995, Math.Min(realmScores.Count, 1000))));
                 totalLocalPP += playcountBonusPP;
+
+                if (outputCsv)
+                {
+                    allScores = allScores.OrderBy(x => x.score.Date).ToList();
+
+                    SortedList<double> topPlays = new SortedList<double>((a, b) => a < b ? 1 : (a > b ? -1 : 0));
+
+                    currentScoresCount = 0;
+                    int currentTopPlaysCount = 0;
+
+                    StringBuilder csvContent = new StringBuilder();
+                    csvContent.AppendLine("ScoreID,Date,pp,Profile pp,#1 score,Legacy score,BeatmapID,Title,Artist,Difficulty Name,Mods,Rate,BPM,Length,Star Rating,CS,HP,OD,AR,Accuracy,Combo,300s,100s,50s,Misses,Sliderbreaks,Sliderend Misses");
+
+                    foreach (var score in allScores)
+                    {
+                        currentScoresCount++;
+
+                        double pp = score.score.PP ?? 0;
+                        if (currentTopPlaysCount <= 200 || pp > topPlays[200])
+                        {
+                            currentTopPlaysCount++;
+
+                            topPlays.Add(pp);
+
+                            double profilePp = 0;
+                            for (var i = 0; i < Math.Min(200, topPlays.Count); i++)
+                                profilePp += Math.Pow(0.95, i) * topPlays[i];
+
+                            profilePp += (417.0 - 1.0 / 3.0) * (1 - Math.Pow(0.995, Math.Min(currentScoresCount, 1000)));
+
+                            csvContent.AppendLine(getScoreCsv(score.score, score.beatmap, score.attributes, rulesetInstance, profilePp, pp == topPlays[0]));
+                        }
+                    }
+
+                    string filePath = $"historical_scores_{username}.csv";
+                    File.WriteAllText(filePath, csvContent.ToString());
+
+                    Console.WriteLine($"CSV file created at: {filePath}");
+                }
 
                 Schedule(() =>
                 {
@@ -701,6 +752,43 @@ namespace PerformanceCalculatorGUI.Screens
             {
                 scores.SetLayoutPosition(sortedScores[i], i);
             }
+        }
+
+        private string getScoreCsv(ScoreInfo score, WorkingBeatmap working, DifficultyAttributes attributes, Ruleset ruleset, double profilePp, bool isNumberOne)
+        {
+            BeatmapInfo beatmap = working.BeatmapInfo;
+
+            string basicScoreInfo = $"{score.OnlineID},{score.Date},{score.PP:F2},{profilePp:F0},{isNumberOne},{score.IsLegacyScore}";
+            string beatmapInfo = $"{beatmap.OnlineID},{beatmap.Metadata.Title},{beatmap.Metadata.Artist},{beatmap.DifficultyName}";
+
+            string modsString = string.Join("",score.APIMods.Select(m => m.Acronym));
+            double rate = ModUtils.CalculateRateWithMods(score.Mods);
+            double bpm = 60000 / working.Beatmap.GetMostCommonBeatLength();
+            double length = working.Beatmap.CalculatePlayableLength() * 0.001 / rate;
+            double starRating = attributes.StarRating;
+
+            BeatmapDifficulty originalDifficulty = new BeatmapDifficulty(beatmap.Difficulty);
+
+            foreach (var mod in score.Mods.OfType<IApplicableToDifficulty>())
+                mod.ApplyToDifficulty(originalDifficulty);
+
+            BeatmapDifficulty adjustedDifficulty = ruleset.GetRateAdjustedDisplayDifficulty(originalDifficulty, rate);
+
+            string modInfo = $"{modsString},{rate:F2},{bpm:F0},{length:F0},{starRating:F2},{adjustedDifficulty.CircleSize:F1},{adjustedDifficulty.DrainRate:F1},{adjustedDifficulty.OverallDifficulty:F1},{adjustedDifficulty.ApproachRate:F1}";
+
+            int sliderbreaks = -1;
+            int sliderendmiss = -1;
+            if (attributes is OsuDifficultyAttributes osuAttributes && !score.Mods.OfType<OsuModClassic>().Any(m => m.NoSliderHeadAccuracy.Value))
+            {
+                sliderendmiss = osuAttributes.SliderCount - score.Statistics.GetValueOrDefault(HitResult.SliderTailHit);
+                sliderbreaks = score.Statistics.GetValueOrDefault(HitResult.LargeTickMiss);
+            }
+            string sliderbreaksString = sliderbreaks >= 0 ? sliderbreaks.ToString() : "";
+            string sliderendmissString = sliderendmiss >= 0 ? sliderbreaks.ToString() : "";
+
+            string advancedScoreInfo = $"{score.Accuracy:F4},{score.MaxCombo},{score.GetCount300()},{score.GetCount100()},{score.GetCount50()},{score.GetCountMiss()},{sliderbreaksString},{sliderendmissString}";
+
+            return $"{basicScoreInfo},{beatmapInfo},{modInfo},{advancedScoreInfo}";
         }
     }
 }
