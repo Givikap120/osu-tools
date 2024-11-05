@@ -461,9 +461,20 @@ namespace PerformanceCalculatorGUI.Screens
             {
                 Schedule(() => loadingLayer.Text.Value = "Getting user data...");
 
-                var player = await apiManager.GetJsonFromApi<APIUser>($"users/{username}/{ruleset.Value.ShortName}");
-
-                currentUser = [player.Username, .. player.PreviousUsernames, player.Id.ToString()];
+                APIUser player;
+                try
+                {
+                    player = await apiManager.GetJsonFromApi<APIUser>($"users/{username}/{ruleset.Value.ShortName}");
+                    currentUser = [player.Username, .. player.PreviousUsernames, player.Id.ToString()];
+                }
+                catch (Exception)
+                {
+                    currentUser = [username];
+                    player = new APIUser
+                    {
+                        Username = username
+                    };
+                }
 
                 Schedule(() =>
                 {
@@ -536,7 +547,7 @@ namespace PerformanceCalculatorGUI.Screens
                         if (token.IsCancellationRequested)
                             return;
 
-                        Schedule(() => loadingLayer.Text.Value = $"Calculating {player.Username}'s scores... {currentScoresCount} / {totalScoresCount}");
+                        Schedule(() => loadingLayer.Text.Value = $"Calculating {username}'s scores... {currentScoresCount} / {totalScoresCount}");
 
                         DifficultyAttributes difficultyAttributes;
                         int modsHash = RulesetHelper.GenerateModsHash(score.Mods, working.BeatmapInfo.Difficulty, ruleset.Value);
@@ -601,7 +612,7 @@ namespace PerformanceCalculatorGUI.Screens
                 for (var i = 0; i < localOrdered.Count; i++)
                     totalLocalPP += (decimal)(Math.Pow(0.95, i) * (localOrdered[i].SoloScore.PP ?? 0));
 
-                decimal totalLivePP = player.Statistics.PP ?? (decimal)0.0;
+                decimal totalLivePP = player?.Statistics.PP ?? (decimal)0.0;
 
                 //Calculate bonusPP based of unique score count on ranked diffs
                 var playcountBonusPP = (decimal)((417.0 - 1.0 / 3.0) * (1 - Math.Pow(0.995, Math.Min(plays.Count, 1000))));
@@ -643,7 +654,7 @@ namespace PerformanceCalculatorGUI.Screens
 
             Schedule(() => loadingLayer.Text.Value = "Filtering scores...");
 
-            realmScores.RemoveAll(x => !currentUser.Contains(x.User.Username) // Wrong username
+            realmScores.RemoveAll(x => (!currentUser.Contains(x.User.Username) && !currentUser[0].Equals(x.User.Username, StringComparison.OrdinalIgnoreCase)) // Wrong username
                                     || x.BeatmapInfo == null // No map for score
                                     || x.Passed == false || x.Rank == ScoreRank.F // Failed score
                                     || x.Ruleset.OnlineID != ruleset.Value.OnlineID // Incorrect ruleset
