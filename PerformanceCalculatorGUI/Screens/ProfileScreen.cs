@@ -525,7 +525,7 @@ namespace PerformanceCalculatorGUI.Screens
                     }
 
                     var difficultyCalculator = rulesetInstance.CreateDifficultyCalculator(working);
-                    var performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
+                    //var performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
 
                     List<ProfileScore> tempScores = [];
 
@@ -550,6 +550,8 @@ namespace PerformanceCalculatorGUI.Screens
                             difficultyAttributes = difficultyCalculator.Calculate(score.Mods);
                             attributesCache[modsHash] = difficultyAttributes;
                         }
+
+                        var performanceCalculator = rulesetInstance.CreatePerformanceCalculator(); // WARNING: slowing down until bug is fixed in lazer
 
                         var perfAttributes = await performanceCalculator?.CalculateAsync(score, difficultyAttributes, token)!;
 
