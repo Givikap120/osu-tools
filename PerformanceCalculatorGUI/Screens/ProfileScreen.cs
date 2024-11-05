@@ -557,6 +557,12 @@ namespace PerformanceCalculatorGUI.Screens
 
                         currentScoresCount++;
 
+                        // Check if passed
+                        int totalHitsMap = working.Beatmap.HitObjects.Count;
+                        int totalHitsScore = (score.GetCount300() ?? 0) + (score.GetCount100() ?? 0) + (score.GetCount50() ?? 0) + (score.GetCountMiss() ?? 0);
+                        if (totalHitsScore < totalHitsMap)
+                            continue;
+
                         // Sanity check for aspire maps till my slider fix won't get merged
                         if (difficultyAttributes.StarRating > 14 && score.BeatmapInfo.Status != BeatmapOnlineStatus.Ranked)
                             continue;
@@ -596,47 +602,10 @@ namespace PerformanceCalculatorGUI.Screens
                 decimal totalLivePP = player.Statistics.PP ?? (decimal)0.0;
 
                 //Calculate bonusPP based of unique score count on ranked diffs
-                var playcountBonusPP = (decimal)((417.0 - 1.0 / 3.0) * (1 - Math.Pow(0.995, Math.Min(realmScores.Count, 1000))));
+                var playcountBonusPP = (decimal)((417.0 - 1.0 / 3.0) * (1 - Math.Pow(0.995, Math.Min(plays.Count, 1000))));
                 totalLocalPP += playcountBonusPP;
 
-                if (outputCsv)
-                {
-                    allScores = allScores.OrderBy(x => x.score.Date).ToList();
-
-                    SortedList<double> topPlays = new SortedList<double>((a, b) => a < b ? 1 : (a > b ? -1 : 0));
-
-                    currentScoresCount = 0;
-                    int currentTopPlaysCount = 0;
-
-                    StringBuilder csvContent = new StringBuilder();
-                    csvContent.AppendLine("ScoreID,Date,pp,Profile pp,#1 score,Legacy score,BeatmapID,Title,Artist,Difficulty Name,Mods,Rate,BPM,Length,Star Rating,CS,HP,OD,AR,Accuracy,Combo,300s,100s,50s,Misses,Sliderbreaks,Sliderend Misses");
-
-                    foreach (var score in allScores)
-                    {
-                        currentScoresCount++;
-
-                        double pp = score.score.PP ?? 0;
-                        if (currentTopPlaysCount <= 200 || pp > topPlays[200])
-                        {
-                            currentTopPlaysCount++;
-
-                            topPlays.Add(pp);
-
-                            double profilePp = 0;
-                            for (var i = 0; i < Math.Min(200, topPlays.Count); i++)
-                                profilePp += Math.Pow(0.95, i) * topPlays[i];
-
-                            profilePp += (417.0 - 1.0 / 3.0) * (1 - Math.Pow(0.995, Math.Min(currentScoresCount, 1000)));
-
-                            csvContent.AppendLine(getScoreCsv(score.score, score.beatmap, score.attributes, rulesetInstance, profilePp, pp == topPlays[0]));
-                        }
-                    }
-
-                    string filePath = $"historical_scores_{username}.csv";
-                    File.WriteAllText(filePath, csvContent.ToString());
-
-                    Console.WriteLine($"CSV file created at: {filePath}");
-                }
+                if (outputCsv) outputHistoricalScoresCSV(allScores, rulesetInstance, username);
 
                 Schedule(() =>
                 {
@@ -754,16 +723,96 @@ namespace PerformanceCalculatorGUI.Screens
             }
         }
 
+        private void outputHistoricalScoresCSV(List<(ScoreInfo score, WorkingBeatmap beatmap, DifficultyAttributes attributes)> allScores, Ruleset rulesetInstance, string username)
+        {
+            var allScoresSorted = allScores.OrderBy(x => x.score.Date).ToList();
+            allScores.Clear();
+
+            (ScoreInfo score, WorkingBeatmap beatmap, DifficultyAttributes attributes)? previousScore = null;
+
+            foreach (var score in allScoresSorted)
+            {
+                var relevantScore = score;
+
+                if (previousScore != null && previousScore.Value.score.Date == score.score.Date && previousScore.Value.score.TotalScore == score.score.TotalScore)
+                {
+                    // If previous is flawed while this is good - delete previous
+                    if ((score.score.LegacyOnlineID > 0 && previousScore.Value.score.LegacyOnlineID <= 0) || (score.score.OnlineID > 0 && previousScore.Value.score.OnlineID <= 0))
+                    {
+                        allScores.RemoveAt(allScores.Count - 1);
+                        allScores.Add(relevantScore);
+                    }
+                }
+            }
+
+            HashSet<string> allMapHashes = new HashSet<string>();
+            HashSet<string> topPlayMapHashes = new HashSet<string>();
+            SortedList<(double pp, string hash)> topPlays = new SortedList<(double pp, string hash)>((a, b) => a.pp < b.pp ? 1 : (a.pp > b.pp ? -1 : 0));
+
+            int currentTopPlaysCount = 0;
+            int uniquePlaysCount = 0;
+
+            StringBuilder csvContent = new StringBuilder();
+            csvContent.AppendLine("ScoreID,Date,pp,Profile pp,#1 score,Legacy score,BeatmapID,Title,Artist,Difficulty Name,Mods,Rate,BPM,Length,Star Rating,CS,HP,OD,AR,Accuracy,Combo,300s,100s,50s,Misses,Sliderbreaks,Sliderend Misses");
+
+            double profilePp;
+
+            foreach (var score in allScores)
+            {
+                double pp = score.score.PP ?? 0;
+                string hash = score.score.BeatmapHash;
+
+                if (!allMapHashes.Contains(hash))
+                {
+                    uniquePlaysCount++;
+                    allMapHashes.Add(hash);
+                }
+
+                if (currentTopPlaysCount > 200 && pp < topPlays[200].pp) continue;
+
+                if (topPlayMapHashes.Contains(hash))
+                {
+                    var item = topPlays.Find(s => s.hash == hash);
+                    if (item.pp < pp)
+                    {
+                        topPlays.Remove(item);
+                        topPlays.Add((pp, hash));
+                    }
+                }
+                else
+                {
+                    currentTopPlaysCount++;
+                    topPlays.Add((pp, hash));
+                    topPlayMapHashes.Add(hash);
+                }
+
+                profilePp = 0;
+                for (var i = 0; i < Math.Min(200, topPlays.Count); i++)
+                    profilePp += Math.Pow(0.95, i) * topPlays[i].pp;
+
+                profilePp += (417.0 - 1.0 / 3.0) * (1 - Math.Pow(0.995, Math.Min(uniquePlaysCount, 1000)));
+
+                csvContent.AppendLine(getScoreCsv(score.score, score.beatmap, score.attributes, rulesetInstance, profilePp, pp >= topPlays[0].pp));
+            }
+
+            string filePath = $"historical_scores_{username}.csv";
+            File.WriteAllText(filePath, csvContent.ToString());
+
+            Console.WriteLine($"CSV file created at: {filePath}");
+        }
+
         private string getScoreCsv(ScoreInfo score, WorkingBeatmap working, DifficultyAttributes attributes, Ruleset ruleset, double profilePp, bool isNumberOne)
         {
             BeatmapInfo beatmap = working.BeatmapInfo;
 
-            string basicScoreInfo = $"{score.OnlineID},{score.Date},{score.PP:F2},{profilePp:F0},{isNumberOne},{score.IsLegacyScore}";
+            long scoreID = score.IsLegacyScore ? score.LegacyOnlineID : score.OnlineID;
+
+            string basicScoreInfo = $"{scoreID},{score.Date},{score.PP:F2},{profilePp:F0},{isNumberOne},{score.IsLegacyScore}";
             string beatmapInfo = $"{beatmap.OnlineID},{beatmap.Metadata.Title},{beatmap.Metadata.Artist},{beatmap.DifficultyName}";
 
             string modsString = string.Join("",score.APIMods.Select(m => m.Acronym));
             double rate = ModUtils.CalculateRateWithMods(score.Mods);
-            double bpm = 60000 / working.Beatmap.GetMostCommonBeatLength();
+            double bpm = rate * 60000 / working.Beatmap.GetMostCommonBeatLength();
             double length = working.Beatmap.CalculatePlayableLength() * 0.001 / rate;
             double starRating = attributes.StarRating;
 
