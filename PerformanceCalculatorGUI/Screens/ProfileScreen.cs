@@ -513,16 +513,14 @@ namespace PerformanceCalculatorGUI.Screens
                 var plays = new List<ProfileScore>();
 
                 var rulesetInstance = ruleset.Value.CreateInstance();
-
-                var storage = gameHost.GetStorage(lazerPath);
-                var realmAccess = new RealmAccess(storage, @"client.realm");
-
                 var realmScores = getRealmScores(realmAccess);
 
                 int currentScoresCount = 0;
                 var totalScoresCount = realmScores.Sum(childList => childList.Count);
 
                 var allScores = new List<(ScoreInfo score, WorkingBeatmap beatmap, DifficultyAttributes attributes)>();
+
+                var performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
 
                 foreach (var scoreList in realmScores)
                 {
@@ -540,7 +538,7 @@ namespace PerformanceCalculatorGUI.Screens
                     }
 
                     var difficultyCalculator = rulesetInstance.CreateDifficultyCalculator(working);
-                    //var performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
+                    
 
                     List<ProfileScore> tempScores = [];
 
@@ -565,8 +563,6 @@ namespace PerformanceCalculatorGUI.Screens
                             difficultyAttributes = difficultyCalculator.Calculate(score.Mods);
                             attributesCache[modsHash] = difficultyAttributes;
                         }
-
-                        var performanceCalculator = rulesetInstance.CreatePerformanceCalculator(); // WARNING: slowing down until bug is fixed in lazer
 
                         var perfAttributes = await performanceCalculator?.CalculateAsync(score, difficultyAttributes, token)!;
 
@@ -651,10 +647,52 @@ namespace PerformanceCalculatorGUI.Screens
             }, token);
         }
 
-        private List<List<ScoreInfo>> getRealmScores(RealmAccess realm)
+        private List<ScoreInfo> getAllScores(RealmAccess realm)
         {
             Schedule(() => loadingLayer.Text.Value = "Getting user scores...");
-            var realmScores = realm.Run(r => r.All<ScoreInfo>().Detach());
+
+            var lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
+
+            string cachePath = Path.Combine(lazerPath, @"scores.cache");
+            string realmPath = Path.Combine(lazerPath, @"client.realm");
+
+            // Check if cache exists
+            if (File.Exists(cachePath))
+            {
+                DateTime cacheLastModified = File.GetLastWriteTime(cachePath);
+                DateTime realmLastModified = File.GetLastWriteTime(realmPath);
+
+                // If cache is newer, import from cache
+                if (cacheLastModified > realmLastModified)
+                {
+                    return importCachedScores(cachePath);
+                }
+                // If cache is older, update it with new data
+                else
+                {
+                    return exportScoresInCache(realm, cachePath);
+                }
+            }
+            // If no cache exists, export fresh data
+            else
+            {
+                return exportScoresInCache(realm, cachePath);
+            }
+        }
+
+        private List<ScoreInfo> exportScoresInCache(RealmAccess realm, string cachePath)
+        {
+            throw new NotImplementedException();
+        }
+
+        private List<ScoreInfo> importCachedScores(string cachePath)
+        {
+            throw new NotImplementedException();
+        }
+
+        private List<List<ScoreInfo>> getRelevantScores(RealmAccess realm)
+        {
+            var realmScores = getAllScores(realm);
 
             Schedule(() => loadingLayer.Text.Value = "Filtering scores...");
 
