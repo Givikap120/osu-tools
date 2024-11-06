@@ -513,7 +513,7 @@ namespace PerformanceCalculatorGUI.Screens
                 var plays = new List<ProfileScore>();
 
                 var rulesetInstance = ruleset.Value.CreateInstance();
-                var realmScores = getRealmScores(realmAccess);
+                var realmScores = getRelevantScores(realmAccess);
 
                 int currentScoresCount = 0;
                 var totalScoresCount = realmScores.Sum(childList => childList.Count);
@@ -650,45 +650,69 @@ namespace PerformanceCalculatorGUI.Screens
         private List<ScoreInfo> getAllScores(RealmAccess realm)
         {
             Schedule(() => loadingLayer.Text.Value = "Getting user scores...");
+            return realm.Run(r => r.All<ScoreInfo>().Detach());
 
-            var lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
+            //var lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
 
-            string cachePath = Path.Combine(lazerPath, @"scores.cache");
-            string realmPath = Path.Combine(lazerPath, @"client.realm");
+            //string cachePath = @"scores.cache";
+            //string realmPath = Path.Combine(lazerPath, @"client.realm");
 
-            // Check if cache exists
-            if (File.Exists(cachePath))
-            {
-                DateTime cacheLastModified = File.GetLastWriteTime(cachePath);
-                DateTime realmLastModified = File.GetLastWriteTime(realmPath);
+            //// Check if cache exists
+            //if (File.Exists(cachePath))
+            //{
+            //    DateTime cacheLastModified = File.GetLastWriteTime(cachePath);
+            //    DateTime realmLastModified = File.GetLastWriteTime(realmPath);
 
-                // If cache is newer, import from cache
-                if (cacheLastModified > realmLastModified)
-                {
-                    return importCachedScores(cachePath);
-                }
-                // If cache is older, update it with new data
-                else
-                {
-                    return exportScoresInCache(realm, cachePath);
-                }
-            }
-            // If no cache exists, export fresh data
-            else
-            {
-                return exportScoresInCache(realm, cachePath);
-            }
+            //    // If cache is newer, import from cache
+            //    if (cacheLastModified > realmLastModified)
+            //    {
+            //        return importCachedScores(cachePath);
+            //    }
+            //    // If cache is older, update it with new data
+            //    else
+            //    {
+            //        return exportScoresInCache(realm, cachePath);
+            //    }
+            //}
+            //// If no cache exists, export fresh data
+            //else
+            //{
+            //    return exportScoresInCache(realm, cachePath);
+            //}
         }
 
-        private List<ScoreInfo> exportScoresInCache(RealmAccess realm, string cachePath)
-        {
-            throw new NotImplementedException();
-        }
+        //private List<ScoreInfo> exportScoresInCache(RealmAccess realm, string cachePath)
+        //{
+        //    var scores = realm.Run(r => r.All<ScoreInfo>().Detach());
 
-        private List<ScoreInfo> importCachedScores(string cachePath)
-        {
-            throw new NotImplementedException();
-        }
+        //    foreach (var score in scores)
+        //    {
+        //        score.BeatmapInfo = null;
+        //    }
+
+        //    using (var stream = new FileStream(cachePath, FileMode.Create, FileAccess.Write))
+        //    using (var writer = new StreamWriter(stream))
+        //    {
+        //        var json = JsonConvert.SerializeObject(scores.Detach());
+        //        writer.Write(json);
+        //    }
+
+        //    return scores;
+        //}
+
+        //private List<ScoreInfo> importCachedScores(string cachePath)
+        //{
+        //    List<ScoreInfo> scores;
+
+        //    using (var stream = new FileStream(cachePath, FileMode.Open, FileAccess.Read))
+        //    using (var reader = new StreamReader(stream))
+        //    {
+        //        var json = reader.ReadToEnd();
+        //        scores = JsonConvert.DeserializeObject<List<ScoreInfo>>(json);
+        //    }
+
+        //    return scores;
+        //}
 
         private List<List<ScoreInfo>> getRelevantScores(RealmAccess realm)
         {
@@ -810,7 +834,7 @@ namespace PerformanceCalculatorGUI.Screens
 
             HashSet<string> allMapHashes = new HashSet<string>();
             HashSet<string> topPlayMapHashes = new HashSet<string>();
-            SortedList<(double pp, string hash)> topPlays = new SortedList<(double pp, string hash)>((a, b) => a.pp < b.pp ? 1 : (a.pp > b.pp ? -1 : 0));
+            SortedList<ScoreInfo> topPlays = new SortedList<ScoreInfo>((a, b) => a.PP < b.PP ? 1 : (a.PP > b.PP ? -1 : 0));
 
             int currentTopPlaysCount = 0;
             int uniquePlaysCount = 0;
@@ -833,29 +857,29 @@ namespace PerformanceCalculatorGUI.Screens
                     allMapHashes.Add(hash);
                 }
 
-                if (currentTopPlaysCount > max_scores_in_profile && pp < topPlays[max_scores_in_profile].pp) continue;
+                if (currentTopPlaysCount > max_scores_in_profile && pp < topPlays[max_scores_in_profile].PP) continue;
 
                 int position = -1;
 
                 if (topPlayMapHashes.Contains(hash))
                 {
-                    var item = topPlays.Find(s => s.hash == hash);
-                    if (item.pp < pp)
+                    var item = topPlays.Find(s => s.BeatmapHash == hash);
+                    if (item.PP < pp)
                     {
                         topPlays.Remove(item);
-                        position = topPlays.Add((pp, hash)) + 1;
+                        position = topPlays.Add(score.score) + 1;
                     }
                 }
                 else
                 {
                     currentTopPlaysCount++;
-                    position = topPlays.Add((pp, hash)) + 1;
+                    position = topPlays.Add(score.score) + 1;
                     topPlayMapHashes.Add(hash);
                 }
 
                 profilePp = 0;
                 for (var i = 0; i < Math.Min(200, topPlays.Count); i++)
-                    profilePp += Math.Pow(0.95, i) * topPlays[i].pp;
+                    profilePp += Math.Pow(0.95, i) * (topPlays[i].PP ?? 0);
 
                 profilePp += (417.0 - 1.0 / 3.0) * (1 - Math.Pow(0.995, Math.Min(uniquePlaysCount, 1000)));
 
