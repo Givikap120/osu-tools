@@ -895,6 +895,13 @@ namespace PerformanceCalculatorGUI.Screens
 
         private string getScoreCsv(ScoreInfo score, WorkingBeatmap working, DifficultyAttributes attributes, Ruleset ruleset, double profilePp, int position)
         {
+            // Ensure Dot as a separator
+            System.Globalization.CultureInfo customCulture = (System.Globalization.CultureInfo)Thread.CurrentThread.CurrentCulture.Clone();
+            customCulture.NumberFormat.NumberDecimalSeparator = ".";
+
+            var currentCulture = Thread.CurrentThread.CurrentCulture;
+            Thread.CurrentThread.CurrentCulture = customCulture;
+
             BeatmapInfo beatmap = working.BeatmapInfo;
 
             long scoreID = score.IsLegacyScore ? score.LegacyOnlineID : score.OnlineID;
@@ -928,6 +935,8 @@ namespace PerformanceCalculatorGUI.Screens
             string sliderendmissString = sliderendmiss >= 0 ? sliderbreaks.ToString() : "";
 
             string advancedScoreInfo = $"{score.Accuracy:F4},{score.MaxCombo},{score.GetCount300()},{score.GetCount100()},{score.GetCount50()},{score.GetCountMiss()},{sliderbreaksString},{sliderendmissString}";
+
+            Thread.CurrentThread.CurrentCulture = currentCulture;
 
             return $"{basicScoreInfo},{beatmapInfo},{modInfo},{advancedScoreInfo}";
         }
