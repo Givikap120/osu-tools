@@ -465,9 +465,7 @@ namespace PerformanceCalculatorGUI.Screens
                 return;
             }
 
-            var storage = gameHost.GetStorage(lazerPath);
-            File.Copy(Path.Combine(lazerPath, @"client.realm"), Path.Combine(lazerPath, @"client_osutools_copy.realm"), true);
-            var realmAccess = new RealmAccess(storage, @"client_osutools_copy.realm");
+            var scoreManager = new ScoreInfoCacheManager(gameHost, lazerPath, @"scores.cache");
 
             Task.Run(async () =>
             {
@@ -513,7 +511,7 @@ namespace PerformanceCalculatorGUI.Screens
                 var plays = new List<ProfileScore>();
 
                 var rulesetInstance = ruleset.Value.CreateInstance();
-                var realmScores = getRelevantScores(realmAccess);
+                var realmScores = getRelevantScores(scoreManager);
 
                 int currentScoresCount = 0;
                 var totalScoresCount = realmScores.Sum(childList => childList.Count);
@@ -648,76 +646,10 @@ namespace PerformanceCalculatorGUI.Screens
             }, token);
         }
 
-        private List<ScoreInfo> getAllScores(RealmAccess realm)
+        private List<List<ScoreInfo>> getRelevantScores(ScoreInfoCacheManager scoreManager)
         {
             Schedule(() => loadingLayer.Text.Value = "Getting user scores...");
-            return realm.Run(r => r.All<ScoreInfo>().Detach());
-
-            //var lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
-
-            //string cachePath = @"scores.cache";
-            //string realmPath = Path.Combine(lazerPath, @"client.realm");
-
-            //// Check if cache exists
-            //if (File.Exists(cachePath))
-            //{
-            //    DateTime cacheLastModified = File.GetLastWriteTime(cachePath);
-            //    DateTime realmLastModified = File.GetLastWriteTime(realmPath);
-
-            //    // If cache is newer, import from cache
-            //    if (cacheLastModified > realmLastModified)
-            //    {
-            //        return importCachedScores(cachePath);
-            //    }
-            //    // If cache is older, update it with new data
-            //    else
-            //    {
-            //        return exportScoresInCache(realm, cachePath);
-            //    }
-            //}
-            //// If no cache exists, export fresh data
-            //else
-            //{
-            //    return exportScoresInCache(realm, cachePath);
-            //}
-        }
-
-        //private List<ScoreInfo> exportScoresInCache(RealmAccess realm, string cachePath)
-        //{
-        //    var scores = realm.Run(r => r.All<ScoreInfo>().Detach());
-
-        //    foreach (var score in scores)
-        //    {
-        //        score.BeatmapInfo = null;
-        //    }
-
-        //    using (var stream = new FileStream(cachePath, FileMode.Create, FileAccess.Write))
-        //    using (var writer = new StreamWriter(stream))
-        //    {
-        //        var json = JsonConvert.SerializeObject(scores.Detach());
-        //        writer.Write(json);
-        //    }
-
-        //    return scores;
-        //}
-
-        //private List<ScoreInfo> importCachedScores(string cachePath)
-        //{
-        //    List<ScoreInfo> scores;
-
-        //    using (var stream = new FileStream(cachePath, FileMode.Open, FileAccess.Read))
-        //    using (var reader = new StreamReader(stream))
-        //    {
-        //        var json = reader.ReadToEnd();
-        //        scores = JsonConvert.DeserializeObject<List<ScoreInfo>>(json);
-        //    }
-
-        //    return scores;
-        //}
-
-        private List<List<ScoreInfo>> getRelevantScores(RealmAccess realm)
-        {
-            var realmScores = getAllScores(realm);
+            var realmScores = scoreManager.GetScores();
 
             Schedule(() => loadingLayer.Text.Value = "Filtering scores...");
 

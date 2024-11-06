@@ -128,7 +128,7 @@ namespace PerformanceCalculatorGUI
                     mirrorHash = (byte)(1 + (int)mirror.Reflection.Value);
                 }
 
-                hash = HashCode.Combine(rate, d.CircleSize, d.OverallDifficulty, isSliderAccuracy, flashlightHash, mirrorHash);
+                hash = HashCode.Combine(rate, d.CircleSize, d.OverallDifficulty, d.ApproachRate, isSliderAccuracy, flashlightHash, mirrorHash);
             }
             else if (ruleset.OnlineID == 1) // For taiko we only have rate
             {
