@@ -21,6 +21,7 @@ using osu.Game.Rulesets.Osu.Objects;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Rulesets.Taiko;
 using osu.Game.Rulesets.Taiko.Objects;
+using osu.Game.Scoring;
 using osu.Game.Skinning;
 using osu.Game.Utils;
 
@@ -374,6 +375,41 @@ namespace PerformanceCalculatorGUI
                 _ => 0.0
             };
         }
+
+        public static List<T> FilterDuplicateScores<T>(List<T> scores, Func<T, ScoreInfo> scoreInfoSelector)
+        {
+            List<T> newScores = [];
+
+            ScoreInfo previousScoreInfo = null;
+
+            static bool isDuplicate(ScoreInfo s1, ScoreInfo s2) => s1.Date == s2.Date && s1.TotalScore == s2.TotalScore && s1.User.Username == s2.User.Username && s1.ModsJson == s2.ModsJson;
+
+            foreach (var score in scores)
+            {
+                var scoreInfo = scoreInfoSelector(score);
+
+                if (previousScoreInfo != null && isDuplicate(scoreInfo, previousScoreInfo))
+                {
+                    // If previous is flawed while this is good - delete previous
+                    if ((scoreInfo.LegacyOnlineID > 0 && previousScoreInfo.LegacyOnlineID <= 0) || (scoreInfo.OnlineID > 0 && previousScoreInfo.OnlineID <= 0))
+                    {
+                        newScores.RemoveAt(newScores.Count - 1);
+                        newScores.Add(score);
+
+                        previousScoreInfo = scoreInfo;
+                    }
+                }
+                else
+                {
+                    newScores.Add(score);
+                    previousScoreInfo = scoreInfo;
+                }
+            }
+
+            return newScores;
+        }
+
+        public static List<ScoreInfo> FilterDuplicateScores(List<ScoreInfo> scores) => FilterDuplicateScores(scores, s => s);
 
         private static double getOsuAccuracy(Dictionary<HitResult, int> statistics)
         {

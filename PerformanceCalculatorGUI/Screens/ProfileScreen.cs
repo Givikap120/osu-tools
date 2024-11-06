@@ -13,7 +13,6 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Input.Events;
 using osu.Framework.Logging;
 using osu.Game.Beatmaps;
-using osu.Game.Database;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Online.API.Requests.Responses;
@@ -741,32 +740,11 @@ namespace PerformanceCalculatorGUI.Screens
 
         private void outputHistoricalScoresCSV(List<(ScoreInfo score, WorkingBeatmap beatmap, DifficultyAttributes attributes)> allScores, Ruleset rulesetInstance, string username)
         {
-            var allScoresSorted = allScores.OrderBy(x => x.score.Date).ToList();
-            allScores.Clear();
+            allScores = allScores.OrderBy(x => x.score.Date).ToList();
+            allScores = RulesetHelper.FilterDuplicateScores(allScores, s => s.score);
 
-            (ScoreInfo score, WorkingBeatmap beatmap, DifficultyAttributes attributes)? previousScore = null;
-
-            foreach (var score in allScoresSorted)
-            {
-                if (previousScore != null && previousScore.Value.score.Date == score.score.Date && previousScore.Value.score.TotalScore == score.score.TotalScore)
-                {
-                    // If previous is flawed while this is good - delete previous
-                    if ((score.score.LegacyOnlineID > 0 && previousScore.Value.score.LegacyOnlineID <= 0) || (score.score.OnlineID > 0 && previousScore.Value.score.OnlineID <= 0))
-                    {
-                        allScores.RemoveAt(allScores.Count - 1);
-                        allScores.Add(score);
-                        previousScore = score;
-                    }
-                }
-                else
-                {
-                    allScores.Add(score);
-                    previousScore = score;
-                }
-            }
-
-            HashSet<string> allMapHashes = new HashSet<string>();
-            HashSet<string> topPlayMapHashes = new HashSet<string>();
+            HashSet<string> allMapHashes = [];
+            HashSet<string> topPlayMapHashes = [];
             SortedList<ScoreInfo> topPlays = new SortedList<ScoreInfo>((a, b) => a.PP < b.PP ? 1 : (a.PP > b.PP ? -1 : 0));
 
             int currentTopPlaysCount = 0;
