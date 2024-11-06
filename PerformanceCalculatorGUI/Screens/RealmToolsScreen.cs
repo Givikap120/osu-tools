@@ -100,12 +100,12 @@ namespace PerformanceCalculatorGUI.Screens
                                         RelativeSizeAxes = Axes.None,
                                         Width = 300,
                                     },
-                                    exportOnlyFromLazerCheckbox = new LabelledSwitchButton
-                                    {
-                                        Label = "Skip scores from stable database",
-                                        RelativeSizeAxes = Axes.None,
-                                        Width = 300,
-                                    },
+                                    //exportOnlyFromLazerCheckbox = new LabelledSwitchButton
+                                    //{
+                                    //    Label = "Skip scores from stable database",
+                                    //    RelativeSizeAxes = Axes.None,
+                                    //    Width = 300,
+                                    //},
                                     exportDirectoryNameTextBox = new LabelledTextBox
                                     {
                                         Label = "Export Folder",
