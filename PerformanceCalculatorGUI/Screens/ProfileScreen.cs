@@ -457,6 +457,18 @@ namespace PerformanceCalculatorGUI.Screens
             calculationCancellatonToken = new CancellationTokenSource();
             var token = calculationCancellatonToken.Token;
 
+            var lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
+
+            if (lazerPath == string.Empty)
+            {
+                notificationDisplay.Display(new Notification("Please set-up path to lazer database folder in GUI settings"));
+                return;
+            }
+
+            var storage = gameHost.GetStorage(lazerPath);
+            File.Copy(Path.Combine(lazerPath, @"client.realm"), Path.Combine(lazerPath, @"client_osutools_copy.realm"), true);
+            var realmAccess = new RealmAccess(storage, @"client_osutools_copy.realm");
+
             Task.Run(async () =>
             {
                 Schedule(() => loadingLayer.Text.Value = "Getting user data...");
@@ -502,14 +514,6 @@ namespace PerformanceCalculatorGUI.Screens
 
                 var rulesetInstance = ruleset.Value.CreateInstance();
 
-                var lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
-
-                if (lazerPath == string.Empty)
-                {
-                    notificationDisplay.Display(new Notification("Please set-up path to lazer database folder in GUI settings"));
-                    return;
-                }
-
                 var storage = gameHost.GetStorage(lazerPath);
                 var realmAccess = new RealmAccess(storage, @"client.realm");
 
@@ -547,7 +551,7 @@ namespace PerformanceCalculatorGUI.Screens
                         if (token.IsCancellationRequested)
                             return;
 
-                        Schedule(() => loadingLayer.Text.Value = $"Calculating {username}'s scores... {currentScoresCount} / {totalScoresCount}");
+                        Schedule(() => loadingLayer.Text.Value = $"Calculating {player.Username}'s scores... {currentScoresCount} / {totalScoresCount}");
 
                         DifficultyAttributes difficultyAttributes;
                         int modsHash = RulesetHelper.GenerateModsHash(score.Mods, working.BeatmapInfo.Difficulty, ruleset.Value);
