@@ -564,6 +564,7 @@ namespace PerformanceCalculatorGUI.Screens
                             attributesCache[modsHash] = difficultyAttributes;
                         }
 
+                        performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
                         var perfAttributes = await performanceCalculator?.CalculateAsync(score, difficultyAttributes, token)!;
 
                         score.PP = perfAttributes?.Total ?? 0.0;
