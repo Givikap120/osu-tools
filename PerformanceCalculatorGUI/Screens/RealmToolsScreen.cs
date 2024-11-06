@@ -125,7 +125,7 @@ namespace PerformanceCalculatorGUI.Screens
             };
 
             clearExportFolderCheckbox.Current.Value = true;
-            exportOnlyFromLazerCheckbox.Current.Value = true;
+            //exportOnlyFromLazerCheckbox.Current.Value = true;
         }
 
         private void exportAllScores()
