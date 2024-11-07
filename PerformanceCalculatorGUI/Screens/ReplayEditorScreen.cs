@@ -567,7 +567,7 @@ namespace PerformanceCalculatorGUI.Screens
 
             try
             {
-                ExtendedScoreDecoder decoder = new ExtendedScoreDecoder(rulesets, beatmapManager);
+                ExtendedScoreDecoder decoder = new ExtendedScoreDecoder(rulesets, beatmapManager, configManager);
                 using (var stream = File.OpenRead(replay))
                     score = decoder.Parse(stream);
 

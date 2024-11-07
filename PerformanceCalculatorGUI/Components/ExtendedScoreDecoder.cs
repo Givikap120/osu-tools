@@ -22,6 +22,8 @@ using osu.Game.Rulesets.Scoring;
 using SharpCompress.Compressors.LZMA;
 using osu.Game.Scoring;
 using osu.Game.Scoring.Legacy;
+using osu.Framework.Configuration;
+using PerformanceCalculatorGUI.Configuration;
 
 namespace PerformanceCalculatorGUI.Components
 {
@@ -34,15 +36,40 @@ namespace PerformanceCalculatorGUI.Components
 
         private readonly IRulesetStore rulesets;
         private readonly BeatmapManager beatmaps;
+        private readonly SettingsManager configManager;
 
-        public ExtendedScoreDecoder(IRulesetStore rulesets, BeatmapManager beatmaps)
+        public ExtendedScoreDecoder(IRulesetStore rulesets, BeatmapManager beatmaps, SettingsManager configManager)
         {
             this.rulesets = rulesets;
             this.beatmaps = beatmaps;
+            this.configManager = configManager;
         }
 
         protected Ruleset GetRuleset(int rulesetId) => rulesets.GetRuleset(rulesetId)?.CreateInstance();
-        protected WorkingBeatmap GetBeatmap(string md5Hash) => beatmaps.GetWorkingBeatmap(beatmaps.QueryBeatmap(b => b.MD5Hash == md5Hash));
+        protected WorkingBeatmap GetBeatmap(string md5Hash)
+        {
+            // Try to get from manager first
+            var workingBeatmap = beatmaps.GetWorkingBeatmap(beatmaps.QueryBeatmap(b => b.MD5Hash == md5Hash));
+
+            if (workingBeatmap is not DummyWorkingBeatmap)
+                return workingBeatmap;
+
+            // Try to get from lazer path
+            var lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
+
+            if (lazerPath == string.Empty)
+                return workingBeatmap;
+
+            try
+            {
+                workingBeatmap = new FlatWorkingBeatmap(Path.Combine(lazerPath, "files", md5Hash[..1], md5Hash[..2], md5Hash));
+            }
+            catch (Exception)
+            {
+            }
+
+            return workingBeatmap;
+        }
 
         public Score Parse(Stream stream)
         {

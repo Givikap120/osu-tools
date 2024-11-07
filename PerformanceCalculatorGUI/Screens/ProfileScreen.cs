@@ -534,6 +534,8 @@ namespace PerformanceCalculatorGUI.Screens
                         continue;
                     }
 
+                    Console.WriteLine($"{working.BeatmapInfo.Metadata.Title}: {beatmapHash}");
+
                     var difficultyCalculator = rulesetInstance.CreateDifficultyCalculator(working);
                     
 
