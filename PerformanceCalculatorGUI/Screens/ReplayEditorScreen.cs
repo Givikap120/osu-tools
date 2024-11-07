@@ -149,10 +149,15 @@ namespace PerformanceCalculatorGUI.Screens
         private ReplayAttributeTextBox dateBox;
         private ReplayAttributeNumberBox scoreIDBox;
 
+        private OsuCheckbox isLegacyScoreBox;
+        private ReplayAttributeNumberBox legacyTotalScoreBox;
+
         // Lazer-specific
 
         private ReplayAttributeNumberBox lazerScoreIDBox;
         private ReplayAttributeTextBox clientVersionBox;
+
+        private ReplayAttributeNumberBox scoreWithoutModsBox;
 
         private StatisticsContainer statisticsContainer;
 
@@ -342,11 +347,17 @@ namespace PerformanceCalculatorGUI.Screens
                                                     {
                                                         b.Value.Value = 1000000;
                                                     }),
+                                                    scoreWithoutModsBox = new ReplayAttributeNumberBox("Score without mods"),
                                                 ]),
                                                 createDoubleDisplay(
                                                 [
                                                     dateBox = new ReplayAttributeTextBox("Date"),
                                                     scoreIDBox = new ReplayAttributeNumberBox("Online ID", minValue: -1)
+                                                ]),
+                                                createDoubleDisplay(
+                                                [
+                                                    legacyTotalScoreBox = new ReplayAttributeNumberBox("Legacy total score"),
+                                                    isLegacyScoreBox = createCheckBox("Is legacy score")
                                                 ]),
                                                 new OsuSpriteText
                                                 {
@@ -440,21 +451,21 @@ namespace PerformanceCalculatorGUI.Screens
                                                     IsValidMod = mod => mod.HasImplementation && ModUtils.FlattenMod(mod).All(m => m.UserPlayable),
                                                     SelectedMods = { BindTarget = appliedMods }
                                                 },
-                                                new OsuSpriteText
-                                                {
-                                                    Margin = new MarginPadding(10.0f),
-                                                    Origin = Anchor.TopLeft,
-                                                    Height = 20,
-                                                    Text = "Performance Attributes"
-                                                },
-                                                performanceAttributesContainer = new FillFlowContainer
-                                                {
-                                                    Direction = FillDirection.Vertical,
-                                                    RelativeSizeAxes = Axes.X,
-                                                    Anchor = Anchor.TopLeft,
-                                                    AutoSizeAxes = Axes.Y,
-                                                    Spacing = new Vector2(0, 2f)
-                                                }
+                                                //new OsuSpriteText
+                                                //{
+                                                //    Margin = new MarginPadding(10.0f),
+                                                //    Origin = Anchor.TopLeft,
+                                                //    Height = 20,
+                                                //    Text = "Performance Attributes"
+                                                //},
+                                                //performanceAttributesContainer = new FillFlowContainer
+                                                //{
+                                                //    Direction = FillDirection.Vertical,
+                                                //    RelativeSizeAxes = Axes.X,
+                                                //    Anchor = Anchor.TopLeft,
+                                                //    AutoSizeAxes = Axes.Y,
+                                                //    Spacing = new Vector2(0, 2f)
+                                                //}
                                             }
                                         }
                                     }
@@ -615,6 +626,7 @@ namespace PerformanceCalculatorGUI.Screens
 
             updateInterfaceFromScore();
 
+            beatmapTitle.Clear();
             if (beatmap != null) beatmapTitle.Add(new BeatmapCard(beatmap));
 
             loadBackground();
@@ -647,10 +659,15 @@ namespace PerformanceCalculatorGUI.Screens
             dateBox.Text = score.ScoreInfo.Date.ToString();
             scoreIDBox.Text = score.ScoreInfo.LegacyOnlineID.ToString();
 
+            isLegacyScoreBox.Current.Value = score.ScoreInfo.IsLegacyScore;
+            legacyTotalScoreBox.Text = score.ScoreInfo?.LegacyTotalScore.ToString() ?? "";
+
             appliedMods.Value = score.ScoreInfo.Mods;
 
             lazerScoreIDBox.Text = score.ScoreInfo.OnlineID.ToString();
             clientVersionBox.Text = score.ScoreInfo.ClientVersion;
+
+            scoreWithoutModsBox.Text = score.ScoreInfo.TotalScoreWithoutMods.ToString();
 
             statisticsContainer.ImportContainer(score.ScoreInfo);
         }
@@ -682,10 +699,15 @@ namespace PerformanceCalculatorGUI.Screens
             currentScore.ScoreInfo.Date = DateTimeOffset.Parse(dateBox.Text);
             currentScore.ScoreInfo.LegacyOnlineID = safeParseLong(scoreIDBox.Text);
 
+            currentScore.ScoreInfo.IsLegacyScore = isLegacyScoreBox.Current.Value;
+            currentScore.ScoreInfo.LegacyTotalScore = legacyTotalScoreBox.Text == "" ? null : long.Parse(legacyTotalScoreBox.Text);
+
             currentScore.ScoreInfo.Mods = appliedMods.Value.ToArray();
 
             currentScore.ScoreInfo.OnlineID = safeParseLong(lazerScoreIDBox.Text);
             currentScore.ScoreInfo.ClientVersion = clientVersionBox.Text;
+
+            currentScore.ScoreInfo.TotalScoreWithoutMods = safeParseLong(scoreWithoutModsBox.Text);
 
             statisticsContainer.ExportContainer(ref currentScore.ScoreInfo);
 
@@ -752,54 +774,57 @@ namespace PerformanceCalculatorGUI.Screens
             if (beatmap == null || difficultyAttributes == null)
                 return;
 
-            int? countGood = null, countMeh = null;
+            // TODO: proper pp calc
+            return;
 
-            countGood = goodBox.Value.Value;
-            countMeh = mehBox.Value.Value;
-            double accuracy = 1;
+            //int? countGood = null, countMeh = null;
 
-            int sliderbreaks = 0;
-            int sliderendMisses = 0;
+            //countGood = goodBox.Value.Value;
+            //countMeh = mehBox.Value.Value;
+            //double accuracy = 1;
 
-            var score = RulesetHelper.AdjustManiaScore(scoreBox.Value.Value, appliedMods.Value);
+            //int sliderbreaks = 0;
+            //int sliderendMisses = 0;
 
-            try
-            {
-                var beatmap = this.beatmap.GetPlayableBeatmap(ruleset.Value, appliedMods.Value);
+            //var score = RulesetHelper.AdjustManiaScore(scoreBox.Value.Value, appliedMods.Value);
 
-                Dictionary<HitResult, int> statistics = new Dictionary<HitResult, int>();
+            //try
+            //{
+            //    var beatmap = this.beatmap.GetPlayableBeatmap(ruleset.Value, appliedMods.Value);
 
-                if (ruleset.Value.OnlineID != -1)
-                {
-                    // official rulesets can generate more precise hits from accuracy
-                    statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, 100, beatmap, missBox.Value.Value, countMeh, countGood, sliderbreaks, sliderendMisses);
-                    accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, statistics);
-                }
+            //    Dictionary<HitResult, int> statistics = new Dictionary<HitResult, int>();
 
-                var ppAttributes = performanceCalculator?.Calculate(new ScoreInfo(beatmap.BeatmapInfo, ruleset.Value)
-                {
-                    Accuracy = accuracy,
-                    MaxCombo = comboBox.Value.Value,
-                    Statistics = statistics,
-                    Mods = appliedMods.Value.ToArray(),
-                    TotalScore = score,
-                    Ruleset = ruleset.Value
-                }, difficultyAttributes);
+            //    if (ruleset.Value.OnlineID != -1)
+            //    {
+            //        // official rulesets can generate more precise hits from accuracy
+            //        statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, 100, beatmap, missBox.Value.Value, countMeh, countGood, sliderbreaks, sliderendMisses);
+            //        accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, statistics);
+            //    }
 
-                performanceAttributesContainer.Children = AttributeConversion.ToDictionary(ppAttributes).Select(x =>
-                    new ExtendedLabelledTextBox
-                    {
-                        ReadOnly = true,
-                        Label = x.Key.Humanize().ToLowerInvariant(),
-                        Text = FormattableString.Invariant($"{x.Value:N2}")
-                    }
-                ).ToArray();
-            }
-            catch (Exception e)
-            {
-                showError(e);
-                resetScoreBeatmap();
-            }
+            //    var ppAttributes = performanceCalculator?.Calculate(new ScoreInfo(beatmap.BeatmapInfo, ruleset.Value)
+            //    {
+            //        Accuracy = accuracy,
+            //        MaxCombo = comboBox.Value.Value,
+            //        Statistics = statistics,
+            //        Mods = appliedMods.Value.ToArray(),
+            //        TotalScore = score,
+            //        Ruleset = ruleset.Value
+            //    }, difficultyAttributes);
+
+            //    performanceAttributesContainer.Children = AttributeConversion.ToDictionary(ppAttributes).Select(x =>
+            //        new ExtendedLabelledTextBox
+            //        {
+            //            ReadOnly = true,
+            //            Label = x.Key.Humanize().ToLowerInvariant(),
+            //            Text = FormattableString.Invariant($"{x.Value:N2}")
+            //        }
+            //    ).ToArray();
+            //}
+            //catch (Exception e)
+            //{
+            //    showError(e);
+            //    resetScoreBeatmap();
+            //}
         }
 
         private void populateScoreParams()
@@ -972,7 +997,7 @@ namespace PerformanceCalculatorGUI.Screens
                         {
                             RelativeSizeAxes = Axes.Both,
                             Colour = OsuColour.Gray(0),
-                            Alpha = 0.85f
+                            Alpha = 0.9f
                         },
                     }
                 }).ContinueWith(_ =>
