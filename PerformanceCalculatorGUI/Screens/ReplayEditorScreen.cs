@@ -742,6 +742,9 @@ namespace PerformanceCalculatorGUI.Screens
             countMeh = mehBox.Value.Value;
             double accuracy = 1;
 
+            int sliderbreaks = 0;
+            int sliderendMisses = 0;
+
             var score = RulesetHelper.AdjustManiaScore(scoreBox.Value.Value, appliedMods.Value);
 
             try
@@ -753,7 +756,7 @@ namespace PerformanceCalculatorGUI.Screens
                 if (ruleset.Value.OnlineID != -1)
                 {
                     // official rulesets can generate more precise hits from accuracy
-                    statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, 100, beatmap, missBox.Value.Value, countMeh, countGood);
+                    statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, 100, beatmap, missBox.Value.Value, countMeh, countGood, sliderbreaks, sliderendMisses);
                     accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, statistics);
                 }
 
