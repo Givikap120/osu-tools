@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using osu.Framework.Logging;
 using osu.Framework.Platform;
 using osu.Game.Beatmaps;
 using osu.Game.Database;
@@ -14,24 +15,25 @@ namespace PerformanceCalculatorGUI
     {
         private const int version = 20241106;
 
+        public static string CacheFileName => @"scores.cache";
+
         private GameHost gameHost;
-        private string lazerPath, cachePath;
+        private string lazerPath;
 
         private RealmAccess realm = null;
         private bool isCacheRelevant;
 
-        public ScoreInfoCacheManager(GameHost gameHost, string lazerPath, string cachePath)
+        public ScoreInfoCacheManager(GameHost gameHost, string lazerPath)
         {
             this.gameHost = gameHost;
             this.lazerPath = lazerPath;
-            this.cachePath = cachePath;
 
             string realmPath = Path.Combine(lazerPath, @"client.realm");
             realm = getRealmAccess();
 
-            if (File.Exists(cachePath))
+            if (File.Exists(CacheFileName))
             {
-                DateTime cacheLastModified = File.GetLastWriteTime(cachePath);
+                DateTime cacheLastModified = File.GetLastWriteTime(CacheFileName);
                 DateTime realmLastModified = File.GetLastWriteTime(realmPath);
 
                 // If cache is newer, import from cache
@@ -52,10 +54,49 @@ namespace PerformanceCalculatorGUI
             }
         }
 
+        private string getValidRealmCopyName()
+        {
+            string destinationPath = Path.Combine(lazerPath, @"client_osutools_copy.realm");
+
+            int copyNumber = 1;
+
+            static bool isFileLocked(string path)
+            {
+                try
+                {
+                    using (FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None))
+                    {
+                        stream.Close();
+                    }
+                }
+                catch (IOException ex)
+                {
+                    if (ex is FileNotFoundException)
+                    {
+                        return false;
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            // Loop until an available name is found
+            while (isFileLocked(destinationPath))
+            {
+                // Generate a new file name with an incrementing number
+                destinationPath = Path.Combine(
+                    lazerPath,
+                    $"client_osutools_copy({copyNumber++}).realm"
+                );
+            }
+
+            return destinationPath;
+        }
+
         private RealmAccess getRealmAccess()
         {
             var storage = gameHost.GetStorage(lazerPath);
-            File.Copy(Path.Combine(lazerPath, @"client.realm"), Path.Combine(lazerPath, @"client_osutools_copy.realm"), true);
+            File.Copy(Path.Combine(lazerPath, @"client.realm"), getValidRealmCopyName(), true);
             var realmAccess = new RealmAccess(storage, @"client_osutools_copy.realm");
             return realmAccess;
         }
@@ -66,12 +107,18 @@ namespace PerformanceCalculatorGUI
         {
             List<ScoreInfo>  scores = [];
 
-            using (var stream = new FileStream(cachePath, FileMode.Open, FileAccess.Read))
+            Logger.Log("Getting score from cache...");
+
+            using (var stream = new FileStream(CacheFileName, FileMode.Open, FileAccess.Read))
             using (var reader = new BinaryReader(stream))
             {
                 int cacheVersion = reader.ReadInt32();
-                if (cacheVersion < version)
+                if (cacheVersion != version)
+                {
+                    Logger.Log("Cache has wrong version");
                     return writeToCache();
+                }
+                    
 
                 int scoreCount = reader.ReadInt32();
 
@@ -87,9 +134,10 @@ namespace PerformanceCalculatorGUI
 
         private List<ScoreInfo> writeToCache()
         {
+            Logger.Log("Getting scores from realm...");
             var scores = realm.Run(r => r.All<ScoreInfo>().Detach());
 
-            using (var stream = new FileStream(cachePath, FileMode.Create, FileAccess.Write))
+            using (var stream = new FileStream(CacheFileName, FileMode.Create, FileAccess.Write))
             using (var writer = new BinaryWriter(stream))
             {
                 writer.Write(version);

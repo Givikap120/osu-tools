@@ -1,12 +1,15 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
+using System.IO;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Extensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
+using osu.Framework.Logging;
 using osu.Game.Configuration;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
@@ -23,6 +26,8 @@ namespace PerformanceCalculatorGUI.Components
         private SettingsManager configManager;
 
         private LinkFlowContainer linkContainer;
+
+        private StatefulButton clearCacheButton;
 
         private Bindable<string> clientIdBindable;
         private Bindable<string> clientSecretBindable;
@@ -135,6 +140,14 @@ namespace PerformanceCalculatorGUI.Components
                                 Height = 40,
                                 Text = "Save",
                                 Action = saveConfig
+                            },
+                            clearCacheButton = new StatefulButton("Clear realm scores cache")
+                            {
+                                Anchor = Anchor.TopCentre,
+                                Origin = Anchor.TopCentre,
+                                Width = 200,
+                                Height = 40,
+                                Action = deleteScoresCache,
                             }
                         }
                     }
@@ -149,6 +162,21 @@ namespace PerformanceCalculatorGUI.Components
             configManager.Save();
 
             this.HidePopover();
+        }
+
+        private void deleteScoresCache()
+        {
+            if (File.Exists(ScoreInfoCacheManager.CacheFileName))
+            {
+                File.Delete(ScoreInfoCacheManager.CacheFileName);
+                Logger.Log($"Cache deleted: {ScoreInfoCacheManager.CacheFileName}");
+            }
+            else
+            {
+                Logger.Log($"Cache not found: {ScoreInfoCacheManager.CacheFileName}");
+            }
+
+            clearCacheButton.State.Value = ButtonState.Done;
         }
     }
 }

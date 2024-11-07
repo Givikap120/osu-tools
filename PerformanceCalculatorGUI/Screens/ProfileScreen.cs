@@ -464,7 +464,7 @@ namespace PerformanceCalculatorGUI.Screens
                 return;
             }
 
-            var scoreManager = new ScoreInfoCacheManager(gameHost, lazerPath, @"scores.cache");
+            var scoreManager = new ScoreInfoCacheManager(gameHost, lazerPath);
 
             Task.Run(async () =>
             {
