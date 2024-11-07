@@ -22,7 +22,7 @@ namespace PerformanceCalculatorGUI
     /// </summary>
     public class ProcessorWorkingBeatmap : WorkingBeatmap
     {
-        private readonly Beatmap beatmap;
+        private readonly IBeatmap beatmap;
         private readonly AudioManager audioManager;
 
         /// <summary>
@@ -37,7 +37,7 @@ namespace PerformanceCalculatorGUI
             this.audioManager = audioManager;
         }
 
-        private ProcessorWorkingBeatmap(Beatmap beatmap, int? beatmapId = null, AudioManager audioManager = null)
+        public ProcessorWorkingBeatmap(IBeatmap beatmap, int? beatmapId = null, AudioManager audioManager = null)
             : base(beatmap.BeatmapInfo, audioManager)
         {
             this.beatmap = beatmap;

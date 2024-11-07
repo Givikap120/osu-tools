@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using osu.Framework.Bindables;
+using osu.Framework.Extensions;
 using osu.Game.Graphics.UserInterface;
 using osu.Game.Graphics.UserInterfaceV2;
 
@@ -31,6 +32,12 @@ namespace PerformanceCalculatorGUI.Components.TextBoxes
                     }
                 }
 
+                if (textToParse == "-" && MinValue < 0)
+                {
+                    Value.Value = 0;
+                    return;
+                }
+
                 DeleteBy(-1);
                 NotifyInputError();
             }
@@ -51,6 +58,10 @@ namespace PerformanceCalculatorGUI.Components.TextBoxes
                 }
 
                 Value.Value = default;
+            }
+            protected override bool CanAddCharacter(char character)
+            {
+                return character.IsAsciiDigit() || character == '-';
             }
 
             public int? MaxValue { get; set; }

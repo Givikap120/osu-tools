@@ -110,10 +110,14 @@ namespace PerformanceCalculatorGUI
                                                 {
                                                     Action = () => setScreen(new BeatmapLeaderboardScreen())
                                                 },
+                                                new ScreenSelectionButton("Replay Editor", FontAwesome.Solid.Hammer)
+                                                {
+                                                    Action = () => setScreen(new ReplayEditorScreen())
+                                                },
                                                 new ScreenSelectionButton("Realm Tools", FontAwesome.Solid.Database)
                                                 {
                                                     Action = () => setScreen(new RealmToolsScreen())
-                                                },
+                                                }
                                             }
                                         },
                                         new FillFlowContainer
