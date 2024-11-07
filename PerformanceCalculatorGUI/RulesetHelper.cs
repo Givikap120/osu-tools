@@ -7,7 +7,9 @@ using System.IO;
 using System.Linq;
 using osu.Framework.Audio.Track;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Platform;
 using osu.Game.Beatmaps;
+using osu.Game.Database;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Catch;
 using osu.Game.Rulesets.Catch.Objects;
@@ -410,6 +412,53 @@ namespace PerformanceCalculatorGUI
         }
 
         public static List<ScoreInfo> FilterDuplicateScores(List<ScoreInfo> scores) => FilterDuplicateScores(scores, s => s);
+
+        private static string getValidRealmCopyName(string lazerPath)
+        {
+            string destinationPath = Path.Combine(lazerPath, @"client_osutools_copy.realm");
+
+            int copyNumber = 1;
+
+            static bool isFileLocked(string path)
+            {
+                try
+                {
+                    using (FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None))
+                    {
+                        stream.Close();
+                    }
+                }
+                catch (IOException ex)
+                {
+                    if (ex is FileNotFoundException)
+                    {
+                        return false;
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            // Loop until an available name is found
+            while (isFileLocked(destinationPath))
+            {
+                // Generate a new file name with an incrementing number
+                destinationPath = Path.Combine(
+                    lazerPath,
+                    $"client_osutools_copy({copyNumber++}).realm"
+                );
+            }
+
+            return destinationPath;
+        }
+
+        public static RealmAccess GetRealmAccess(GameHost gameHost, string lazerPath)
+        {
+            var storage = gameHost.GetStorage(lazerPath);
+            File.Copy(Path.Combine(lazerPath, @"client.realm"), getValidRealmCopyName(lazerPath), true);
+            var realmAccess = new RealmAccess(storage, @"client_osutools_copy.realm");
+            return realmAccess;
+        }
 
         private static double getOsuAccuracy(Dictionary<HitResult, int> statistics)
         {

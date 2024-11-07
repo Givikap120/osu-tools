@@ -46,12 +46,13 @@ namespace PerformanceCalculatorGUI.Components
         }
 
         protected Ruleset GetRuleset(int rulesetId) => rulesets.GetRuleset(rulesetId)?.CreateInstance();
+
         protected WorkingBeatmap GetBeatmap(string md5Hash)
         {
             // Try to get from manager first
             var workingBeatmap = beatmaps.GetWorkingBeatmap(beatmaps.QueryBeatmap(b => b.MD5Hash == md5Hash));
 
-            if (workingBeatmap is not DummyWorkingBeatmap)
+            if (workingBeatmap is DummyWorkingBeatmap)
                 return workingBeatmap;
 
             // Try to get from lazer path
@@ -60,9 +61,13 @@ namespace PerformanceCalculatorGUI.Components
             if (lazerPath == string.Empty)
                 return workingBeatmap;
 
+            // We need this beatmap (what is BeatmapInfo-only) to get hash to find full beatmap
+            // This can be avoided by passing true Storage (from lazer) to BeatmapManager, but I'm too scared to let that happen
+            string hash = workingBeatmap.BeatmapInfo.Hash;
+
             try
             {
-                workingBeatmap = new FlatWorkingBeatmap(Path.Combine(lazerPath, "files", md5Hash[..1], md5Hash[..2], md5Hash));
+                workingBeatmap = new FlatWorkingBeatmap(Path.Combine(lazerPath, "files", hash[..1], hash[..2], hash));
             }
             catch (Exception)
             {
@@ -105,7 +110,7 @@ namespace PerformanceCalculatorGUI.Components
                 workingBeatmap = GetBeatmap(beatmapHash);
                 score.ScoreInfo.BeatmapInfo = null;
 
-                if (workingBeatmap is not DummyWorkingBeatmap)
+                if (workingBeatmap is not DummyWorkingBeatmap && workingBeatmap.Beatmap.HitObjects.Count > 0)
                 {
                     haveBeatmap = true;
 

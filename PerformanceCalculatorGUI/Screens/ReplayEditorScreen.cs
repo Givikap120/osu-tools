@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Humanizer;
+using Humanizer.Localisation;
 using osu.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
@@ -18,7 +19,9 @@ using osu.Framework.Graphics.Textures;
 using osu.Framework.Input.Events;
 using osu.Framework.Input.States;
 using osu.Framework.Logging;
+using osu.Framework.Platform;
 using osu.Framework.Threading;
+using osu.Game;
 using osu.Game.Beatmaps;
 using osu.Game.Configuration;
 using osu.Game.Extensions;
@@ -42,6 +45,7 @@ using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
 using PerformanceCalculatorGUI.Screens.ObjectInspection;
+using Realms;
 
 namespace PerformanceCalculatorGUI.Screens
 {
@@ -79,8 +83,16 @@ namespace PerformanceCalculatorGUI.Screens
 
         private ScheduledDelegate debouncedPerformanceUpdate;
 
-        [Resolved]
         private BeatmapManager beatmapManager { get; set; }
+
+        [Resolved]
+        private GameHost gameHost { get; set; }
+
+        [Resolved]
+        private OsuGameBase game { get; set; }
+
+        [Resolved]
+        private SettingsManager configManager { get; set; }
 
         [Resolved]
         private RulesetStore rulesets { get; set; }
@@ -99,9 +111,6 @@ namespace PerformanceCalculatorGUI.Screens
 
         [Resolved]
         private LargeTextureStore textures { get; set; }
-
-        [Resolved]
-        private SettingsManager configManager { get; set; }
 
         [Cached] 
         private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Purple);
@@ -198,6 +207,13 @@ namespace PerformanceCalculatorGUI.Screens
         [BackgroundDependencyLoader]
         private void load(OsuColour osuColour)
         {
+            var lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
+            if (lazerPath != string.Empty)
+            {
+                var realm = RulesetHelper.GetRealmAccess(gameHost, lazerPath);
+                beatmapManager = new BeatmapManager(gameHost.Storage, realm, null, game.Audio, game.Resources, gameHost, new DummyWorkingBeatmap(game.Audio, game.Textures));
+            }
+
             InternalChildren = new Drawable[]
             {
                 new GridContainer

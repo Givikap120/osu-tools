@@ -29,7 +29,7 @@ namespace PerformanceCalculatorGUI
             this.lazerPath = lazerPath;
 
             string realmPath = Path.Combine(lazerPath, @"client.realm");
-            realm = getRealmAccess();
+            realm = RulesetHelper.GetRealmAccess(gameHost, lazerPath);
 
             if (File.Exists(CacheFileName))
             {
@@ -52,53 +52,6 @@ namespace PerformanceCalculatorGUI
             {
                 isCacheRelevant = false;
             }
-        }
-
-        private string getValidRealmCopyName()
-        {
-            string destinationPath = Path.Combine(lazerPath, @"client_osutools_copy.realm");
-
-            int copyNumber = 1;
-
-            static bool isFileLocked(string path)
-            {
-                try
-                {
-                    using (FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None))
-                    {
-                        stream.Close();
-                    }
-                }
-                catch (IOException ex)
-                {
-                    if (ex is FileNotFoundException)
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-                return false;
-            }
-
-            // Loop until an available name is found
-            while (isFileLocked(destinationPath))
-            {
-                // Generate a new file name with an incrementing number
-                destinationPath = Path.Combine(
-                    lazerPath,
-                    $"client_osutools_copy({copyNumber++}).realm"
-                );
-            }
-
-            return destinationPath;
-        }
-
-        private RealmAccess getRealmAccess()
-        {
-            var storage = gameHost.GetStorage(lazerPath);
-            File.Copy(Path.Combine(lazerPath, @"client.realm"), getValidRealmCopyName(), true);
-            var realmAccess = new RealmAccess(storage, @"client_osutools_copy.realm");
-            return realmAccess;
         }
 
         public List<ScoreInfo> GetScores() => isCacheRelevant ? readFromCache() : writeToCache();

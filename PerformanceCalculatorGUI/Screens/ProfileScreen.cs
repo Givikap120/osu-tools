@@ -80,13 +80,13 @@ namespace PerformanceCalculatorGUI.Screens
         private Bindable<RulesetInfo> ruleset { get; set; }
 
         [Resolved]
-        private SettingsManager configManager { get; set; }
-
-        [Resolved]
         private RulesetStore rulesets { get; set; }
 
         [Resolved]
         private GameHost gameHost { get; set; }
+
+        [Resolved]
+        private SettingsManager configManager { get; set; }
 
         public override bool ShouldShowConfirmationDialogOnSwitch => false;
 
