@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Humanizer;
 using osu.Framework;
 using osu.Framework.Allocation;
@@ -41,7 +43,6 @@ using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
 using PerformanceCalculatorGUI.Screens.ObjectInspection;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PerformanceCalculatorGUI.Screens
 {
@@ -111,13 +112,13 @@ namespace PerformanceCalculatorGUI.Screens
 
         [Cached]
         private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Blue);
-
         public override bool ShouldShowConfirmationDialogOnSwitch => working != null;
 
         private const int file_selection_container_height = 40;
         private const int map_title_container_height = 40;
         private const float mod_selection_container_scale = 0.7f;
 
+        private CancellationTokenSource cancellationTokenSource;
         public SimulateScreen()
         {
             RelativeSizeAxes = Axes.Both;
@@ -548,14 +549,15 @@ namespace PerformanceCalculatorGUI.Screens
             {
                 HotReloadCallbackReceiver.CompilationFinished += _ => Schedule(() =>
                 {
-                    calculateDifficulty();
-                    calculatePerformance();
+                    calculateDifficulty().ContinueWith((t) => calculatePerformance());
                 });
             }
         }
 
         protected override void Dispose(bool isDisposing)
         {
+            cancellationTokenSource?.Cancel();
+
             modSettingChangeTracker?.Dispose();
 
             appliedMods.UnbindAll();
@@ -589,14 +591,13 @@ namespace PerformanceCalculatorGUI.Screens
                 debouncedStatisticsUpdate?.Cancel();
                 debouncedStatisticsUpdate = Scheduler.AddDelayed(() =>
                 {
-                    calculateDifficulty();
-                    calculatePerformance();
+                    var token = resetAndGetToken();
+                    calculateDifficulty(token).ContinueWith((t) => calculatePerformance(token));
                 }, 100);
             };
 
-            calculateDifficulty();
-            updateCombo(false);
-            calculatePerformance();
+            var token = resetAndGetToken();
+            calculateDifficulty(token).ContinueWith((t) => { updateCombo(false); calculatePerformance(token); });
 
             void updateMissesTextboxes()
             {
@@ -681,52 +682,78 @@ namespace PerformanceCalculatorGUI.Screens
             performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
         }
 
-        private void calculateDifficulty()
+        private CancellationToken resetAndGetToken()
+        {
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource = new CancellationTokenSource();
+            return cancellationTokenSource.Token;
+        }
+
+        private Task calculateDifficulty(CancellationToken token = default)
         {
             if (working == null || difficultyCalculator.Value == null)
-                return;
+                return Task.CompletedTask;
 
-            try
+            return Task.Run(() =>
             {
-                difficultyAttributes = difficultyCalculator.Value.Calculate(appliedMods.Value);
-                difficultyAttributesContainer.Children = AttributeConversion.ToDictionary(difficultyAttributes).Select(x =>
-                    new ExtendedLabelledTextBox
+                try
+                {
+                    difficultyAttributes = difficultyCalculator.Value.Calculate(appliedMods.Value);
+                    if (token.IsCancellationRequested) return;
+
+                    Schedule(() =>
                     {
-                        ReadOnly = true,
-                        Label = x.Key.Humanize().ToLowerInvariant(),
-                        Text = FormattableString.Invariant($"{x.Value:N2}")
+                        difficultyAttributesContainer.Children = AttributeConversion.ToDictionary(difficultyAttributes).Select(x =>
+                        new ExtendedLabelledTextBox
+                        {
+                            ReadOnly = true,
+                            Label = x.Key.Humanize().ToLowerInvariant(),
+                            Text = FormattableString.Invariant($"{x.Value:N2}")
+                        }
+                    ).ToArray();
+                    });
+                }
+                catch (Exception e)
+                {
+                    Schedule(() =>
+                    {
+                        showError(e);
+                        //resetBeatmap();
+                    });
+                    return;
+                }
+
+                if (token.IsCancellationRequested)
+                    return;
+
+                Schedule(() =>
+                {
+                    if (difficultyCalculator.Value is IExtendedDifficultyCalculator extendedDifficultyCalculator)
+                    {
+                        // StrainSkill always skips the first object
+                        if (working.Beatmap?.HitObjects.Count > 1)
+                            strainVisualizer.TimeUntilFirstStrain.Value = (int)working.Beatmap.HitObjects[1].StartTime;
+
+                        strainVisualizer.Skills.Value = extendedDifficultyCalculator.GetSkills();
                     }
-                ).ToArray();
-            }
-            catch (Exception e)
-            {
-                showError(e);
-                resetBeatmap();
-                return;
-            }
-
-            if (difficultyCalculator.Value is IExtendedDifficultyCalculator extendedDifficultyCalculator)
-            {
-                // StrainSkill always skips the first object
-                if (working.Beatmap?.HitObjects.Count > 1)
-                    strainVisualizer.TimeUntilFirstStrain.Value = (int)working.Beatmap.HitObjects[1].StartTime;
-
-                strainVisualizer.Skills.Value = extendedDifficultyCalculator.GetSkills();
-            }
-            else
-                strainVisualizer.Skills.Value = Array.Empty<Skill>();
+                    else
+                        strainVisualizer.Skills.Value = Array.Empty<Skill>();
+                });
+            }, token);
         }
 
         private void debouncedCalculatePerformance()
         {
             debouncedPerformanceUpdate?.Cancel();
-            debouncedPerformanceUpdate = Scheduler.AddDelayed(calculatePerformance, 20);
+            debouncedPerformanceUpdate = Scheduler.AddDelayed(() => calculatePerformance(), 20);
         }
 
-        private void calculatePerformance()
+        private void calculatePerformance(CancellationToken token = default)
         {
             if (working == null || difficultyAttributes == null)
                 return;
+
+            if (token.IsCancellationRequested) return;
 
             int? countGood = null, countMeh = null;
 
@@ -751,7 +778,7 @@ namespace PerformanceCalculatorGUI.Screens
                     statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, accuracyTextBox.Value.Value / 100.0, beatmap, missesTextBox.Value.Value, countMeh, countGood,
                         largeTickMissesTextBox.Value.Value, sliderTailMissesTextBox.Value.Value);
 
-                    accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, statistics);
+                    accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, beatmap, statistics);
                 }
 
                 var ppAttributes = performanceCalculator?.Calculate(new ScoreInfo(beatmap.BeatmapInfo, ruleset.Value)
@@ -764,7 +791,9 @@ namespace PerformanceCalculatorGUI.Screens
                     Ruleset = ruleset.Value
                 }, difficultyAttributes);
 
-                performanceAttributesContainer.Children = AttributeConversion.ToDictionary(ppAttributes).Select(x =>
+                Schedule(() =>
+                {
+                    performanceAttributesContainer.Children = AttributeConversion.ToDictionary(ppAttributes).Select(x =>
                     new ExtendedLabelledTextBox
                     {
                         ReadOnly = true,
@@ -772,11 +801,12 @@ namespace PerformanceCalculatorGUI.Screens
                         Text = FormattableString.Invariant($"{x.Value:N2}")
                     }
                 ).ToArray();
+                });
             }
             catch (Exception e)
             {
                 showError(e);
-                resetBeatmap();
+                //resetBeatmap();
             }
         }
 
@@ -935,9 +965,9 @@ namespace PerformanceCalculatorGUI.Screens
         {
             createCalculators();
             resetMods();
-            calculateDifficulty();
-            calculatePerformance();
-            populateScoreParams();
+            
+            var token = resetAndGetToken();
+            calculateDifficulty(token).ContinueWith((t) => { calculatePerformance(token); Schedule(() => populateScoreParams()); });
         }
 
         // This is to make sure combo resets when classic mod is applied
@@ -1061,7 +1091,7 @@ namespace PerformanceCalculatorGUI.Screens
             if (ruleset.Value.OnlineID != -1)
             {
                 statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, accuracyTextBox.Value.Value / 100.0, beatmap, missesTextBox.Value.Value, countMeh, countGood, largeTickMissesTextBox.Value.Value, sliderTailMissesTextBox.Value.Value);
-                accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, statistics);
+                accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, beatmap, statistics);
             }
 
             var ppAttributes = performanceCalculator?.Calculate(new ScoreInfo(beatmap.BeatmapInfo, ruleset.Value)
