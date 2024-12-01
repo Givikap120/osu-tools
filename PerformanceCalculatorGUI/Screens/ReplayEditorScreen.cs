@@ -124,10 +124,10 @@ namespace PerformanceCalculatorGUI.Screens
         // Replay attributes
 
         private ReplayAttributeTextBox playerBox;
-        private OsuCheckbox addMarkCheckbox;
+        private ReplayAttributeCheckBox addMarkCheckbox;
 
         private ReplayAttributeNumberBox versionBox;
-        private OsuCheckbox useDefaultVersionCheckbox;
+        private ReplayAttributeCheckBox useDefaultVersionCheckbox;
 
         private ReplayAttributeTextBox beatmapHashBox;
         private OsuButton changeBeatmapHashButton;
@@ -149,7 +149,7 @@ namespace PerformanceCalculatorGUI.Screens
         private ReplayAttributeTextBox dateBox;
         private ReplayAttributeNumberBox scoreIDBox;
 
-        private OsuCheckbox isLegacyScoreBox;
+        private ReplayAttributeCheckBox isLegacyScoreBox;
         private ReplayAttributeNumberBox legacyTotalScoreBox;
 
         // Lazer-specific
@@ -161,13 +161,6 @@ namespace PerformanceCalculatorGUI.Screens
 
         private StatisticsContainer statisticsContainer;
 
-        private static OsuCheckbox createCheckBox(string text, bool defaultValue = true) => new OsuCheckbox(nubOnRight: false)
-        {
-            LabelText = text,
-            Current = { Value = defaultValue },
-            Origin = Anchor.Centre,
-            Anchor = Anchor.Centre
-        };
         private static LabelledTextBox createTextDisplay(string name, string placeholder = "") => new LabelledTextBox
         {
             RelativeSizeAxes = Axes.X,
@@ -308,12 +301,12 @@ namespace PerformanceCalculatorGUI.Screens
                                                 createDoubleDisplay(
                                                 [
                                                     playerBox = new ReplayAttributeTextBox("Player Name"),
-                                                    addMarkCheckbox = createCheckBox("Mark name as (edited)")
+                                                    addMarkCheckbox = new ReplayAttributeCheckBox("Mark name as (edited)")
                                                 ]),
                                                 createDoubleDisplay(
                                                 [
                                                     versionBox = new ReplayAttributeNumberBox("Score version"),
-                                                    useDefaultVersionCheckbox = createCheckBox("Use default version export")
+                                                    useDefaultVersionCheckbox = new ReplayAttributeCheckBox("Use default version export")
                                                 ]),
                                                 createDoubleDisplay(
                                                 [
@@ -357,7 +350,7 @@ namespace PerformanceCalculatorGUI.Screens
                                                 createDoubleDisplay(
                                                 [
                                                     legacyTotalScoreBox = new ReplayAttributeNumberBox("Legacy total score"),
-                                                    isLegacyScoreBox = createCheckBox("Is legacy score")
+                                                    isLegacyScoreBox = new ReplayAttributeCheckBox("Is legacy score")
                                                 ]),
                                                 new OsuSpriteText
                                                 {
@@ -1059,6 +1052,28 @@ namespace PerformanceCalculatorGUI.Screens
                 PlaceholderText = placeholder;
                 Margin = margin;
             }
+        }
+
+        private partial class ReplayAttributeCheckBox : Container
+        {
+            private OsuCheckbox checkbox;
+            public ReplayAttributeCheckBox(string text, bool defaultValue = true)
+            {
+                Origin = Anchor.Centre;
+                Anchor = Anchor.Centre;
+                RelativeSizeAxes = Axes.Both;
+                Child = checkbox = new OsuCheckbox(nubOnRight: false)
+                {
+                    Origin = Anchor.Centre,
+                    Anchor = Anchor.Centre,
+                    AutoSizeAxes = Axes.None,
+                    RelativeSizeAxes = Axes.Both,
+                    LabelText = text,
+                    Current = { Value = defaultValue },
+                };
+            }
+
+            public Bindable<bool> Current => checkbox.Current;
         }
 
         private partial class StatisticsContainer : FillFlowContainer
