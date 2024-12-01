@@ -4,8 +4,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
+using osu.Framework.Extensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
@@ -49,13 +51,12 @@ namespace PerformanceCalculatorGUI.Components
 
         private void updateGraphs(ValueChangedEvent<Skill[]> val)
         {
-            graphsContainer.Clear();
-
-            var skills = val.NewValue.Where(x => x is StrainSkill or StrainDecaySkill).ToArray(); // GraphSkill StrainSkill
+            var skills = val.NewValue.Where(x => x is StrainSkill).ToArray();
 
             // dont bother if there are no strain skills to draw
             if (skills.Length == 0)
             {
+                graphsContainer.Clear();
                 legendContainer.Clear();
                 graphToggles.Clear();
                 return;
@@ -63,42 +64,46 @@ namespace PerformanceCalculatorGUI.Components
 
             graphAlpha = Math.Min(1.5f / skills.Length, 0.9f);
             var strainLists = getStrainLists(skills);
-            addStrainBars(skills, strainLists);
-            addTooltipBars(strainLists);
 
-            if (val.OldValue == null || !val.NewValue.All(x => val.OldValue.Any(y => y.GetType().Name == x.GetType().Name)))
+            createStrainBars(skills, strainLists).ContinueWith((t) => Schedule(() =>
             {
-                // skill list changed - recreate toggles
-                legendContainer.Clear();
-                graphToggles.Clear();
+                graphsContainer.Clear();
+                addStrainBars(t.GetResultSafely(), skills, strainLists);
+                addTooltipBars(strainLists);
 
-                for (int i = 0; i < skills.Length; i++)
+                if (val.OldValue == null || !val.NewValue.All(x => val.OldValue.Any(y => y.GetType().Name == x.GetType().Name)))
                 {
-                    // this is ugly, but it works
-                    var graphToggleBindable = new Bindable<bool>();
-                    var graphNum = i;
-                    graphToggleBindable.BindValueChanged(state =>
-                    {
-                        if (state.NewValue)
-                        {
-                            graphsContainer[graphNum].FadeTo(graphAlpha);
-                        }
-                        else
-                        {
-                            graphsContainer[graphNum].Hide();
-                        }
-                    });
-                    graphToggles.Add(graphToggleBindable);
+                    // skill list changed - recreate toggles
+                    legendContainer.Clear();
+                    graphToggles.Clear();
 
-                    legendContainer.Add(new Container
+                    for (int i = 0; i < skills.Length; i++)
                     {
-                        Anchor = Anchor.Centre,
-                        Origin = Anchor.Centre,
-                        Masking = true,
-                        CornerRadius = 10,
-                        AutoSizeAxes = Axes.Both,
-                        Children = new Drawable[]
+                        // this is ugly, but it works
+                        var graphToggleBindable = new Bindable<bool>();
+                        var graphNum = i;
+                        graphToggleBindable.BindValueChanged(state =>
                         {
+                            if (state.NewValue)
+                            {
+                                graphsContainer[graphNum].FadeTo(graphAlpha);
+                            }
+                            else
+                            {
+                                graphsContainer[graphNum].Hide();
+                            }
+                        });
+                        graphToggles.Add(graphToggleBindable);
+
+                        legendContainer.Add(new Container
+                        {
+                            Anchor = Anchor.Centre,
+                            Origin = Anchor.Centre,
+                            Masking = true,
+                            CornerRadius = 10,
+                            AutoSizeAxes = Axes.Both,
+                            Children = new Drawable[]
+                            {
                             new Box
                             {
                                 RelativeSizeAxes = Axes.Both,
@@ -113,19 +118,20 @@ namespace PerformanceCalculatorGUI.Components
                                 LabelText = skills[i].GetType().Name,
                                 TextColour = skillColours[i]
                             }
-                        }
-                    });
+                            }
+                        });
+                    }
                 }
-            }
-            else
-            {
-                for (int i = 0; i < skills.Length; i++)
+                else
                 {
-                    // graphs are visible by default, we want to hide ones that were disabled before
-                    if (!graphToggles[i].Value)
-                        graphsContainer[i].Hide();
+                    for (int i = 0; i < skills.Length; i++)
+                    {
+                        // graphs are visible by default, we want to hide ones that were disabled before
+                        if (!graphToggles[i].Value)
+                            graphsContainer[i].Hide();
+                    }
                 }
-            }
+            }));
         }
 
         [BackgroundDependencyLoader]
@@ -188,7 +194,26 @@ namespace PerformanceCalculatorGUI.Components
             Skills.BindValueChanged(updateGraphs);
         }
 
-        private void addStrainBars(Skill[] skills, List<float[]> strainLists)
+        private Task<List<StrainBarGraph>> createStrainBars(Skill[] skills, List<float[]> strainLists)
+        {
+            List<StrainBarGraph> graphs = [];
+
+            var strainMaxValue = strainLists.Max(list => list.Max());
+
+            for (int i = 0; i < skills.Length; i++)
+            {
+                graphs.Add(new StrainBarGraph()
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    MaxValue = strainMaxValue,
+                    Values = strainLists[i]
+                });
+            }
+
+            return LoadComponentsAsync(graphs).ContinueWith(_ => graphs);
+        }
+
+        private void addStrainBars(List<StrainBarGraph> graphs, Skill[] skills, List<float[]> strainLists)
         {
             var strainMaxValue = strainLists.Max(list => list.Max());
 
@@ -198,16 +223,11 @@ namespace PerformanceCalculatorGUI.Components
                 {
                     new BufferedContainer(cachedFrameBuffer: true)
                     {
-                        RelativeSizeAxes = Axes.Both,
-                        Alpha = graphAlpha,
-                        Colour = skillColours[i],
-                        Child = new StrainBarGraph
-                        {
-                            RelativeSizeAxes = Axes.Both,
-                            MaxValue = strainMaxValue,
-                            Values = strainLists[i]
-                        }
-                    }
+                    RelativeSizeAxes = Axes.Both,
+                    Alpha = graphAlpha,
+                    Colour = skillColours[i],
+                    Child = graphs[i]
+                }
                 });
             }
 
@@ -252,7 +272,7 @@ namespace PerformanceCalculatorGUI.Components
 
             foreach (var skill in skills)
             {
-                var strains = ((StrainSkill)skill).GetCurrentStrainPeaks().ToArray();
+                var strains = ((StrainSkill)skill).GetCurrentStrainPeaks().ToArray(); // StrainSkill
 
                 var skillStrainList = new List<float>();
 
@@ -271,40 +291,37 @@ namespace PerformanceCalculatorGUI.Components
 
     public partial class StrainBarGraph : FillFlowContainer<Bar>
     {
+        
+
+        [BackgroundDependencyLoader]
+        private void load()
+        {
+            foreach (var val in Values)
+            {
+                float length = MaxValue ?? Values.Max();
+                if (length != 0)
+                    length = val / length;
+
+                float size = Values.Count();
+                if (size != 0)
+                    size = 1.0f / size;
+
+                Add(new Bar
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Size = new Vector2(size, 1),
+                    Length = length,
+                    Direction = BarDirection.BottomToTop
+                });
+            }
+        }
+
+        public IEnumerable<float> Values { get; set; }
+
         /// <summary>
         /// Manually sets the max value, if null <see cref="Enumerable.Max(IEnumerable{float})"/> is instead used
         /// </summary>
         public float? MaxValue { get; set; }
-
-        /// <summary>
-        /// A list of floats that defines the length of each <see cref="Bar"/>
-        /// </summary>
-        public IEnumerable<float> Values
-        {
-            set
-            {
-                Clear();
-
-                foreach (var val in value)
-                {
-                    float length = MaxValue ?? value.Max();
-                    if (length != 0)
-                        length = val / length;
-
-                    float size = value.Count();
-                    if (size != 0)
-                        size = 1.0f / size;
-
-                    Add(new Bar
-                    {
-                        RelativeSizeAxes = Axes.Both,
-                        Size = new Vector2(size, 1),
-                        Length = length,
-                        Direction = BarDirection.BottomToTop
-                    });
-                }
-            }
-        }
     }
 
     public partial class TooltipBar : Bar, IHasTooltip
