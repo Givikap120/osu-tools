@@ -88,6 +88,7 @@ namespace PerformanceCalculatorGUI.Components
             };
 
             WorkingBeatmap workingBeatmap;
+            ScoreRank? decodedRank = null;
             bool haveBeatmap = false;
 
             using (SerializationReader sr = new SerializationReader(stream))
@@ -182,6 +183,14 @@ namespace PerformanceCalculatorGUI.Components
                         score.ScoreInfo.MaximumStatistics = readScore.MaximumStatistics;
                         score.ScoreInfo.Mods = readScore.Mods.Select(m => m.ToMod(currentRuleset)).ToArray();
                         score.ScoreInfo.ClientVersion = readScore.ClientVersion;
+                        decodedRank = readScore.Rank;
+                        if (readScore.UserID > 1)
+                            score.ScoreInfo.RealmUser.OnlineID = readScore.UserID;
+
+                        if (readScore.TotalScoreWithoutMods is long totalScoreWithoutMods)
+                            score.ScoreInfo.TotalScoreWithoutMods = totalScoreWithoutMods;
+                        else
+                            LegacyScoreDecoder.PopulateTotalScoreWithoutMods(score.ScoreInfo);
                     });
                 }
             }

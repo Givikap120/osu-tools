@@ -5,8 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Humanizer;
-using Humanizer.Localisation;
 using osu.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
@@ -24,6 +22,7 @@ using osu.Framework.Threading;
 using osu.Game;
 using osu.Game.Beatmaps;
 using osu.Game.Configuration;
+using osu.Game.Database;
 using osu.Game.Extensions;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
@@ -45,7 +44,6 @@ using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
 using PerformanceCalculatorGUI.Screens.ObjectInspection;
-using Realms;
 
 namespace PerformanceCalculatorGUI.Screens
 {
@@ -703,6 +701,19 @@ namespace PerformanceCalculatorGUI.Screens
             currentScore.ScoreInfo.TotalScoreWithoutMods = safeParseLong(scoreWithoutModsBox.Text);
 
             statisticsContainer.ExportContainer(ref currentScore.ScoreInfo);
+
+            // Compute rank and accuracy
+            if (beatmap != null)
+            {
+                StandardisedScoreMigrationTools.UpdateFromLegacy(currentScore.ScoreInfo, beatmap);
+            }
+            else // If no beatmap do it anyway, just without score
+            {
+                var ruleset = score.ScoreInfo.Ruleset.CreateInstance();
+                var scoreProcessor = ruleset.CreateScoreProcessor();
+                currentScore.ScoreInfo.Accuracy = StandardisedScoreMigrationTools.ComputeAccuracy(currentScore.ScoreInfo, scoreProcessor);
+                currentScore.ScoreInfo.Rank = StandardisedScoreMigrationTools.ComputeRank(currentScore.ScoreInfo, scoreProcessor);
+            }
 
             return currentScore;
         }
