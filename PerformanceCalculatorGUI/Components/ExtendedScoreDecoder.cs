@@ -68,6 +68,10 @@ namespace PerformanceCalculatorGUI.Components
             try
             {
                 workingBeatmap = new FlatWorkingBeatmap(Path.Combine(lazerPath, "files", hash[..1], hash[..2], hash));
+
+                // In case something go wrong
+                workingBeatmap.BeatmapInfo.MD5Hash = md5Hash;
+                workingBeatmap.BeatmapInfo.Hash = hash;
             }
             catch (Exception)
             {
@@ -194,7 +198,9 @@ namespace PerformanceCalculatorGUI.Components
                 // before returning for database import, we must restore the database-sourced BeatmapInfo.
                 // if not, the clone operation in GetPlayableBeatmap will cause a dereference and subsequent database exception.
                 score.ScoreInfo.BeatmapInfo = workingBeatmap.BeatmapInfo;
-                score.ScoreInfo.BeatmapHash = workingBeatmap.BeatmapInfo.Hash;
+
+                // Don't do this part, we want actual MD5 hash to be displayed
+                // score.ScoreInfo.BeatmapHash = workingBeatmap.BeatmapInfo.Hash;
             }
 
             return score;
