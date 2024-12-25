@@ -12,6 +12,15 @@ namespace PerformanceCalculatorGUI.Components.TextBoxes
     {
         private partial class LimitedNumberBox : OsuNumberBox
         {
+            public LimitedNumberBox()
+            {
+                Value.BindValueChanged(v =>
+                {
+                    if (Text == "" && v.NewValue == 0) return;
+                    Text = v.NewValue.ToString();
+                });
+            }
+
             protected override void OnUserTextAdded(string added)
             {
                 base.OnUserTextAdded(added);

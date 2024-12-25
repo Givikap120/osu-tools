@@ -538,24 +538,43 @@ namespace PerformanceCalculatorGUI.Screens
         private void modsChanged(ValueChangedEvent<IReadOnlyList<Mod>> mods)
         {
             modSettingChangeTracker?.Dispose();
-
-            if (beatmap is null)
-                return;
-
             modSettingChangeTracker = new ModSettingChangeTracker(mods.NewValue);
             modSettingChangeTracker.SettingChanged += m =>
             {
                 debouncedStatisticsUpdate?.Cancel();
                 debouncedStatisticsUpdate = Scheduler.AddDelayed(() =>
                 {
-                    calculateDifficulty();
-                    calculatePerformance();
+                    updateSmallTickMissData();
+                    //calculateDifficulty();
+                    //calculatePerformance();
                 }, 100);
             };
 
-            calculateDifficulty();
-            updateCombo(false);
-            calculatePerformance();
+            updateSmallTickMissData();
+
+            //calculateDifficulty();
+            //updateCombo(false);
+            //calculatePerformance();
+
+            void updateSmallTickMissData()
+            {
+                if (ruleset.Value.ShortName == "osu")
+                {
+                    static bool isSliderAcc(IReadOnlyList<Mod> mods) => !mods.OfType<OsuModClassic>().Any(m => m.NoSliderHeadAccuracy.Value);
+
+                    // If changing between slideracc and not - update STM fields
+                    if (isSliderAcc(mods.NewValue) && !isSliderAcc(mods.OldValue))
+                    {
+                        statisticsContainer.Score[HitResult.LargeTickHit].Value.Value -= statisticsContainer.Max[HitResult.SliderTailHit].Value.Value;
+                        statisticsContainer.Max[HitResult.LargeTickHit].Value.Value -= statisticsContainer.Max[HitResult.SliderTailHit].Value.Value;
+                    }
+                    else if (!isSliderAcc(mods.NewValue) && isSliderAcc(mods.OldValue))
+                    {
+                        statisticsContainer.Score[HitResult.LargeTickHit].Value.Value += statisticsContainer.Max[HitResult.SliderTailHit].Value.Value;
+                        statisticsContainer.Max[HitResult.LargeTickHit].Value.Value += statisticsContainer.Max[HitResult.SliderTailHit].Value.Value;
+                    }
+                }
+            }
         }
 
         private void resetScoreBeatmap()
@@ -780,55 +799,6 @@ namespace PerformanceCalculatorGUI.Screens
 
             // TODO: proper pp calc
             return;
-
-            //int? countGood = null, countMeh = null;
-
-            //countGood = goodBox.Value.Value;
-            //countMeh = mehBox.Value.Value;
-            //double accuracy = 1;
-
-            //int sliderbreaks = 0;
-            //int sliderendMisses = 0;
-
-            //var score = RulesetHelper.AdjustManiaScore(scoreBox.Value.Value, appliedMods.Value);
-
-            //try
-            //{
-            //    var beatmap = this.beatmap.GetPlayableBeatmap(ruleset.Value, appliedMods.Value);
-
-            //    Dictionary<HitResult, int> statistics = new Dictionary<HitResult, int>();
-
-            //    if (ruleset.Value.OnlineID != -1)
-            //    {
-            //        // official rulesets can generate more precise hits from accuracy
-            //        statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, 100, beatmap, missBox.Value.Value, countMeh, countGood, sliderbreaks, sliderendMisses);
-            //        accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, statistics);
-            //    }
-
-            //    var ppAttributes = performanceCalculator?.Calculate(new ScoreInfo(beatmap.BeatmapInfo, ruleset.Value)
-            //    {
-            //        Accuracy = accuracy,
-            //        MaxCombo = comboBox.Value.Value,
-            //        Statistics = statistics,
-            //        Mods = appliedMods.Value.ToArray(),
-            //        TotalScore = score,
-            //        Ruleset = ruleset.Value
-            //    }, difficultyAttributes);
-
-            //    performanceAttributesContainer.Children = AttributeConversion.ToDictionary(ppAttributes).Select(x =>
-            //        new ExtendedLabelledTextBox
-            //        {
-            //            ReadOnly = true,
-            //            Label = x.Key.Humanize().ToLowerInvariant(),
-            //            Text = FormattableString.Invariant($"{x.Value:N2}")
-            //        }
-            //    ).ToArray();
-            //}
-            //catch (Exception e)
-            //{
-            //    showError(e);
-            //    resetScoreBeatmap();
-            //}
         }
 
         private void populateScoreParams()
@@ -1089,12 +1059,12 @@ namespace PerformanceCalculatorGUI.Screens
 
         private partial class StatisticsContainer : FillFlowContainer
         {
-            public Dictionary<HitResult, ReplayAttributeNumberBox> StatisticsContainers = new Dictionary<HitResult, ReplayAttributeNumberBox>();
-            public Dictionary<HitResult, ReplayAttributeNumberBox> MaxStatisticsContainers = new Dictionary<HitResult, ReplayAttributeNumberBox>();
+            public Dictionary<HitResult, ReplayAttributeNumberBox> Score = new Dictionary<HitResult, ReplayAttributeNumberBox>();
+            public Dictionary<HitResult, ReplayAttributeNumberBox> Max = new Dictionary<HitResult, ReplayAttributeNumberBox>();
             public void UpdateStatisticsContainerForRuleset(RulesetInfo ruleset)
             {
-                StatisticsContainers.Clear();
-                MaxStatisticsContainers.Clear();
+                Score.Clear();
+                Max.Clear();
 
                 switch (ruleset.ShortName)
                 {
@@ -1103,29 +1073,29 @@ namespace PerformanceCalculatorGUI.Screens
                         {
                             createDoubleDisplay(
                             [
-                                StatisticsContainers[HitResult.LargeTickHit] = new ReplayAttributeNumberBox("Slider Tick"),
-                                MaxStatisticsContainers[HitResult.LargeTickHit] = new ReplayAttributeNumberBox("Max Slider Tick")
+                                Score[HitResult.LargeTickHit] = new ReplayAttributeNumberBox("Slider Tick"),
+                                Max[HitResult.LargeTickHit] = new ReplayAttributeNumberBox("Max Slider Tick")
                             ]),
                             createDoubleDisplay(
                             [
-                                StatisticsContainers[HitResult.SliderTailHit] = new ReplayAttributeNumberBox("Slider End"),
-                                MaxStatisticsContainers[HitResult.SliderTailHit] = new ReplayAttributeNumberBox("Max Slider End")
+                                Score[HitResult.SliderTailHit] = new ReplayAttributeNumberBox("Slider End"),
+                                Max[HitResult.SliderTailHit] = new ReplayAttributeNumberBox("Max Slider End")
                             ]),
                             createDoubleDisplay(
                             [
-                                StatisticsContainers[HitResult.LargeBonus] = new ReplayAttributeNumberBox("Spinner Bonus"),
-                                MaxStatisticsContainers[HitResult.LargeBonus] = new ReplayAttributeNumberBox("Max Spinner Bonus")
+                                Score[HitResult.LargeBonus] = new ReplayAttributeNumberBox("Spinner Bonus"),
+                                Max[HitResult.LargeBonus] = new ReplayAttributeNumberBox("Max Spinner Bonus")
                             ]),
                             createDoubleDisplay(
                             [
-                                StatisticsContainers[HitResult.SmallBonus] = new ReplayAttributeNumberBox("Spinner Spin"),
-                                MaxStatisticsContainers[HitResult.SmallBonus] = new ReplayAttributeNumberBox("Max Spinner Spin")
+                                Score[HitResult.SmallBonus] = new ReplayAttributeNumberBox("Spinner Spin"),
+                                Max[HitResult.SmallBonus] = new ReplayAttributeNumberBox("Max Spinner Spin")
                             ])
                         };
 
                         // Handle CL scores sliderends
-                        StatisticsContainers[HitResult.SmallTickHit] = StatisticsContainers[HitResult.SliderTailHit];
-                        MaxStatisticsContainers[HitResult.SmallTickHit] = MaxStatisticsContainers[HitResult.SliderTailHit];
+                        Score[HitResult.SmallTickHit] = Score[HitResult.SliderTailHit];
+                        Max[HitResult.SmallTickHit] = Max[HitResult.SliderTailHit];
                         return;
                 }
             }
@@ -1134,27 +1104,27 @@ namespace PerformanceCalculatorGUI.Screens
             {
                 foreach (var key in scoreInfo.Statistics.Keys)
                 {
-                    if (StatisticsContainers.TryGetValue(key, out var result))
-                        result.Text = scoreInfo.Statistics[key].ToString();
+                    if (Score.TryGetValue(key, out var result))
+                        result.Value.Value = scoreInfo.Statistics[key];
                 }
 
                 foreach (var key in scoreInfo.MaximumStatistics.Keys)
                 {
-                    if (MaxStatisticsContainers.TryGetValue(key, out var result))
-                        result.Text = scoreInfo.MaximumStatistics[key].ToString();
+                    if (Max.TryGetValue(key, out var result))
+                        result.Value.Value = scoreInfo.MaximumStatistics[key];
                 }
             }
 
             public void ExportContainer(ref ScoreInfo scoreInfo)
             {
-                foreach (var key in StatisticsContainers.Keys)
+                foreach (var key in Score.Keys)
                 {
-                    scoreInfo.Statistics[key] = safeParseInt(StatisticsContainers[key].Text);
+                    scoreInfo.Statistics[key] = safeParseInt(Score[key].Text);
                 }
 
-                foreach (var key in MaxStatisticsContainers.Keys)
+                foreach (var key in Max.Keys)
                 {
-                    scoreInfo.MaximumStatistics[key] = safeParseInt(MaxStatisticsContainers[key].Text);
+                    scoreInfo.MaximumStatistics[key] = safeParseInt(Max[key].Text);
                 }
 
                 if (scoreInfo.Mods.Any(h => h is OsuModClassic cl && cl.NoSliderHeadAccuracy.Value))
