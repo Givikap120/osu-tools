@@ -706,7 +706,7 @@ namespace PerformanceCalculatorGUI.Screens
             currentScore.ScoreInfo.TotalScore = safeParseLong(scoreBox.Text);
             currentScore.ScoreInfo.MaxCombo = safeParseInt(comboBox.Text);
 
-            currentScore.ScoreInfo.Date = DateTimeOffset.Parse(dateBox.Text);
+            currentScore.ScoreInfo.Date = DateTimeOffset.Parse(dateBox.Text).ToLocalTime();
             currentScore.ScoreInfo.LegacyOnlineID = safeParseLong(scoreIDBox.Text);
 
             currentScore.ScoreInfo.IsLegacyScore = isLegacyScoreBox.Current.Value;
@@ -722,7 +722,7 @@ namespace PerformanceCalculatorGUI.Screens
             statisticsContainer.ExportContainer(ref currentScore.ScoreInfo);
 
             // Compute rank and accuracy
-            if (beatmap != null)
+            if (beatmap != null && beatmap.Beatmap.HitObjects.Count > 0)
             {
                 StandardisedScoreMigrationTools.UpdateFromLegacy(currentScore.ScoreInfo, beatmap);
             }
