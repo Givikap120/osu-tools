@@ -807,7 +807,7 @@ namespace PerformanceCalculatorGUI.Screens
             katuBox.Hide();
             if (ruleset.Value.ShortName == "osu" || ruleset.Value.ShortName == "taiko" || ruleset.Value.ShortName == "fruits")
             {
-                updateCombo(true);
+                //updateCombo(true);
             }
             else if (ruleset.Value.ShortName == "mania")
             {
@@ -818,7 +818,7 @@ namespace PerformanceCalculatorGUI.Screens
             {
                 gekiBox.Show();
                 katuBox.Show();
-                updateCombo(true);
+                //updateCombo(true);
             }
             updateAccuracyParams();
         }
