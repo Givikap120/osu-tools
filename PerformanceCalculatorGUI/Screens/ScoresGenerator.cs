@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using osu.Game.Beatmaps;
+using osu.Game.Extensions;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Difficulty.Preprocessing;
@@ -15,6 +16,7 @@ using osu.Game.Rulesets.Objects;
 using osu.Game.Rulesets.Osu;
 using osu.Game.Rulesets.Osu.Difficulty;
 using osu.Game.Rulesets.Osu.Difficulty.Skills;
+using osu.Game.Rulesets.Osu.Mods;
 using osu.Game.Rulesets.Osu.Objects;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Scoring;
@@ -143,7 +145,7 @@ namespace PerformanceCalculatorGUI.Screens
                 double fullInfoPp = calculator.Calculate(score.FullInfoScore, attributes).Total;
                 score.FullInfoScore.PP = fullInfoPp;
 
-                double missingInfoPp = calculator.Calculate(score.FullInfoScore, attributes).Total;
+                double missingInfoPp = calculator.Calculate(score.MissingInfoScore, attributes).Total;
                 score.MissingInfoScore.PP = missingInfoPp;
             }
         }
@@ -191,6 +193,9 @@ namespace PerformanceCalculatorGUI.Screens
         {
             FullInfoScore = fullInfo;
             MissingInfoScore = missingInfo;
+
+            // WARNING: we're using Alternate mod as flag to "don't use estimators"
+            FullInfoScore.Mods = [.. FullInfoScore.Mods, new OsuModAlternate()];
         }
 
         public readonly string GetCSV()

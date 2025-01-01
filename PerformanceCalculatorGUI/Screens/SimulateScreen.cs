@@ -1176,8 +1176,8 @@ namespace PerformanceCalculatorGUI.Screens
 
             var beatmap = working.GetPlayableBeatmap(ruleset.Value, appliedMods.Value);
 
-            var scoresGenerator = new ScoresGenerator(beatmap, appliedMods.Value, accuracyTextBox.Value.Value);
-            var generatedScores = scoresGenerator.GenerateScores(hitData, 10);
+            var scoresGenerator = new ScoresGenerator(beatmap, appliedMods.Value, accuracyTextBox.Value.Value / 100);
+            List<SimulationScoreInfo> generatedScores = scoresGenerator.GenerateScores(hitData, 10000);
 
             var diffAttributes = difficultyCalculator.Value.Calculate(appliedMods.Value);
 
@@ -1186,7 +1186,7 @@ namespace PerformanceCalculatorGUI.Screens
             CSVExporter.ExportToCSV(generatedScores, $"{working.BeatmapInfo.Metadata.Title} Score Data.csv");
         }
 
-        private double getClockRate(IEnumerable<Mod> mods)
+        private static double getClockRate(IEnumerable<Mod> mods)
         {
             var track = new TrackVirtual(10000);
             mods.OfType<IApplicableToTrack>().ForEach(m => m.ApplyToTrack(track));
