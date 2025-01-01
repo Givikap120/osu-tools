@@ -619,7 +619,7 @@ namespace PerformanceCalculatorGUI.Screens
                 if (settingsMenu.ExportInCSV)
                 {
                     Schedule(() => loadingLayer.Text.Value = $"Exporting to csv...");
-                    outputHistoricalScoresCSV(allScores, rulesetInstance, username);
+                    HistoricalScoreExporter.OutputHistoricalScoresCSV(allScores, rulesetInstance, username);
                 }
 
                 Schedule(() =>
@@ -736,119 +736,6 @@ namespace PerformanceCalculatorGUI.Screens
             {
                 scores.SetLayoutPosition(sortedScores[i], i);
             }
-        }
-
-        private void outputHistoricalScoresCSV(List<(ScoreInfo score, WorkingBeatmap beatmap, DifficultyAttributes attributes)> allScores, Ruleset rulesetInstance, string username)
-        {
-            allScores = allScores.OrderBy(x => x.score.Date).ToList();
-            allScores = RulesetHelper.FilterDuplicateScores(allScores, s => s.score);
-
-            HashSet<string> allMapHashes = [];
-            HashSet<string> topPlayMapHashes = [];
-            SortedList<ScoreInfo> topPlays = new SortedList<ScoreInfo>((a, b) => a.PP < b.PP ? 1 : (a.PP > b.PP ? -1 : 0));
-
-            int currentTopPlaysCount = 0;
-            int uniquePlaysCount = 0;
-
-            StringBuilder csvContent = new StringBuilder();
-            csvContent.AppendLine("ScoreID,Date,pp,Profile pp,Position,Legacy score,BeatmapID,Title,Artist,Difficulty Name,Mods,Rate,BPM,Length,Star Rating,CS,HP,OD,AR,Accuracy,Combo,300s,100s,50s,Misses,Sliderbreaks,Sliderend Misses");
-
-            double profilePp;
-
-            const int max_scores_in_profile = 1000;
-
-            foreach (var score in allScores)
-            {
-                double pp = score.score.PP ?? 0;
-                string hash = score.score.BeatmapHash;
-
-                if (!allMapHashes.Contains(hash))
-                {
-                    uniquePlaysCount++;
-                    allMapHashes.Add(hash);
-                }
-
-                if (currentTopPlaysCount > max_scores_in_profile && pp < topPlays[max_scores_in_profile].PP) continue;
-
-                int position = -1;
-
-                if (topPlayMapHashes.Contains(hash))
-                {
-                    var item = topPlays.Find(s => s.BeatmapHash == hash);
-                    if (item.PP < pp)
-                    {
-                        topPlays.Remove(item);
-                        position = topPlays.Add(score.score) + 1;
-                    }
-                }
-                else
-                {
-                    currentTopPlaysCount++;
-                    position = topPlays.Add(score.score) + 1;
-                    topPlayMapHashes.Add(hash);
-                }
-
-                profilePp = 0;
-                for (var i = 0; i < Math.Min(200, topPlays.Count); i++)
-                    profilePp += Math.Pow(0.95, i) * (topPlays[i].PP ?? 0);
-
-                profilePp += (417.0 - 1.0 / 3.0) * (1 - Math.Pow(0.995, Math.Min(uniquePlaysCount, 1000)));
-
-                csvContent.AppendLine(getScoreCsv(score.score, score.beatmap, score.attributes, rulesetInstance, profilePp, position));
-            }
-
-            string filePath = $"historical_scores_{username}.csv";
-            File.WriteAllText(filePath, csvContent.ToString());
-
-            Console.WriteLine($"CSV file created at: {filePath}");
-        }
-
-        private string getScoreCsv(ScoreInfo score, WorkingBeatmap working, DifficultyAttributes attributes, Ruleset ruleset, double profilePp, int position)
-        {
-            // Ensure Dot as a separator
-            System.Globalization.CultureInfo customCulture = (System.Globalization.CultureInfo)Thread.CurrentThread.CurrentCulture.Clone();
-            customCulture.NumberFormat.NumberDecimalSeparator = ".";
-
-            var currentCulture = Thread.CurrentThread.CurrentCulture;
-            Thread.CurrentThread.CurrentCulture = customCulture;
-
-            BeatmapInfo beatmap = working.BeatmapInfo;
-
-            long scoreID = score.IsLegacyScore ? score.LegacyOnlineID : score.OnlineID;
-
-            string basicScoreInfo = $"{scoreID},{score.Date},{score.PP:F2},{profilePp:F0},{position},{score.IsLegacyScore}";
-            string beatmapInfo = $"{beatmap.OnlineID},{beatmap.Metadata.Title},{beatmap.Metadata.Artist},{beatmap.DifficultyName}";
-
-            string modsString = string.Join("",score.APIMods.Select(m => m.Acronym));
-            double rate = ModUtils.CalculateRateWithMods(score.Mods);
-            double bpm = rate * 60000 / working.Beatmap.GetMostCommonBeatLength();
-            double length = working.Beatmap.CalculatePlayableLength() * 0.001 / rate;
-            double starRating = attributes.StarRating;
-
-            BeatmapDifficulty originalDifficulty = new BeatmapDifficulty(beatmap.Difficulty);
-
-            foreach (var mod in score.Mods.OfType<IApplicableToDifficulty>())
-                mod.ApplyToDifficulty(originalDifficulty);
-
-            BeatmapDifficulty adjustedDifficulty = ruleset.GetRateAdjustedDisplayDifficulty(originalDifficulty, rate);
-
-            string modInfo = $"{modsString},{rate:F2},{bpm:F0},{length:F0},{starRating:F2},{adjustedDifficulty.CircleSize:F1},{adjustedDifficulty.DrainRate:F1},{adjustedDifficulty.OverallDifficulty:F1},{adjustedDifficulty.ApproachRate:F1}";
-
-            int sliderbreaks = -1;
-            int sliderendmiss = -1;
-            if (attributes is OsuDifficultyAttributes osuAttributes && !score.Mods.OfType<OsuModClassic>().Any(m => m.NoSliderHeadAccuracy.Value))
-            {
-                sliderendmiss = osuAttributes.SliderCount - score.Statistics.GetValueOrDefault(HitResult.SliderTailHit);
-                sliderbreaks = score.Statistics.GetValueOrDefault(HitResult.LargeTickMiss);
-            }
-            string sliderbreaksString = sliderbreaks >= 0 ? sliderbreaks.ToString() : "";
-            string sliderendmissString = sliderendmiss >= 0 ? sliderbreaks.ToString() : "";
-
-            string advancedScoreInfo = $"{score.Accuracy:F4},{score.MaxCombo},{score.GetCount300()},{score.GetCount100()},{score.GetCount50()},{score.GetCountMiss()},{sliderbreaksString},{sliderendmissString}";
-
-            Thread.CurrentThread.CurrentCulture = currentCulture;
-
-            return $"{basicScoreInfo},{beatmapInfo},{modInfo},{advancedScoreInfo}";
         }
     }
 }
