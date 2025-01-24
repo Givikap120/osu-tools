@@ -9,7 +9,7 @@ using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Scoring;
 using osu.Game.Users;
 
-namespace PerformanceCalculatorGUI
+namespace PerformanceCalculatorGUI.Configuration
 {
     public class ScoreInfoCacheManager
     {
@@ -28,13 +28,13 @@ namespace PerformanceCalculatorGUI
             this.gameHost = gameHost;
             this.lazerPath = lazerPath;
 
-            string realmPath = Path.Combine(lazerPath, @"client.realm");
+            var realmPath = Path.Combine(lazerPath, @"client.realm");
             realm = RulesetHelper.GetRealmAccess(gameHost, lazerPath);
 
             if (File.Exists(CacheFileName))
             {
-                DateTime cacheLastModified = File.GetLastWriteTime(CacheFileName);
-                DateTime realmLastModified = File.GetLastWriteTime(realmPath);
+                var cacheLastModified = File.GetLastWriteTime(CacheFileName);
+                var realmLastModified = File.GetLastWriteTime(realmPath);
 
                 // If cache is newer, import from cache
                 if (cacheLastModified > realmLastModified)
@@ -58,24 +58,24 @@ namespace PerformanceCalculatorGUI
 
         private List<ScoreInfo> readFromCache()
         {
-            List<ScoreInfo>  scores = [];
+            List<ScoreInfo> scores = [];
 
             Logger.Log("Getting score from cache...");
 
             using (var stream = new FileStream(CacheFileName, FileMode.Open, FileAccess.Read))
             using (var reader = new BinaryReader(stream))
             {
-                int cacheVersion = reader.ReadInt32();
+                var cacheVersion = reader.ReadInt32();
                 if (cacheVersion != version)
                 {
                     Logger.Log("Cache has wrong version");
                     return writeToCache();
                 }
-                    
 
-                int scoreCount = reader.ReadInt32();
 
-                for (int i = 0; i < scoreCount; i++)
+                var scoreCount = reader.ReadInt32();
+
+                for (var i = 0; i < scoreCount; i++)
                 {
                     var score = readScore(reader);
                     scores.Add(score);
@@ -177,7 +177,7 @@ namespace PerformanceCalculatorGUI
 
         private static BeatmapInfo readBeatmap(BinaryReader reader)
         {
-            bool hasBeatmap = reader.ReadBoolean();
+            var hasBeatmap = reader.ReadBoolean();
             if (!hasBeatmap) return null;
 
             var beatmap = new BeatmapInfo();
