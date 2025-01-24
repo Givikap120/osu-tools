@@ -378,7 +378,7 @@ namespace PerformanceCalculatorGUI.Screens
                     var perfAttributes = await performanceCalculator?.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, token)!;
                     score.PP = perfAttributes?.Total ?? 0.0;
 
-                    var extendedScore = new ExtendedProfileScore(score, livePp, perfAttributes);
+                    var extendedScore = new ExtendedProfileScore(score, livePp, difficultyAttributes, perfAttributes);
                     plays.Add(extendedScore);
 
                     Schedule(() => scores.Add(new DrawableExtendedProfileScore(extendedScore)));
@@ -581,7 +581,7 @@ namespace PerformanceCalculatorGUI.Screens
                         if (settingsMenu.ExportInCSV)
                             allScores.Add((score, working, difficultyAttributes));
 
-                        tempScores.Add(new ProfileScore(score, perfAttributes));
+                        tempScores.Add(new ProfileScore(score, difficultyAttributes, perfAttributes));
                     }
 
                     var topScore = tempScores.MaxBy(s => s.SoloScore.PP);

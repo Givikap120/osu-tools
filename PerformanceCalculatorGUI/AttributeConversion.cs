@@ -25,11 +25,12 @@ namespace PerformanceCalculatorGUI
             return attributeValues.Select(x => new KeyValuePair<string, object>(x.Key.Humanize().ToLowerInvariant(), x.Value)).ToDictionary(x => x.Key, y => y.Value);
         }
 
-        public static string ToReadableString(PerformanceAttributes attributes)
+        public static string ToReadableString(DifficultyAttributes difficultyAttributes, PerformanceAttributes performanceAttributes)
         {
-            var dictionary = ToDictionary(attributes);
+            var dictionary = ToDictionary(performanceAttributes);
+            string performanceAttributesString = string.Join("\n", dictionary.Select(x => $"{x.Key}: {x.Value:N2}"));
 
-            return string.Join("\n", dictionary.Select(x => $"{x.Key}: {x.Value:N2}"));
+            return $"Star Rating: {difficultyAttributes.StarRating:N2}★\n" + performanceAttributesString;
         }
     }
 }

@@ -18,8 +18,8 @@ namespace PerformanceCalculatorGUI.Components
         public double LivePP { get; }
         public Bindable<int> PositionChange { get; } = new Bindable<int>();
 
-        public ExtendedProfileScore(SoloScoreInfo score, double livePP, PerformanceAttributes attributes)
-            : base(score, attributes)
+        public ExtendedProfileScore(SoloScoreInfo score, double livePP, DifficultyAttributes difficultyAttributes, PerformanceAttributes performanceAttributes)
+            : base(score, difficultyAttributes, performanceAttributes)
         {
             LivePP = livePP;
         }
@@ -98,7 +98,7 @@ namespace PerformanceCalculatorGUI.Components
                         Colour = ColourProvider.Highlight1,
                         Anchor = Anchor.TopCentre,
                         Origin = Anchor.TopCentre,
-                        TooltipContent = $"{AttributeConversion.ToReadableString(Score.PerformanceAttributes)}"
+                        TooltipContent = $"{AttributeConversion.ToReadableString(Score.DifficultyAttributes, Score.PerformanceAttributes)}"
                     },
                     new OsuSpriteText
                     {

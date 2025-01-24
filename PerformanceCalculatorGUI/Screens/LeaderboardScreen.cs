@@ -327,7 +327,7 @@ namespace PerformanceCalculatorGUI.Screens
                         var perfAttributes = performanceCalculator?.Calculate(parsedScore.ScoreInfo, difficultyAttributes);
                         score.PP = perfAttributes?.Total ?? 0.0;
 
-                        var extendedScore = new ExtendedProfileScore(score, livePp, perfAttributes);
+                        var extendedScore = new ExtendedProfileScore(score, livePp, difficultyAttributes, perfAttributes);
                         plays.Add(extendedScore);
                     }
                     catch (Exception e)

@@ -37,18 +37,21 @@ namespace PerformanceCalculatorGUI.Components
 
         public Bindable<int> Position { get; } = new Bindable<int>();
 
+        public DifficultyAttributes DifficultyAttributes { get; }
         public PerformanceAttributes PerformanceAttributes { get; }
 
-        public ProfileScore(SoloScoreInfo score, PerformanceAttributes attributes)
+        public ProfileScore(SoloScoreInfo score, DifficultyAttributes difficultyAttributes, PerformanceAttributes performanceAttributes)
         {
             SoloScore = score;
-            PerformanceAttributes = attributes;
+            DifficultyAttributes = difficultyAttributes;
+            PerformanceAttributes = performanceAttributes;
         }
 
-        public ProfileScore(ScoreInfo score, PerformanceAttributes attributes)
+        public ProfileScore(ScoreInfo score, DifficultyAttributes difficultyAttributes, PerformanceAttributes performanceAttributes)
         {
             SoloScore = toSoloScoreInfo(score);
-            PerformanceAttributes = attributes;
+            DifficultyAttributes = difficultyAttributes;
+            PerformanceAttributes = performanceAttributes;
         }
 
         private static SoloScoreInfo toSoloScoreInfo(ScoreInfo score)
@@ -319,7 +322,7 @@ namespace PerformanceCalculatorGUI.Components
                 Colour = ColourProvider.Highlight1,
                 Anchor = Anchor.Centre,
                 Origin = Anchor.Centre,
-                TooltipContent = $"{AttributeConversion.ToReadableString(Score.PerformanceAttributes)}"
+                TooltipContent = $"{AttributeConversion.ToReadableString(Score.DifficultyAttributes, Score.PerformanceAttributes)}"
             };
         }
 
