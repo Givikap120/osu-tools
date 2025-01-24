@@ -1031,6 +1031,7 @@ namespace PerformanceCalculatorGUI.Screens
             {
                 comboTextBox.Text = string.Empty;
                 comboTextBox.Value.Value = difficultyAttributes.MaxCombo;
+                missesTextBox.Value.Value = 0;
                 missesTextBox.Text = string.Empty;
             }
 
