@@ -98,6 +98,10 @@ namespace PerformanceCalculatorGUI
                                                 {
                                                     Action = () => setScreen(new SimulateScreen())
                                                 },
+                                                new ScreenSelectionButton("Collections", FontAwesome.Solid.Book)
+                                                {
+                                                    Action = () => setScreen(new CollectionsScreen())
+                                                },
                                                 new ScreenSelectionButton("Profile", FontAwesome.Solid.User)
                                                 {
                                                     Action = () => setScreen(new ProfileScreen())

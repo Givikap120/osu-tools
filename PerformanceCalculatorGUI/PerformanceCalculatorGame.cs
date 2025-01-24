@@ -48,6 +48,10 @@ namespace PerformanceCalculatorGUI
             dependencies.CacheAs(apiConfig);
             dependencies.CacheAs(new APIManager(apiConfig));
 
+            CollectionManager collections = new CollectionManager("collections.json");
+            collections.Load();
+            dependencies.CacheAs(collections);
+
             Ruleset.Value = new OsuRuleset().RulesetInfo;
 
             var dialogOverlay = new DialogOverlay();
