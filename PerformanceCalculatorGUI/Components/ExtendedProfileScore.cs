@@ -10,6 +10,7 @@ using osu.Game.Graphics.Sprites;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Difficulty;
+using osu.Game.Scoring;
 
 namespace PerformanceCalculatorGUI.Components
 {
@@ -19,6 +20,12 @@ namespace PerformanceCalculatorGUI.Components
         public Bindable<int> PositionChange { get; } = new Bindable<int>();
 
         public ExtendedProfileScore(SoloScoreInfo score, double livePP, DifficultyAttributes difficultyAttributes, PerformanceAttributes performanceAttributes)
+            : base(score, difficultyAttributes, performanceAttributes)
+        {
+            LivePP = livePP;
+        }
+
+        public ExtendedProfileScore(ScoreInfo score, double livePP, DifficultyAttributes difficultyAttributes, PerformanceAttributes performanceAttributes)
             : base(score, difficultyAttributes, performanceAttributes)
         {
             LivePP = livePP;

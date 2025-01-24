@@ -77,7 +77,7 @@ namespace PerformanceCalculatorGUI.Configuration
 
                 for (var i = 0; i < scoreCount; i++)
                 {
-                    var score = readScore(reader);
+                    var score = ReadScore(reader);
                     scores.Add(score);
                 }
             }
@@ -98,14 +98,14 @@ namespace PerformanceCalculatorGUI.Configuration
 
                 foreach (var score in scores)
                 {
-                    writeScore(writer, score);
+                    WriteScore(writer, score);
                 }
             }
 
             return scores;
         }
 
-        private static ScoreInfo readScore(BinaryReader reader)
+        public static ScoreInfo ReadScore(BinaryReader reader)
         {
             var score = new ScoreInfo();
 
@@ -144,7 +144,7 @@ namespace PerformanceCalculatorGUI.Configuration
 
             return score;
         }
-        private void writeScore(BinaryWriter writer, ScoreInfo score)
+        public static void WriteScore(BinaryWriter writer, ScoreInfo score)
         {
             writer.Write(score.ID.ToByteArray());
             writer.Write(score.ClientVersion ?? "");

@@ -14,11 +14,14 @@ using osu.Framework.Input.Events;
 using osu.Framework.Logging;
 using osu.Game.Graphics.Containers;
 using osu.Game.Online.API.Requests.Responses;
+using osu.Game.Online.Placeholders;
 using osu.Game.Overlays;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Mods;
+using osu.Game.Scoring;
 using osuTK.Input;
 using PerformanceCalculatorGUI.Components;
+using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
 
 namespace PerformanceCalculatorGUI.Screens
@@ -52,7 +55,7 @@ namespace PerformanceCalculatorGUI.Screens
         private FillFlowContainer collectionsViewContainer;
         private GridContainer collectionContainer;
         private SpriteText collectionNameText;
-        private FillFlowContainer<DrawableExtendedProfileScore> scores;
+        private FillFlowContainer<DrawableExtendedProfileScore> drawableScores;
 
         private CancellationTokenSource calculationCancellatonToken;
         private Collection currentCollection;
@@ -111,23 +114,15 @@ namespace PerformanceCalculatorGUI.Screens
                                             Anchor = Anchor.CentreLeft,
                                             Origin = Anchor.CentreLeft
                                         },
-                                        //new ExtendedLabelledTextBox
-                                        //{
-                                        //    RelativeSizeAxes = Axes.X,
-                                        //    Anchor = Anchor.TopLeft,
-                                        //    Label = "Username",
-                                        //    PlaceholderText = "peppy",
-                                        //    CommitOnFocusLoss = false
-                                        //},
-                                        //new StatefulButton("Start calculation")
-                                        //{
-                                        //    Width = 150,
-                                        //    Height = collection_controls_height,
-                                        //    Action = () =>
-                                        //    {
-                                        //        currentCollection.Scores.Remove(3427873257);
-                                        //    }
-                                        //}
+                                        new EmptyDrawable(),
+                                        new StatefulButton("Overwrite pp values")
+                                        {
+                                            Width = 150,
+                                            Height = collection_controls_height,
+                                            Action = () =>
+                                            {
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -137,7 +132,7 @@ namespace PerformanceCalculatorGUI.Screens
                             new OsuScrollContainer(Direction.Vertical)
                             {
                                 RelativeSizeAxes = Axes.Both,
-                                Child = scores = new FillFlowContainer<DrawableExtendedProfileScore>
+                                Child = drawableScores = new FillFlowContainer<DrawableExtendedProfileScore>
                                 {
                                     RelativeSizeAxes = Axes.X,
                                     AutoSizeAxes = Axes.Y,
@@ -195,15 +190,15 @@ namespace PerformanceCalculatorGUI.Screens
                 currentCollection.Scores.CollectionChanged -= collectionChangedEventHandler;
 
             currentCollection = collection;
-            collectionNameText.Text = "Collection: " + collection.Name;
+            collectionNameText.Text = collection.Name.Value;
 
             // Store the event handler to unsubscribe when opening a different collection
             collectionChangedEventHandler = (sender, e) =>
             {
                 if (e.Action == NotifyCollectionChangedAction.Add)
-                    performCalculation(e.NewItems.Cast<long>(), false);
+                    performCalculation(e.NewItems.Cast<ScoreInfo>(), false);
                 else if (e.Action == NotifyCollectionChangedAction.Remove)
-                    scores.RemoveAll(x => e.OldItems.Cast<long>().Contains(x.Score.SoloScore.OnlineID), true);
+                    drawableScores.RemoveAll(x => e.OldItems.Cast<long>().Contains(x.Score.SoloScore.OnlineID), true);
             };
 
             collection.Scores.CollectionChanged += collectionChangedEventHandler;
@@ -211,44 +206,35 @@ namespace PerformanceCalculatorGUI.Screens
             performCalculation();
         }
 
-        private void performCalculation(IEnumerable<long> scoreIds = null, bool overwrite = true)
+        private void performCalculation(IEnumerable<ScoreInfo> scores = null, bool overwritePp = false)
         {
             if (currentCollection == null)
                 return;
 
-            scoreIds ??= currentCollection.Scores;
+            scores ??= currentCollection.Scores;
 
             calculationCancellatonToken?.Cancel();
             calculationCancellatonToken?.Dispose();
             calculationCancellatonToken = new CancellationTokenSource();
 
             loadingLayer.Show();
-            if (overwrite)
-                scores.Clear();
 
             Task.Run(async () =>
             {
                 var rulesetInstance = ruleset.Value.CreateInstance();
 
-                foreach (long scoreId in scoreIds)
+                foreach (ScoreInfo score in scores)
                 {
                     if (calculationCancellatonToken.IsCancellationRequested)
                         return;
 
-                    var score = await apiManager.GetJsonFromApi<SoloScoreInfo>($"scores/{scoreId}");
-
-                    if (calculationCancellatonToken.IsCancellationRequested)
-                        return;
-
-                    var working = ProcessorWorkingBeatmap.FromFileOrId(score.BeatmapID.ToString(), cachePath: configManager.GetBindable<string>(Settings.CachePath).Value);
+                    var working = ProcessorWorkingBeatmap.FromFileOrId(score.BeatmapInfo.OnlineID.ToString(), cachePath: configManager.GetBindable<string>(Settings.CachePath).Value);
 
                     Schedule(() => loadingLayer.Text.Value = $"Calculating {working.Metadata}");
 
-                    Mod[] mods = score.Mods.Select(x => x.ToMod(rulesetInstance)).ToArray();
+                    Mod[] mods = score.Mods;
 
-                    var scoreInfo = score.ToScoreInfo(rulesets, working.BeatmapInfo);
-
-                    var parsedScore = new ProcessorScoreDecoder(working).Parse(scoreInfo);
+                    var parsedScore = new ProcessorScoreDecoder(working).Parse(score);
 
                     var difficultyCalculator = rulesetInstance.CreateDifficultyCalculator(working);
                     var difficultyAttributes = difficultyCalculator.Calculate(RulesetHelper.ConvertToLegacyDifficultyAdjustmentMods(rulesetInstance, mods));
@@ -259,16 +245,17 @@ namespace PerformanceCalculatorGUI.Screens
 
                     var livePP = score.PP ?? 0.0;
                     var perfAttributes = await performanceCalculator?.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, calculationCancellatonToken.Token)!;
-                    score.PP = perfAttributes?.Total ?? 0.0;
+
+                    if (overwritePp) score.PP = perfAttributes?.Total ?? 0.0;
 
                     addScoreToUI(new ExtendedProfileScore(score, livePP, difficultyAttributes, perfAttributes));
                 }
 
-                DrawableExtendedProfileScore[] sortedScores = scores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total - ((ExtendedProfileScore)x.Score).LivePP).ToArray();
+                DrawableExtendedProfileScore[] sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total - ((ExtendedProfileScore)x.Score).LivePP).ToArray();
 
                 for (int i = 0; i < sortedScores.Length; i++)
                 {
-                    scores.SetLayoutPosition(sortedScores[i], i);
+                    drawableScores.SetLayoutPosition(sortedScores[i], i);
                 }
 
             }, calculationCancellatonToken.Token).ContinueWith(t =>
@@ -287,7 +274,7 @@ namespace PerformanceCalculatorGUI.Screens
             {
                 DrawableExtendedProfileScore drawable = new DrawableExtendedProfileScore(score);
 
-                scores.Add(drawable);
+                drawableScores.Add(drawable);
             });
         }
 
@@ -311,6 +298,11 @@ namespace PerformanceCalculatorGUI.Screens
             calculationCancellatonToken?.Cancel();
             calculationCancellatonToken?.Dispose();
             calculationCancellatonToken = null;
+        }
+
+        private partial class EmptyDrawable : Drawable
+        {
+
         }
     }
 }
