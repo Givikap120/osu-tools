@@ -49,11 +49,14 @@ namespace PerformanceCalculatorGUI.Components
 
         protected WorkingBeatmap GetBeatmap(string md5Hash)
         {
+            if (beatmaps == null)
+                return null;
+
             // Try to get from manager first
             var workingBeatmap = beatmaps.GetWorkingBeatmap(beatmaps.QueryBeatmap(b => b.MD5Hash == md5Hash));
 
             if (workingBeatmap is DummyWorkingBeatmap)
-                return workingBeatmap;
+                return null;
 
             // Try to get from lazer path
             var lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
@@ -115,7 +118,7 @@ namespace PerformanceCalculatorGUI.Components
                 workingBeatmap = GetBeatmap(beatmapHash);
                 score.ScoreInfo.BeatmapInfo = null;
 
-                if (workingBeatmap is not DummyWorkingBeatmap && workingBeatmap.Beatmap.HitObjects.Count > 0)
+                if (workingBeatmap != null && workingBeatmap is not DummyWorkingBeatmap && workingBeatmap.Beatmap.HitObjects.Count > 0)
                 {
                     haveBeatmap = true;
 
