@@ -1278,13 +1278,13 @@ namespace PerformanceCalculatorGUI.Screens
             return calc(mods, score);
         }
 
-        private void testAR() => AttributeTest.TestAR(appliedMods.Value, calc);
+        private void testAR() => AttributeTest.TestAR(working.BeatmapInfo.Difficulty, appliedMods.Value, calc);
 
-        private void testDT() => AttributeTest.TestDT(appliedMods.Value, calc);
+        private void testDT() => AttributeTest.TestDT(working.BeatmapInfo.Difficulty, appliedMods.Value, calc);
 
-        private void testDTfixedAR() => AttributeTest.TestDTFixedAR(appliedMods.Value, calc);
+        private void testDTfixedAR() => AttributeTest.TestDTFixedAR(working.BeatmapInfo.Difficulty, appliedMods.Value, calc);
 
-        private void testCS() => AttributeTest.TestCS(appliedMods.Value, calc);
+        private void testCS() => AttributeTest.TestCS(working.BeatmapInfo.Difficulty, appliedMods.Value, calc);
 
         private List<ObjectProbablityInfo> getHitDataInfo()
         {
@@ -1294,7 +1294,7 @@ namespace PerformanceCalculatorGUI.Screens
 
             var hitObjects = extendedCalculator.GetDifficultyHitObjects(beatmap, clockRate);
 
-            Aim aim = extendedCalculator.GetSkills().OfType<Aim>().FirstOrDefault();
+            Aim aim = extendedCalculator.GetSkills().OfType<Aim>().LastOrDefault();
             FieldInfo objectStrainsProperty = typeof(Aim).GetField("ObjectStrains", BindingFlags.Instance | BindingFlags.NonPublic);
             var objectStrains = (List<double>)objectStrainsProperty.GetValue(aim);
 

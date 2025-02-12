@@ -64,8 +64,8 @@ namespace PerformanceCalculatorGUI.Components
 
         protected override void LoadComplete()
         {
-            Status.UnbindAll();
-            Activity.UnbindAll();
+            //Status.UnbindAll();
+            //Activity.UnbindAll();
         }
 
         protected override Drawable CreateLayout()

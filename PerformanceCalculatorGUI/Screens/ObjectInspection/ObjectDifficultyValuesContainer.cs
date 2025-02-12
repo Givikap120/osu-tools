@@ -165,7 +165,7 @@ namespace PerformanceCalculatorGUI.Screens.ObjectInspection
                 new ObjectInspectorDifficultyValue("Colour Difficulty", ColourEvaluator.EvaluateDifficultyOf(hitObject)),
                 new ObjectInspectorDifficultyValue("Stamina Difficulty", StaminaEvaluator.EvaluateDifficultyOf(hitObject)),
                 new ObjectInspectorDifficultyValue("Rhythm Difficulty", hitObject.Rhythm.Difficulty),
-                new ObjectInspectorDifficultyValue("Rhythm Ratio", hitObject.Rhythm.Ratio),
+                new ObjectInspectorDifficultyValue("Rhythm Ratio", hitObject.RhythmData.Ratio),
             });
         }
 
