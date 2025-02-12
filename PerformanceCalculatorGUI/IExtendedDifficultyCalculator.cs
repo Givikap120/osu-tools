@@ -10,21 +10,24 @@ using osu.Game.Rulesets.Difficulty.Skills;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace PerformanceCalculatorGUI;
-
-public interface IExtendedDifficultyCalculator
+namespace PerformanceCalculatorGUI
 {
-    Skill[] GetSkills();
-    DifficultyHitObject[] GetDifficultyHitObjects(IBeatmap beatmap, double clockRate);
-
-    static DifficultyHitObject[] GetDifficultyHitObjects(DifficultyCalculator difficultyCalculator, IBeatmap beatmap, double clockRate)
+    public interface IExtendedDifficultyCalculator
     {
-        MethodInfo methodInfo = difficultyCalculator.GetType().GetMethod("CreateDifficultyHitObjects", BindingFlags.Instance | BindingFlags.NonPublic);
-        if (methodInfo != null)
-        {
-            return ((IEnumerable<DifficultyHitObject>)methodInfo.Invoke(difficultyCalculator, new object[] { beatmap, clockRate })).ToArray();
-        }
+        Skill[] GetSkills();
 
-        throw new InvalidOperationException("Method not found");
+        DifficultyHitObject[] GetDifficultyHitObjects(IBeatmap beatmap, double clockRate);
+
+        static DifficultyHitObject[] GetDifficultyHitObjects(DifficultyCalculator difficultyCalculator, IBeatmap beatmap, double clockRate)
+        {
+            MethodInfo methodInfo = difficultyCalculator.GetType().GetMethod("CreateDifficultyHitObjects", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (methodInfo != null)
+            {
+                return ((IEnumerable<DifficultyHitObject>)methodInfo.Invoke(difficultyCalculator, new object[] { beatmap, clockRate })).ToArray();
+            }
+
+            throw new InvalidOperationException("Method not found");
+
+        }
     }
 }

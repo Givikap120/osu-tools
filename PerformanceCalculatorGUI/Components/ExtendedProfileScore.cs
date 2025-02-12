@@ -16,16 +16,16 @@ namespace PerformanceCalculatorGUI.Components
 {
     public class ExtendedProfileScore : ProfileScore
     {
-        public double LivePP { get; }
+        public double? LivePP { get; }
         public Bindable<int> PositionChange { get; } = new Bindable<int>();
 
-        public ExtendedProfileScore(SoloScoreInfo score, double livePP, DifficultyAttributes difficultyAttributes, PerformanceAttributes performanceAttributes)
+        public ExtendedProfileScore(SoloScoreInfo score, double? livePP, DifficultyAttributes difficultyAttributes, PerformanceAttributes performanceAttributes)
             : base(score, difficultyAttributes, performanceAttributes)
         {
             LivePP = livePP;
         }
 
-        public ExtendedProfileScore(ScoreInfo score, double livePP, DifficultyAttributes difficultyAttributes, PerformanceAttributes performanceAttributes)
+        public ExtendedProfileScore(ScoreInfo score, double? livePP, DifficultyAttributes difficultyAttributes, PerformanceAttributes performanceAttributes)
             : base(score, difficultyAttributes, performanceAttributes)
         {
             LivePP = livePP;

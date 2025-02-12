@@ -116,7 +116,7 @@ namespace PerformanceCalculatorGUI.Components
                                 Width = 200,
                                 Current = { BindTarget = graphToggleBindable, Default = true, Value = true },
                                 LabelText = skills[i].GetType().Name,
-                                TextColour = skillColours[i]
+                                TextColour = skillColours[i % skillColours.Length]
                             }
                             }
                         });
@@ -215,7 +215,7 @@ namespace PerformanceCalculatorGUI.Components
 
         private void addStrainBars(List<StrainBarGraph> graphs, Skill[] skills, List<float[]> strainLists)
         {
-            var strainMaxValue = strainLists.Max(list => list.Max());
+            float strainMaxValue = strainLists.Max(list => list.Max());
 
             for (int i = 0; i < skills.Length; i++)
             {
@@ -225,7 +225,7 @@ namespace PerformanceCalculatorGUI.Components
                     {
                     RelativeSizeAxes = Axes.Both,
                     Alpha = graphAlpha,
-                    Colour = skillColours[i],
+                    Colour = skillColours[i % skillColours.Length],
                     Child = graphs[i]
                 }
                 });
@@ -247,7 +247,7 @@ namespace PerformanceCalculatorGUI.Components
             for (int i = 0; i < nBars; i++)
             {
                 var strainTime = TimeSpan.FromMilliseconds(TimeUntilFirstStrain.Value + lastStrainTime * i / nBars);
-                var tooltipText = $"~{strainTime:mm\\:ss\\.ff}";
+                string tooltipText = $"~{strainTime:mm\\:ss\\.ff}";
                 tooltipList.Add(tooltipText);
             }
 
@@ -272,13 +272,13 @@ namespace PerformanceCalculatorGUI.Components
 
             foreach (var skill in skills)
             {
-                var strains = ((StrainSkill)skill).GetCurrentStrainPeaks().ToArray(); // StrainSkill
+                double[] strains = ((StrainSkill)skill).GetCurrentStrainPeaks().ToArray();
 
                 var skillStrainList = new List<float>();
 
                 for (int i = 0; i < strains.Length; i++)
                 {
-                    var strain = strains[i];
+                    double strain = strains[i];
                     skillStrainList.Add(((float)strain));
                 }
 
@@ -345,7 +345,7 @@ namespace PerformanceCalculatorGUI.Components
             {
                 Clear();
 
-                foreach (var tooltip in value)
+                foreach (string tooltip in value)
                 {
                     float size = value.Count();
                     if (size != 0)

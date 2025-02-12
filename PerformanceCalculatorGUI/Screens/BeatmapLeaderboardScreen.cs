@@ -197,7 +197,7 @@ namespace PerformanceCalculatorGUI.Screens
             {
                 Schedule(() => loadingLayer.Text.Value = "Getting leaderboard...");
 
-                var leaderboard = await apiManager.GetJsonFromApi<APIScoresCollection>($@"beatmaps/{beatmapIdTextBox.Current.Value}/scores?scope=global&mode={ruleset.Value.ShortName}");
+                var leaderboard = await apiManager.GetJsonFromApi<APIScoresCollection>($@"beatmaps/{beatmapIdTextBox.Current.Value}/scores?scope=global&mode={ruleset.Value.ShortName}").ConfigureAwait(false);
 
                 var plays = new List<SoloScoreInfo>();
 
@@ -250,9 +250,11 @@ namespace PerformanceCalculatorGUI.Screens
                     }
 
                     var performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
+                    if (performanceCalculator == null)
+                        continue;
 
-                    var perfAttributes = await performanceCalculator?.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, token)!;
-                    score.PP = perfAttributes?.Total ?? 0.0;
+                    var perfAttributes = await performanceCalculator.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, token).ConfigureAwait(false);
+                    score.PP = perfAttributes.Total;
 
                     plays.Add(score);
                 }

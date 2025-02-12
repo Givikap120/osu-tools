@@ -10,23 +10,24 @@ using osu.Game.Rulesets.Difficulty.Skills;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Taiko.Difficulty;
 
-namespace PerformanceCalculatorGUI;
-
-public class ExtendedTaikoDifficultyCalculator : TaikoDifficultyCalculator, IExtendedDifficultyCalculator
+namespace PerformanceCalculatorGUI
 {
-    private Skill[] skills;
-
-    public ExtendedTaikoDifficultyCalculator(IRulesetInfo ruleset, IWorkingBeatmap beatmap)
-        : base(ruleset, beatmap)
+    public class ExtendedTaikoDifficultyCalculator : TaikoDifficultyCalculator, IExtendedDifficultyCalculator
     {
-    }
+        private Skill[] skills;
 
-    public Skill[] GetSkills() => skills;
-    public DifficultyHitObject[] GetDifficultyHitObjects(IBeatmap beatmap, double clockRate) => IExtendedDifficultyCalculator.GetDifficultyHitObjects(this, beatmap, clockRate);
+        public ExtendedTaikoDifficultyCalculator(IRulesetInfo ruleset, IWorkingBeatmap beatmap) : base(ruleset, beatmap)
+        {
+        }
 
-    protected override DifficultyAttributes CreateDifficultyAttributes(IBeatmap beatmap, Mod[] mods, Skill[] skills, double clockRate)
-    {
-        this.skills = skills;
-        return base.CreateDifficultyAttributes(beatmap, mods, skills, clockRate);
+        public Skill[] GetSkills() => skills;
+        
+        public DifficultyHitObject[] GetDifficultyHitObjects(IBeatmap beatmap, double clockRate) => IExtendedDifficultyCalculator.GetDifficultyHitObjects(this, beatmap, clockRate);
+
+        protected override DifficultyAttributes CreateDifficultyAttributes(IBeatmap beatmap, Mod[] mods, Skill[] skills, double clockRate)
+        {
+            this.skills = skills;
+            return base.CreateDifficultyAttributes(beatmap, mods, skills, clockRate);
+        }
     }
 }

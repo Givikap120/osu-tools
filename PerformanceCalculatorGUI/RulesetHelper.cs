@@ -31,44 +31,6 @@ namespace PerformanceCalculatorGUI
 {
     public static class RulesetHelper
     {
-        /// <summary>
-        /// Transforms a given <see cref="Mod"/> combination into one which is applicable to legacy scores.
-        /// This is used to match osu!stable/osu!web calculations for the time being, until such a point that these mods do get considered.
-        /// </summary>
-        public static Mod[] ConvertToLegacyDifficultyAdjustmentMods(Ruleset ruleset, Mod[] mods)
-        {
-            var beatmap = new EmptyWorkingBeatmap
-            {
-                BeatmapInfo =
-                {
-                    Ruleset = ruleset.RulesetInfo,
-                    Difficulty = new BeatmapDifficulty()
-                }
-            };
-
-            var allMods = ruleset.CreateAllMods().ToArray();
-
-            var allowedMods = ModUtils.FlattenMods(
-                                          ruleset.CreateDifficultyCalculator(beatmap).CreateDifficultyAdjustmentModCombinations())
-                                      .Select(m => m.GetType())
-                                      .Distinct()
-                                      .ToHashSet();
-
-            // Special case to allow either DT or NC.
-            if (allowedMods.Any(type => type.IsSubclassOf(typeof(ModDoubleTime))) && mods.Any(m => m is ModNightcore))
-                allowedMods.Add(allMods.Single(m => m is ModNightcore).GetType());
-
-            var result = new List<Mod>();
-
-            var classicMod = allMods.SingleOrDefault(m => m is ModClassic);
-            if (classicMod != null)
-                result.Add(classicMod);
-
-            result.AddRange(mods.Where(m => allowedMods.Contains(m.GetType())));
-
-            return result.ToArray();
-        }
-
         public static DifficultyCalculator GetExtendedDifficultyCalculator(RulesetInfo ruleset, IWorkingBeatmap working)
         {
             return ruleset.OnlineID switch
@@ -193,7 +155,7 @@ namespace PerformanceCalculatorGUI
         {
             int countGreat;
 
-            var totalResultCount = beatmap.HitObjects.Count;
+            int totalResultCount = beatmap.HitObjects.Count;
 
             if (countMeh != null || countGood != null)
             {
@@ -284,7 +246,7 @@ namespace PerformanceCalculatorGUI
 
         private static Dictionary<HitResult, int> generateTaikoHitResults(double accuracy, IBeatmap beatmap, int countMiss, int? countGood)
         {
-            var totalResultCount = beatmap.HitObjects.OfType<Hit>().Count();
+            int totalResultCount = beatmap.HitObjects.OfType<Hit>().Count();
 
             int countGreat;
 
@@ -295,7 +257,7 @@ namespace PerformanceCalculatorGUI
             else
             {
                 // Let Great=2, Good=1, Miss=0. The total should be this.
-                var targetTotal = (int)Math.Round(accuracy * totalResultCount * 2);
+                int targetTotal = (int)Math.Round(accuracy * totalResultCount * 2);
 
                 countGreat = targetTotal - (totalResultCount - countMiss);
                 countGood = totalResultCount - countGreat - countMiss;
@@ -312,7 +274,7 @@ namespace PerformanceCalculatorGUI
 
         private static Dictionary<HitResult, int> generateCatchHitResults(double accuracy, IBeatmap beatmap, int countMiss, int? countMeh, int? countGood)
         {
-            var maxCombo = beatmap.HitObjects.Count(h => h is Fruit) + beatmap.HitObjects.OfType<JuiceStream>().SelectMany(j => j.NestedHitObjects).Count(h => !(h is TinyDroplet));
+            int maxCombo = beatmap.HitObjects.Count(h => h is Fruit) + beatmap.HitObjects.OfType<JuiceStream>().SelectMany(j => j.NestedHitObjects).Count(h => !(h is TinyDroplet));
 
             int maxTinyDroplets = beatmap.HitObjects.OfType<JuiceStream>().Sum(s => s.NestedHitObjects.OfType<TinyDroplet>().Count());
             int maxDroplets = beatmap.HitObjects.OfType<JuiceStream>().Sum(s => s.NestedHitObjects.OfType<Droplet>().Count()) - maxTinyDroplets;
@@ -343,14 +305,14 @@ namespace PerformanceCalculatorGUI
 
         private static Dictionary<HitResult, int> generateManiaHitResults(double accuracy, IBeatmap beatmap, int countMiss)
         {
-            var totalResultCount = beatmap.HitObjects.Count;
+            int totalResultCount = beatmap.HitObjects.Count;
 
             // Let Great=6, Good=2, Meh=1, Miss=0. The total should be this.
-            var targetTotal = (int)Math.Round(accuracy * totalResultCount * 6);
+            int targetTotal = (int)Math.Round(accuracy * totalResultCount * 6);
 
             // Start by assuming every non miss is a meh
             // This is how much increase is needed by greats and goods
-            var delta = targetTotal - (totalResultCount - countMiss);
+            int delta = targetTotal - (totalResultCount - countMiss);
 
             // Each great increases total by 5 (great-meh=5)
             int countGreat = delta / 5;
@@ -466,27 +428,26 @@ namespace PerformanceCalculatorGUI
 
         private static double getOsuAccuracy(IBeatmap beatmap, Dictionary<HitResult, int> statistics)
         {
-            var countGreat = statistics[HitResult.Great];
-            var countGood = statistics[HitResult.Ok];
-            var countMeh = statistics[HitResult.Meh];
-            var countMiss = statistics[HitResult.Miss];
+            int countGreat = statistics[HitResult.Great];
+            int countGood = statistics[HitResult.Ok];
+            int countMeh = statistics[HitResult.Meh];
+            int countMiss = statistics[HitResult.Miss];
 
             double total = 6 * countGreat + 2 * countGood + countMeh;
             double max = 6 * (countGreat + countGood + countMeh + countMiss);
 
-            if (statistics.ContainsKey(HitResult.SliderTailHit))
+            if (statistics.TryGetValue(HitResult.SliderTailHit, out int countSliderTailHit))
             {
-                var countSliders = beatmap.HitObjects.Count(x => x is Slider);
-                var countSliderTailHit = statistics[HitResult.SliderTailHit];
+                int countSliders = beatmap.HitObjects.Count(x => x is Slider);
 
                 total += 3 * countSliderTailHit;
                 max += 3 * countSliders;
             }
 
-            if (statistics.ContainsKey(HitResult.LargeTickMiss))
+            if (statistics.TryGetValue(HitResult.LargeTickMiss, out int countLargeTicksMiss))
             {
-                var countLargeTicks = beatmap.HitObjects.Sum(obj => obj.NestedHitObjects.Count(x => x is SliderTick or SliderRepeat));
-                var countLargeTickHit = countLargeTicks - statistics[HitResult.LargeTickMiss];
+                int countLargeTicks = beatmap.HitObjects.Sum(obj => obj.NestedHitObjects.Count(x => x is SliderTick or SliderRepeat));
+                int countLargeTickHit = countLargeTicks - countLargeTicksMiss;
 
                 total += 0.6 * countLargeTickHit;
                 max += 0.6 * countLargeTicks;
@@ -497,10 +458,10 @@ namespace PerformanceCalculatorGUI
 
         private static double getTaikoAccuracy(Dictionary<HitResult, int> statistics)
         {
-            var countGreat = statistics[HitResult.Great];
-            var countGood = statistics[HitResult.Ok];
-            var countMiss = statistics[HitResult.Miss];
-            var total = countGreat + countGood + countMiss;
+            int countGreat = statistics[HitResult.Great];
+            int countGood = statistics[HitResult.Ok];
+            int countMiss = statistics[HitResult.Miss];
+            int total = countGreat + countGood + countMiss;
 
             return (double)((2 * countGreat) + countGood) / (2 * total);
         }
@@ -515,35 +476,17 @@ namespace PerformanceCalculatorGUI
 
         private static double getManiaAccuracy(Dictionary<HitResult, int> statistics)
         {
-            var countPerfect = statistics[HitResult.Perfect];
-            var countGreat = statistics[HitResult.Great];
-            var countGood = statistics[HitResult.Good];
-            var countOk = statistics[HitResult.Ok];
-            var countMeh = statistics[HitResult.Meh];
-            var countMiss = statistics[HitResult.Miss];
-            var total = countPerfect + countGreat + countGood + countOk + countMeh + countMiss;
+            int countPerfect = statistics[HitResult.Perfect];
+            int countGreat = statistics[HitResult.Great];
+            int countGood = statistics[HitResult.Good];
+            int countOk = statistics[HitResult.Ok];
+            int countMeh = statistics[HitResult.Meh];
+            int countMiss = statistics[HitResult.Miss];
+            int total = countPerfect + countGreat + countGood + countOk + countMeh + countMiss;
 
             return (double)
                    ((6 * (countPerfect + countGreat)) + (4 * countGood) + (2 * countOk) + countMeh) /
                    (6 * total);
-        }
-
-        private class EmptyWorkingBeatmap : WorkingBeatmap
-        {
-            public EmptyWorkingBeatmap()
-                : base(new BeatmapInfo(), null)
-            {
-            }
-
-            protected override IBeatmap GetBeatmap() => throw new NotImplementedException();
-
-            public override Texture GetBackground() => throw new NotImplementedException();
-
-            protected override Track GetBeatmapTrack() => throw new NotImplementedException();
-
-            protected override ISkin GetSkin() => throw new NotImplementedException();
-
-            public override Stream GetStream(string storagePath) => throw new NotImplementedException();
         }
     }
 }
