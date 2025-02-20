@@ -347,3 +347,4 @@ FodyWeavers.xsd
 
 PerformanceCalculator/cache/
 *.csv
+PerformanceCalculatorGUI/collections.json
