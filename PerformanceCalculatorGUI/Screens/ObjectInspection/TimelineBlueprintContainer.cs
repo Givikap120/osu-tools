@@ -67,10 +67,7 @@ namespace PerformanceCalculatorGUI.Screens.ObjectInspection
         {
         }
 
-        protected override bool TryMoveBlueprints(DragEvent e, IList<(SelectionBlueprint<HitObject> blueprint, Vector2[] originalSnapPositions)> blueprints)
-        {
-            return false;
-        }
+        protected override bool TryMoveBlueprints(DragEvent e, IList<(SelectionBlueprint<HitObject> blueprint, Vector2[] originalSnapPositions)> blueprints) => false;
 
         protected partial class TimelineSelectionBlueprintContainer : SelectionBlueprintContainer
         {
