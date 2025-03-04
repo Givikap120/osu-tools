@@ -11,6 +11,7 @@ using osu.Game.Extensions;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Difficulty.Preprocessing;
+using osu.Game.Rulesets.Difficulty.Utils;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Objects;
 using osu.Game.Rulesets.Osu;
@@ -50,7 +51,7 @@ namespace PerformanceCalculatorGUI.Screens
             for (int i = 0; i < objectStrains.Count; i++)
             {
                 double difficulty = objectStrains[i];
-                double hitProbability = SpecialFunctions.Erf(skill / (Math.Sqrt(2) * difficulty));
+                double hitProbability = DifficultyCalculationUtils.Erf(skill / (Math.Sqrt(2) * difficulty));
                 fcProbability *= hitProbability;
 
                 var newObject = new ObjectProbablityInfo(hitObjects[j], hitProbability, fcProbability);
