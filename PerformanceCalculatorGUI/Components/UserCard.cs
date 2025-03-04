@@ -168,6 +168,9 @@ namespace PerformanceCalculatorGUI.Components
                 }
             };
 
+            CreateStatusMessage(false).With(message => message.Hide());
+            CreateStatusIcon().With(icon => icon.Hide());
+
             return layout;
         }
     }

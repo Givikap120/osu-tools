@@ -70,7 +70,7 @@ namespace PerformanceCalculatorGUI.Components.TextBoxes
             }
             protected override bool CanAddCharacter(char character)
             {
-                return character.IsAsciiDigit() || character == '-';
+                return char.IsAsciiDigit(character) || character == '-';
             }
 
             public int? MaxValue { get; set; }
