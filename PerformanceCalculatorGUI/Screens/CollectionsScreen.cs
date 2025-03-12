@@ -10,20 +10,21 @@ using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Sprites;
+using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input.Events;
 using osu.Framework.Logging;
+using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
-using osu.Game.Online.API.Requests.Responses;
-using osu.Game.Online.Placeholders;
+using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Overlays;
 using osu.Game.Overlays.Dialog;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Scoring;
+using osuTK;
 using osuTK.Input;
 using PerformanceCalculatorGUI.Components;
-using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
 
 namespace PerformanceCalculatorGUI.Screens
@@ -33,7 +34,10 @@ namespace PerformanceCalculatorGUI.Screens
         public override bool ShouldShowConfirmationDialogOnSwitch => false;
 
         [Cached]
-        private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Plum);
+        private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Aquamarine);
+
+        [Resolved]
+        private OsuColour colours { get ; set; }
 
         [Resolved]
         private NotificationDisplay notificationDisplay { get; set; }
@@ -68,7 +72,7 @@ namespace PerformanceCalculatorGUI.Screens
 
         private const float collection_controls_height = 40;
 
-        private ColorChangingButton activeCollectionButton;
+        private RoundedButton activeCollectionButton;
 
         [BackgroundDependencyLoader]
         private void load()
@@ -124,17 +128,19 @@ namespace PerformanceCalculatorGUI.Screens
                                             Origin = Anchor.CentreLeft
                                         },
                                         new EmptyDrawable(),
-                                        activeCollectionButton = new ColorChangingButton()
+                                        activeCollectionButton = new RoundedButton()
                                         {
                                             Width = 250,
                                             Height = collection_controls_height,
                                             Text = "Select as active collection",
+                                            BackgroundColour = colourProvider.Background1,
                                             Action = selectAsActiveCollection
                                         },
                                         new StatefulButton("Overwrite pp values")
                                         {
                                             Width = 200,
                                             Height = collection_controls_height,
+                                            BackgroundColour = colourProvider.Background1,
                                             Action = () =>
                                             {
                                                 dialogOverlay.Push(new ConfirmDialog("Do you really want to overwrite all pp values with local values?", () =>
@@ -155,6 +161,7 @@ namespace PerformanceCalculatorGUI.Screens
                                         {
                                             Width = 150,
                                             Height = collection_controls_height,
+                                            BackgroundColour = colourProvider.Background1,
                                             Action = () =>
                                             {
                                                 dialogOverlay.Push(new ConfirmDialog("Do you really want to delete all scores in this collection?", () =>
@@ -196,9 +203,6 @@ namespace PerformanceCalculatorGUI.Screens
 
             collections.Collections.CollectionChanged += (sender, e) => populateCollectionsContainer();
 
-            if (RuntimeInfo.IsDesktop)
-                HotReloadCallbackReceiver.CompilationFinished += _ => performCalculation();
-
             ruleset.ValueChanged += _ => performCalculation();
         }
 
@@ -212,12 +216,12 @@ namespace PerformanceCalculatorGUI.Screens
         {
             if (collections.ActiveCollection == currentCollection)
             {
-                activeCollectionButton.ChangeColor(activeCollectionButton.Colours.Green);
+                activeCollectionButton.BackgroundColour = colours.Green;
                 activeCollectionButton.Text = "This collection is active";
             }
             else
             {
-                activeCollectionButton.ChangeColor(null);
+                activeCollectionButton.BackgroundColour = colourProvider.Background1;
                 activeCollectionButton.Text = "Select as active collection";
             }
         }
@@ -337,9 +341,17 @@ namespace PerformanceCalculatorGUI.Screens
             Schedule(() =>
             {
                 DrawableExtendedProfileScore drawable = new DrawableExtendedProfileScore(score);
+                drawable.PopoverMaker = () => new CollectionScreenScorePopover(this, drawable);
 
                 drawableScores.Add(drawable);
             });
+        }
+
+        public void DeleteScoreFromCollection(DrawableExtendedProfileScore drawableScore)
+        {
+            currentCollection.Scores.Remove(drawableScore.Score.ScoreInfoSource);
+            collections.Save();
+            drawableScores.Remove(drawableScore, true);
         }
 
         protected override bool OnKeyDown(KeyDownEvent e)
@@ -367,6 +379,58 @@ namespace PerformanceCalculatorGUI.Screens
         private partial class EmptyDrawable : Drawable
         {
 
+        }
+
+        private partial class CollectionScreenScorePopover : OsuPopover
+        {
+            [Resolved]
+            private DialogOverlay dialogOverlay { get; set; }
+
+            private readonly CollectionsScreen parent;
+            private readonly DrawableExtendedProfileScore drawableScore;
+
+            public CollectionScreenScorePopover(CollectionsScreen parent, DrawableExtendedProfileScore drawableScore)
+            {
+                this.parent = parent;
+                this.drawableScore = drawableScore;
+            }
+
+            [BackgroundDependencyLoader]
+            private void load()
+            {
+                Add(new Container
+                {
+                    AutoSizeAxes = Axes.Y,
+                    Width = 300,
+                    Children = new Drawable[]
+                    {
+                        new FillFlowContainer
+                        {
+                            Direction = FillDirection.Vertical,
+                            RelativeSizeAxes = Axes.X,
+                            AutoSizeAxes = Axes.Y,
+                            Spacing = new Vector2(12),
+                            Children = new Drawable[]
+                            {
+                                new RoundedButton
+                                {
+                                    RelativeSizeAxes = Axes.X,
+                                    Text = "Delete score from collection",
+                                    Action = () =>
+                                    {
+                                        dialogOverlay.Push(new ConfirmDialog("Are you sure?", () =>
+                                        {
+                                            parent.DeleteScoreFromCollection(drawableScore);
+                                        }));
+
+                                        PopOut();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
         }
     }
 }

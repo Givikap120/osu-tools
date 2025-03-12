@@ -3,12 +3,16 @@
 
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
+using osu.Framework.Extensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Cursor;
 using osu.Framework.Graphics.Shapes;
+using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input.Events;
 using osu.Framework.Localisation;
 using osu.Framework.Platform;
@@ -27,6 +31,7 @@ using osu.Game.Rulesets.UI;
 using osu.Game.Scoring;
 using osu.Game.Utils;
 using osuTK;
+using osuTK.Input;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 
 namespace PerformanceCalculatorGUI.Components
@@ -88,7 +93,7 @@ namespace PerformanceCalculatorGUI.Components
 
     }
 
-    public partial class DrawableProfileScore : OsuClickableContainer
+    public partial class DrawableProfileScore : OsuClickableContainer, IHasPopover
     {
         private const int height = 40;
         private const int rank_difference_width = 35;
@@ -248,7 +253,18 @@ namespace PerformanceCalculatorGUI.Components
                         }
                     }
                 }
-            });
+            }); 
+        }
+
+        public Func<Popover> PopoverMaker { get; set; } = null;
+        public Popover GetPopover() => PopoverMaker.Invoke();
+
+        protected override bool OnMouseDown(MouseDownEvent e)
+        {
+            if (PopoverMaker != null && e.Button == MouseButton.Right)
+                this.ShowPopover();
+
+            return base.OnMouseDown(e);
         }
 
         protected virtual Drawable[] CreateRightInfoContainerContent(RulesetStore rulesets)

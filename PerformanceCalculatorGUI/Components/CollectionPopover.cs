@@ -21,8 +21,13 @@ namespace PerformanceCalculatorGUI.Components
         [Resolved]
         private DialogOverlay dialogOverlay { get; set; }
 
+        [Resolved]
+        private OsuColour colours { get; set; }
+
         private LabelledTextBox nameTextBox;
         private LabelledNumberBox coverBeatmapSetIdTextBox;
+
+        private RoundedButton activeCollectionButton;
 
         private readonly Collection collection;
 
@@ -33,7 +38,7 @@ namespace PerformanceCalculatorGUI.Components
         }
 
         [BackgroundDependencyLoader]
-        private void load(OsuColour colours)
+        private void load()
         {
             Add(new Container
             {
@@ -61,6 +66,16 @@ namespace PerformanceCalculatorGUI.Components
                                 Text = collection.CoverBeatmapSetId.Value,
                                 Current = collection.CoverBeatmapSetId
                             },
+                            activeCollectionButton = new RoundedButton
+                            {
+                                RelativeSizeAxes = Axes.X,
+                                Text = "Set as Active",
+                                Action = () =>
+                                {
+                                    collections.ActiveCollection = collection;
+                                    updateActiveButton();
+                                }
+                            },
                             new RoundedButton
                             {
                                 RelativeSizeAxes = Axes.X,
@@ -80,6 +95,8 @@ namespace PerformanceCalculatorGUI.Components
                 }
             });
 
+            updateActiveButton();
+
             nameTextBox.OnCommit += (sender, e) =>
             {
                 collections.Save();
@@ -89,6 +106,15 @@ namespace PerformanceCalculatorGUI.Components
             {
                 collections.Save();
             };
+        }
+
+        private void updateActiveButton()
+        {
+            if (collections.ActiveCollection == collection)
+            {
+                activeCollectionButton.BackgroundColour = colours.Green;
+                activeCollectionButton.Text = "This collection is active";
+            }
         }
     }
 }

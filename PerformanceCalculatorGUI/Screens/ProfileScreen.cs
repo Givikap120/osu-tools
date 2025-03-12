@@ -39,6 +39,7 @@ using osu.Game.Rulesets.Scoring;
 using osu.Game.Rulesets.Osu.Difficulty;
 using osu.Game.Rulesets.Osu.Mods;
 using osu.Framework.Lists;
+using osu.Game.Overlays.Dialog;
 
 namespace PerformanceCalculatorGUI.Screens
 {
@@ -415,10 +416,13 @@ namespace PerformanceCalculatorGUI.Screens
                     var perfAttributes = await performanceCalculator.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, token).ConfigureAwait(false);
                     score.PP = perfAttributes.Total;
 
-                    var extendedScore = new ExtendedProfileScore(score, livePp, difficultyAttributes, perfAttributes);
+                    var extendedScore = new ExtendedProfileScore(parsedScore.ScoreInfo, livePp, difficultyAttributes, perfAttributes);
                     plays.Add(extendedScore);
 
-                    Schedule(() => scores.Add(new DrawableExtendedProfileScore(extendedScore)));
+                    Schedule(() => scores.Add(new DrawableExtendedProfileScore(extendedScore)
+                    {
+                        PopoverMaker = () => new ProfileScreenScorePopover(extendedScore)
+                    }));
                 }
 
                 if (token.IsCancellationRequested)
@@ -527,6 +531,53 @@ namespace PerformanceCalculatorGUI.Screens
             for (int i = 0; i < sortedScores.Length; i++)
             {
                 scores.SetLayoutPosition(sortedScores[i], i);
+            }
+        }
+
+        private partial class ProfileScreenScorePopover : OsuPopover
+        {
+            [Resolved]
+            private CollectionManager collections { get; set; }
+
+            private readonly ProfileScore score;
+
+            public ProfileScreenScorePopover(ProfileScore score)
+            {
+                this.score = score;
+            }
+
+            [BackgroundDependencyLoader]
+            private void load()
+            {
+                Add(new Container
+                {
+                    AutoSizeAxes = Axes.Y,
+                    Width = 300,
+                    Children = new Drawable[]
+                    {
+                        new FillFlowContainer
+                        {
+                            Direction = FillDirection.Vertical,
+                            RelativeSizeAxes = Axes.X,
+                            AutoSizeAxes = Axes.Y,
+                            Spacing = new Vector2(12),
+                            Children = new Drawable[]
+                            {
+                                new RoundedButton
+                                {
+                                    RelativeSizeAxes = Axes.X,
+                                    Text = "Add score to active collection",
+                                    Action = () =>
+                                    {
+                                        collections.ActiveCollection.Scores.Add(score.ScoreInfoSource);
+                                        collections.Save();
+                                        PopOut();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
             }
         }
     }
