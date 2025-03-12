@@ -33,6 +33,7 @@ namespace PerformanceCalculatorGUI.Components
 {
     public class ProfileScore
     {
+        public ScoreInfo ScoreInfoSource { get; set; }
         public SoloScoreInfo SoloScore { get; }
 
         public Bindable<int> Position { get; } = new Bindable<int>();
@@ -49,6 +50,7 @@ namespace PerformanceCalculatorGUI.Components
 
         public ProfileScore(ScoreInfo score, DifficultyAttributes difficultyAttributes, PerformanceAttributes performanceAttributes)
         {
+            ScoreInfoSource = score;
             SoloScore = toSoloScoreInfo(score);
             DifficultyAttributes = difficultyAttributes;
             PerformanceAttributes = performanceAttributes;
@@ -86,7 +88,7 @@ namespace PerformanceCalculatorGUI.Components
 
     }
 
-    public partial class DrawableProfileScore : CompositeDrawable
+    public partial class DrawableProfileScore : OsuClickableContainer
     {
         private const int height = 40;
         private const int rank_difference_width = 35;
@@ -318,7 +320,7 @@ namespace PerformanceCalculatorGUI.Components
                     Right = 20
                 },
                 Font = OsuFont.GetFont(weight: FontWeight.Bold),
-                Text = $"{Score.SoloScore.PP:0}pp",
+                Text = $"{Score.PerformanceAttributes.Total:0}pp",
                 Colour = ColourProvider.Highlight1,
                 Anchor = Anchor.Centre,
                 Origin = Anchor.Centre,

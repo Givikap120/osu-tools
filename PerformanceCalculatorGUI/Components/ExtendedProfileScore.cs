@@ -5,6 +5,7 @@ using System.Linq;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Input.Events;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Online.API.Requests.Responses;
@@ -50,6 +51,15 @@ namespace PerformanceCalculatorGUI.Components
             Score.PositionChange.BindValueChanged(v => { PositionText.Text = $"{v.NewValue:+0;-0;-}"; });
         }
 
+        public void ChangeLivePp(double newPp)
+        {
+            livePpDisplay.Text = $"{newPp:0}pp";
+            ppDifferenceDisplay.Text = $"{Score.PerformanceAttributes.Total - newPp:+0.0;-0.0;-}";
+        }
+
+        private OsuSpriteText livePpDisplay;
+        private OsuSpriteText ppDifferenceDisplay;
+
         protected override Drawable[] CreateRightInfoContainerContent(RulesetStore rulesets)
         {
             return new Drawable[]
@@ -66,7 +76,7 @@ namespace PerformanceCalculatorGUI.Components
                         new Container
                         {
                             AutoSizeAxes = Axes.Y,
-                            Child = new OsuSpriteText
+                            Child = livePpDisplay = new OsuSpriteText
                             {
                                 Font = OsuFont.GetFont(weight: FontWeight.Bold),
                                 Text = $"{Score.LivePP:0}pp"
@@ -101,16 +111,16 @@ namespace PerformanceCalculatorGUI.Components
                     new ExtendedOsuSpriteText
                     {
                         Font = OsuFont.GetFont(weight: FontWeight.Bold),
-                        Text = $"{Score.SoloScore.PP:0}pp",
+                        Text = $"{Score.PerformanceAttributes.Total:0}pp",
                         Colour = ColourProvider.Highlight1,
                         Anchor = Anchor.TopCentre,
                         Origin = Anchor.TopCentre,
                         TooltipContent = $"{AttributeConversion.ToReadableString(Score.DifficultyAttributes, Score.PerformanceAttributes)}"
                     },
-                    new OsuSpriteText
+                    ppDifferenceDisplay = new OsuSpriteText
                     {
                         Font = OsuFont.GetFont(size: SMALL_TEXT_FONT_SIZE),
-                        Text = $"{Score.SoloScore.PP - Score.LivePP:+0.0;-0.0;-}",
+                        Text = $"{Score.PerformanceAttributes.Total - Score.LivePP:+0.0;-0.0;-}",
                         Colour = ColourProvider.Light1,
                         Anchor = Anchor.TopCentre,
                         Origin = Anchor.TopCentre

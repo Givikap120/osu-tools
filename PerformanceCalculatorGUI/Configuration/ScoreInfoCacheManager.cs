@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using Newtonsoft.Json;
 using osu.Framework.Logging;
 using osu.Framework.Platform;
 using osu.Game.Beatmaps;
@@ -113,11 +114,11 @@ namespace PerformanceCalculatorGUI.Configuration
             score.ClientVersion = nullOnDefault(reader.ReadString());
             score.BeatmapHash = reader.ReadString();
             score.Ruleset = RulesetHelper.GetRulesetFromLegacyID(reader.ReadInt32()).RulesetInfo;
-            score.BeatmapHash = reader.ReadString();
             score.Hash = reader.ReadString();
             score.TotalScore = reader.ReadInt64();
             score.TotalScoreWithoutMods = reader.ReadInt64();
             score.LegacyTotalScore = reader.ReadInt64();
+            score.PP = reader.ReadDouble();
             score.MaxCombo = reader.ReadInt32();
             score.Accuracy = reader.ReadDouble();
             score.Date = new DateTimeOffset(reader.ReadInt64(), TimeSpan.FromMinutes(reader.ReadInt32()));
@@ -146,15 +147,21 @@ namespace PerformanceCalculatorGUI.Configuration
         }
         public static void WriteScore(BinaryWriter writer, ScoreInfo score)
         {
+            if (string.IsNullOrEmpty(score.StatisticsJson))
+                score.StatisticsJson = JsonConvert.SerializeObject(score.Statistics);
+
+            if (string.IsNullOrEmpty(score.MaximumStatisticsJson))
+                score.MaximumStatisticsJson = JsonConvert.SerializeObject(score.MaximumStatistics);
+
             writer.Write(score.ID.ToByteArray());
             writer.Write(score.ClientVersion ?? "");
             writer.Write(score.BeatmapHash);
             writer.Write(score.RulesetID);
-            writer.Write(score.BeatmapHash);
             writer.Write(score.Hash);
             writer.Write(score.TotalScore);
             writer.Write(score.TotalScoreWithoutMods);
             writer.Write(score.LegacyTotalScore ?? 0);
+            writer.Write(score.PP ?? 0);
             writer.Write(score.MaxCombo);
             writer.Write(score.Accuracy);
             writer.Write(score.Date.Ticks);

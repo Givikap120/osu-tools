@@ -77,6 +77,7 @@ namespace PerformanceCalculatorGUI.Screens
         private LimitedLabelledNumberBox goodsTextBox;
         private LimitedLabelledNumberBox mehsTextBox;
         private SwitchButton fullScoreDataSwitch;
+        private StatefulButton addToActiveCollectionButton;
 
         private DifficultyAttributes difficultyAttributes;
         private FillFlowContainer difficultyAttributesContainer;
@@ -125,6 +126,9 @@ namespace PerformanceCalculatorGUI.Screens
 
         [Resolved]
         private APIManager apiManager { get; set; }
+
+        [Resolved]
+        private CollectionManager collections { get; set; }
 
         [Cached]
         private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Blue);
@@ -388,7 +392,6 @@ namespace PerformanceCalculatorGUI.Screens
                                                     Anchor = Anchor.TopLeft,
                                                     AutoSizeAxes = Axes.Y,
                                                 },
-                                                
                                                 new FillFlowContainer
                                                 {
                                                     Name = "Mods container",
@@ -523,6 +526,22 @@ namespace PerformanceCalculatorGUI.Screens
                                                     AutoSizeAxes = Axes.Y,
                                                     Spacing = new Vector2(0, 2f)
                                                 },
+                                                addToActiveCollectionButton = new StatefulButton("Add to active collection")
+                                                {
+                                                    Anchor = Anchor.TopCentre,
+                                                    Origin = Anchor.TopCentre,
+                                                    RelativeSizeAxes = Axes.X,
+                                                    Action = () =>
+                                                    {
+                                                        if (collections.ActiveCollection != null)
+                                                        {
+                                                            var score = getCurrentScore();
+                                                            collections.ActiveCollection.Scores.Add(score);
+                                                            collections.Save();
+                                                            addToActiveCollectionButton.State.Value = ButtonState.Done;
+                                                        }
+                                                    }
+                                                },
                                                 new OsuSpriteText
                                                 {
                                                     Margin = new MarginPadding(10.0f),
@@ -558,7 +577,7 @@ namespace PerformanceCalculatorGUI.Screens
                                                         });
                                                         objectInspector.Show();
                                                     }
-                                                }
+                                                },
                                             }
                                         }
                                     }
@@ -807,13 +826,8 @@ namespace PerformanceCalculatorGUI.Screens
             debouncedPerformanceUpdate = Scheduler.AddDelayed(() => calculatePerformance(), 20);
         }
 
-        private void calculatePerformance(CancellationToken token = default)
+        private ScoreInfo getCurrentScore()
         {
-            if (working == null || difficultyAttributes == null)
-                return;
-
-            if (token.IsCancellationRequested) return;
-
             int? countGood = null, countMeh = null;
 
             if (fullScoreDataSwitch.Current.Value)
@@ -824,12 +838,18 @@ namespace PerformanceCalculatorGUI.Screens
 
             int score = RulesetHelper.AdjustManiaScore(scoreTextBox.Value.Value, appliedMods.Value);
 
+            APIUser user = new APIUser
+            {
+                Username = "Simulated Score"
+            };
+
             try
             {
                 var beatmap = working.GetPlayableBeatmap(ruleset.Value, appliedMods.Value);
 
                 double accuracy = accuracyTextBox.Value.Value / 100.0;
                 Dictionary<HitResult, int> statistics = new Dictionary<HitResult, int>();
+                Dictionary<HitResult, int> maximumStatistics = new Dictionary<HitResult, int>();
 
                 if (ruleset.Value.OnlineID != -1)
                 {
@@ -838,25 +858,49 @@ namespace PerformanceCalculatorGUI.Screens
                     {
                         statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, accuracyTextBox.Value.Value / 100.0, beatmap, missesTextBox.Value.Value, countMeh, countGood,
                             null, null);
+                        maximumStatistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, 1, beatmap, 0, 0, 0, null, null);
                     }
                     else
                     {
                         statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, accuracyTextBox.Value.Value / 100.0, beatmap, missesTextBox.Value.Value, countMeh, countGood,
                             largeTickMissesTextBox.Value.Value, sliderTailMissesTextBox.Value.Value);
+                        maximumStatistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, 1, beatmap, 0, 0, 0, 0, 0);
                     }
 
                     accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, beatmap, statistics);
                 }
 
-                var ppAttributes = performanceCalculator?.Calculate(new ScoreInfo(beatmap.BeatmapInfo, ruleset.Value)
+                return new ScoreInfo(beatmap.BeatmapInfo, ruleset.Value)
                 {
                     Accuracy = accuracy,
                     MaxCombo = comboTextBox.Value.Value,
                     Statistics = statistics,
+                    MaximumStatistics = maximumStatistics,
                     Mods = appliedMods.Value.ToArray(),
+                    User = user,
                     TotalScore = score,
                     Ruleset = ruleset.Value
-                }, difficultyAttributes);
+                };
+            }
+            catch (Exception e)
+            {
+                showError(e);
+            }
+
+            return null;
+
+        }
+
+        private void calculatePerformance(CancellationToken token = default)
+        {
+            if (working == null || difficultyAttributes == null)
+                return;
+
+            if (token.IsCancellationRequested) return;
+
+            try
+            {
+                var ppAttributes = performanceCalculator?.Calculate(getCurrentScore(), difficultyAttributes);
 
                 Schedule(() =>
                 {
@@ -1010,7 +1054,7 @@ namespace PerformanceCalculatorGUI.Screens
             // This is a hack around TextBox's way of updating layout and positioning of text
             // It can only be triggered by a couple of input events and there's no way to invalidate it from the outside
             // See: https://github.com/ppy/osu-framework/blob/fd5615732033c5ea650aa5cabc8595883a2b63f5/osu.Framework/Graphics/UserInterface/TextBox.cs#L528
-            textbox.TriggerEvent(new FocusEvent(new InputState(), this));
+            // textbox.TriggerEvent(new FocusEvent(new InputState(), this));
         }
 
         private void resetMods()
@@ -1032,7 +1076,7 @@ namespace PerformanceCalculatorGUI.Screens
         {
             createCalculators();
             resetMods();
-            
+
             var token = resetAndGetToken();
             calculateDifficulty(token).ContinueWith((t) => { calculatePerformance(token); Schedule(() => populateScoreParams()); });
         }
@@ -1332,7 +1376,5 @@ namespace PerformanceCalculatorGUI.Screens
             mods.OfType<IApplicableToTrack>().ForEach(m => m.ApplyToTrack(track));
             return track.Rate;
         }
-
-        
     }
 }

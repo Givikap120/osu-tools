@@ -19,6 +19,7 @@ namespace PerformanceCalculatorGUI.Configuration
         [JsonProperty("scores")]
         public List<string> EncodedScores { get; private set; } = [];
 
+        [JsonIgnore]
         public BindableList<ScoreInfo> Scores { get; private set; } = [];
 
         public Collection(string name, int coverBeatmapSetId)
@@ -76,6 +77,8 @@ namespace PerformanceCalculatorGUI.Configuration
         private readonly string jsonFilePath;
 
         public BindableList<Collection> Collections { get; private set; }
+
+        public Collection ActiveCollection = null;
 
         public CollectionManager(string jsonFile)
         {
