@@ -137,7 +137,7 @@ namespace PerformanceCalculatorGUI.Components
             base.Dispose(isDisposing);
 
             cancellationToken?.Cancel();
-            cancellationToken?.Dispose();
+            //cancellationToken?.Dispose();
         }
     }
 }
