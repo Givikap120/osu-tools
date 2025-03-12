@@ -34,7 +34,7 @@ namespace PerformanceCalculatorGUI.Screens.ObjectInspection
         protected override void Update()
         {
             base.Update();
-            objectDifficultyValuesContainer.CurrentDifficultyHitObject.Value = difficultyHitObjects.LastOrDefault(x => x.StartTime <= Clock.CurrentTime);
+            objectDifficultyValuesContainer.CurrentDifficultyHitObject.Value = difficultyHitObjects.LastOrDefault(x => x.BaseObject.StartTime <= Clock.CurrentTime);
         }
 
         public override bool PropagatePositionalInputSubTree => false;
@@ -76,7 +76,7 @@ namespace PerformanceCalculatorGUI.Screens.ObjectInspection
                 {
                     case DrawableSlider:
                     case DrawableHitCircle:
-                        var nextHitObject = difficultyHitObjects.FirstOrDefault(x => x.StartTime > hitObject.StartTimeBindable.Value)?.BaseObject;
+                        var nextHitObject = difficultyHitObjects.FirstOrDefault(x => x.BaseObject.StartTime > hitObject.StartTimeBindable.Value)?.BaseObject;
 
                         if (nextHitObject != null)
                         {
