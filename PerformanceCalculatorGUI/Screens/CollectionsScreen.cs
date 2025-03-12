@@ -373,7 +373,6 @@ namespace PerformanceCalculatorGUI.Screens
 
             calculationCancellatonToken?.Cancel();
             calculationCancellatonToken?.Dispose();
-            calculationCancellatonToken = null;
         }
 
         private partial class EmptyDrawable : Drawable
