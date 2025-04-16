@@ -7,7 +7,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Humanizer;
 using osu.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio;
@@ -44,6 +43,7 @@ using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
 using PerformanceCalculatorGUI.Screens.ObjectInspection;
+using PerformanceCalculatorGUI.Screens.Simulate;
 
 namespace PerformanceCalculatorGUI.Screens
 {
@@ -76,12 +76,12 @@ namespace PerformanceCalculatorGUI.Screens
         private StatefulButton addToActiveCollectionButton;
 
         private DifficultyAttributes difficultyAttributes;
-        private FillFlowContainer difficultyAttributesContainer;
-        private FillFlowContainer performanceAttributesContainer;
+        private AttributesTable difficultyAttributesContainer;
 
         private LimitedLabelledNumberBox skillTextBox;
 
         private PerformanceCalculator performanceCalculator;
+        private AttributesTable performanceAttributesContainer;
 
         [Cached]
         private Bindable<DifficultyCalculator> difficultyCalculator = new Bindable<DifficultyCalculator>();
@@ -494,34 +494,20 @@ namespace PerformanceCalculatorGUI.Screens
                                             {
                                                 new OsuSpriteText
                                                 {
-                                                    Margin = new MarginPadding { Left = 10f, Top = 5f, Bottom = 10.0f },
+                                                    Margin = new MarginPadding { Left = 10f, Vertical = 5f },
                                                     Origin = Anchor.TopLeft,
                                                     Height = 20,
                                                     Text = "Difficulty Attributes"
                                                 },
-                                                difficultyAttributesContainer = new FillFlowContainer
-                                                {
-                                                    Direction = FillDirection.Vertical,
-                                                    RelativeSizeAxes = Axes.X,
-                                                    Anchor = Anchor.TopLeft,
-                                                    AutoSizeAxes = Axes.Y,
-                                                    Spacing = new Vector2(0, 2f)
-                                                },
+                                                difficultyAttributesContainer = new AttributesTable(),
                                                 new OsuSpriteText
                                                 {
-                                                    Margin = new MarginPadding(10.0f),
+                                                    Margin = new MarginPadding { Left = 10f, Vertical = 5f },
                                                     Origin = Anchor.TopLeft,
                                                     Height = 20,
                                                     Text = "Performance Attributes"
                                                 },
-                                                performanceAttributesContainer = new FillFlowContainer
-                                                {
-                                                    Direction = FillDirection.Vertical,
-                                                    RelativeSizeAxes = Axes.X,
-                                                    Anchor = Anchor.TopLeft,
-                                                    AutoSizeAxes = Axes.Y,
-                                                    Spacing = new Vector2(0, 2f)
-                                                },
+                                                performanceAttributesContainer = new AttributesTable(),
                                                 addToActiveCollectionButton = new StatefulButton("Add to active collection")
                                                 {
                                                     Anchor = Anchor.TopCentre,
@@ -540,7 +526,7 @@ namespace PerformanceCalculatorGUI.Screens
                                                 },
                                                 new OsuSpriteText
                                                 {
-                                                    Margin = new MarginPadding(10.0f),
+                                                    Margin = new MarginPadding { Left = 10f, Vertical = 5f },
                                                     Origin = Anchor.TopLeft,
                                                     Height = 20,
                                                     Text = "Strain graph (alt+scroll to zoom)"
@@ -675,6 +661,7 @@ namespace PerformanceCalculatorGUI.Screens
             // recreate calculators to update DHOs
             createCalculators();
 
+            modSettingChangeTracker?.Dispose();
             modSettingChangeTracker = new ModSettingChangeTracker(mods.NewValue);
             modSettingChangeTracker.SettingChanged += m =>
             {
@@ -739,6 +726,7 @@ namespace PerformanceCalculatorGUI.Screens
                 resetCalculations();
             }
 
+            beatmapTitle.Clear();
             beatmapTitle.Add(new BeatmapCard(working));
 
             loadBackground();
@@ -777,14 +765,7 @@ namespace PerformanceCalculatorGUI.Screens
 
                     Schedule(() =>
                     {
-                        difficultyAttributesContainer.Children = AttributeConversion.ToDictionary(difficultyAttributes).Select(x =>
-                        new ExtendedLabelledTextBox
-                        {
-                            ReadOnly = true,
-                            Label = x.Key.Humanize().ToLowerInvariant(),
-                            Text = FormattableString.Invariant($"{x.Value:N2}")
-                        }
-                    ).ToArray();
+                        difficultyAttributesContainer.Attributes.Value = AttributeConversion.ToDictionary(difficultyAttributes);
                     });
                 }
                 catch (Exception e)
@@ -900,14 +881,7 @@ namespace PerformanceCalculatorGUI.Screens
 
                 Schedule(() =>
                 {
-                    performanceAttributesContainer.Children = AttributeConversion.ToDictionary(ppAttributes).Select(x =>
-                    new ExtendedLabelledTextBox
-                    {
-                        ReadOnly = true,
-                        Label = x.Key.Humanize().ToLowerInvariant(),
-                        Text = FormattableString.Invariant($"{x.Value:N2}")
-                    }
-                ).ToArray();
+                    performanceAttributesContainer.Attributes.Value = AttributeConversion.ToDictionary(ppAttributes);
                 });
             }
             catch (Exception e)
