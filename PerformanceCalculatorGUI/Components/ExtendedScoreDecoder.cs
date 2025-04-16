@@ -125,7 +125,7 @@ namespace PerformanceCalculatorGUI.Components
                     scoreInfo.BeatmapInfo = currentBeatmap.BeatmapInfo;
 
                     // As this is baked into hitobject timing (see `LegacyBeatmapDecoder`) we also need to apply this to replay frame timing.
-                    beatmapOffset = currentBeatmap.BeatmapInfo.BeatmapVersion < 5 ? LegacyBeatmapDecoder.EARLY_VERSION_TIMING_OFFSET : 0;
+                    beatmapOffset = currentBeatmap.BeatmapVersion < 5 ? LegacyBeatmapDecoder.EARLY_VERSION_TIMING_OFFSET : 0;
                 }
 
                 scoreInfo.User = new APIUser { Username = sr.ReadString() };
