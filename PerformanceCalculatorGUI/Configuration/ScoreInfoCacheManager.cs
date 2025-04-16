@@ -222,7 +222,6 @@ namespace PerformanceCalculatorGUI.Configuration
             beatmap.OnlineMD5Hash = reader.ReadString();
             beatmap.EndTimeObjectCount = reader.ReadInt32();
             beatmap.TotalObjectCount = reader.ReadInt32();
-            beatmap.BeatmapVersion = reader.ReadInt32();
 
             return beatmap;
         }
@@ -265,7 +264,6 @@ namespace PerformanceCalculatorGUI.Configuration
             writer.Write(beatmap.OnlineMD5Hash);
             writer.Write(beatmap.EndTimeObjectCount);
             writer.Write(beatmap.TotalObjectCount);
-            writer.Write(beatmap.BeatmapVersion);
         }
 
         private static string nullOnDefault(string s) => s == "" ? null : s;
