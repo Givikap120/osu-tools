@@ -21,7 +21,7 @@ using osuTK.Input;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
 
-namespace PerformanceCalculatorGUI.Components
+namespace PerformanceCalculatorGUI.Components.Collections
 {
     public partial class CollectionCard : OsuClickableContainer, IHasPopover
     {
@@ -112,7 +112,7 @@ namespace PerformanceCalculatorGUI.Components
 
             Task.Run(async () =>
             {
-                Texture texture = await textures.GetAsync($"https://assets.ppy.sh/beatmaps/{Collection.CoverBeatmapSetId}/covers/cover.jpg", cancellationToken.Token);
+                var texture = await textures.GetAsync($"https://assets.ppy.sh/beatmaps/{Collection.CoverBeatmapSetId}/covers/cover.jpg", cancellationToken.Token);
                 if (cancellationToken.IsCancellationRequested)
                     return;
 

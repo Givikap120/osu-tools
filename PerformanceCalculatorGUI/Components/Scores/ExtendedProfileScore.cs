@@ -12,7 +12,7 @@ using osu.Game.Rulesets;
 using osu.Game.Rulesets.Difficulty;
 using osu.Game.Scoring;
 
-namespace PerformanceCalculatorGUI.Components
+namespace PerformanceCalculatorGUI.Components.Scores
 {
     public class ExtendedProfileScore : ProfileScore
     {

@@ -21,6 +21,7 @@ using osu.Game.Rulesets;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Users;
 using PerformanceCalculatorGUI.Components;
+using PerformanceCalculatorGUI.Components.Scores;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
 

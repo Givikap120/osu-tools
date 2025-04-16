@@ -508,20 +508,17 @@ namespace PerformanceCalculatorGUI.Screens
                                                     Text = "Performance Attributes"
                                                 },
                                                 performanceAttributesContainer = new AttributesTable(),
-                                                addToActiveCollectionButton = new StatefulButton("Add to active collection")
+                                                collections.ActiveCollection == null ? Empty() : addToActiveCollectionButton = new StatefulButton("Add to active collection")
                                                 {
                                                     Anchor = Anchor.TopCentre,
                                                     Origin = Anchor.TopCentre,
                                                     RelativeSizeAxes = Axes.X,
                                                     Action = () =>
                                                     {
-                                                        if (collections.ActiveCollection != null)
-                                                        {
-                                                            var score = getCurrentScore();
-                                                            collections.ActiveCollection.Scores.Add(score);
-                                                            collections.Save();
-                                                            addToActiveCollectionButton.State.Value = ButtonState.Done;
-                                                        }
+                                                        var score = getCurrentScore();
+                                                        collections.ActiveCollection.Scores.Add(score);
+                                                        collections.Save();
+                                                        addToActiveCollectionButton.State.Value = ButtonState.Done;
                                                     }
                                                 },
                                                 new OsuSpriteText

@@ -11,7 +11,7 @@ using osu.Game.Overlays.Dialog;
 using osuTK;
 using PerformanceCalculatorGUI.Configuration;
 
-namespace PerformanceCalculatorGUI.Components
+namespace PerformanceCalculatorGUI.Components.Collections
 {
     public partial class CollectionPopover : OsuPopover
     {

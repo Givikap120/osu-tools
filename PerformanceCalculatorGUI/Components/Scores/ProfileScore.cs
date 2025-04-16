@@ -35,7 +35,7 @@ using osuTK;
 using osuTK.Input;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 
-namespace PerformanceCalculatorGUI.Components
+namespace PerformanceCalculatorGUI.Components.Scores
 {
     public class ProfileScore
     {
@@ -64,19 +64,19 @@ namespace PerformanceCalculatorGUI.Components
 
         private static SoloScoreInfo toSoloScoreInfo(ScoreInfo score)
         {
-            APIBeatmapSet dummySet = new APIBeatmapSet
+            var dummySet = new APIBeatmapSet
             {
                 Title = score.BeatmapInfo.Metadata.Title,
                 TitleUnicode = score.BeatmapInfo.Metadata.TitleUnicode,
                 Artist = score.BeatmapInfo.Metadata.Artist,
                 ArtistUnicode = score.BeatmapInfo.Metadata.ArtistUnicode,
             };
-            APIBeatmap dummyBeatmap = new APIBeatmap
+            var dummyBeatmap = new APIBeatmap
             {
                 OnlineID = score.BeatmapInfo.OnlineID,
                 DifficultyName = score.BeatmapInfo.DifficultyName,
             };
-            SoloScoreInfo soloScoreInfo = new SoloScoreInfo
+            var soloScoreInfo = new SoloScoreInfo
             {
                 PP = score.PP,
                 Accuracy = score.Accuracy,

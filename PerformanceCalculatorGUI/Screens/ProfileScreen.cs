@@ -41,6 +41,7 @@ using osu.Game.Rulesets.Osu.Mods;
 using osu.Framework.Lists;
 using osu.Game.Overlays.Dialog;
 using Microsoft.Toolkit.HighPerformance.Buffers;
+using PerformanceCalculatorGUI.Components.Scores;
 
 namespace PerformanceCalculatorGUI.Screens
 {
@@ -646,18 +647,21 @@ namespace PerformanceCalculatorGUI.Screens
                             Spacing = new Vector2(12),
                             Children = new Drawable[]
                             {
-                                new RoundedButton
+                                collections.ActiveCollection == null
+                                ? new OsuSpriteText
+                                {
+                                    RelativeSizeAxes = Axes.X,
+                                    Text = "No active collection selected"
+                                }
+                                : new RoundedButton
                                 {
                                     RelativeSizeAxes = Axes.X,
                                     Text = "Add score to active collection",
                                     Action = () =>
                                     {
-                                        if (collections.ActiveCollection != null)
-                                        {
-                                            collections.ActiveCollection.Scores.Add(score.ScoreInfoSource);
+                                        collections.ActiveCollection.Scores.Add(score.ScoreInfoSource);
                                             collections.Save();
                                             PopOut();
-                                        }
                                     }
                                 }
                             }

@@ -18,6 +18,7 @@ using osu.Game.Scoring.Legacy;
 using System.IO;
 using osuTK.Graphics;
 using osu.Framework.Logging;
+using PerformanceCalculatorGUI.Components.Scores;
 
 namespace PerformanceCalculatorGUI.Screens
 {

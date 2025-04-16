@@ -291,8 +291,6 @@ namespace PerformanceCalculatorGUI.Components
 
     public partial class StrainBarGraph : FillFlowContainer<Bar>
     {
-        
-
         [BackgroundDependencyLoader]
         private void load()
         {
