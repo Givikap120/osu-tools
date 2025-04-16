@@ -5,7 +5,6 @@ using System.Linq;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
-using osu.Framework.Input.Events;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Online.API.Requests.Responses;
@@ -37,8 +36,8 @@ namespace PerformanceCalculatorGUI.Components
     {
         protected new ExtendedProfileScore Score { get; }
 
-        public DrawableExtendedProfileScore(ExtendedProfileScore score)
-            : base(score)
+        public DrawableExtendedProfileScore(ExtendedProfileScore score, bool showAvatar = false)
+            : base(score, showAvatar)
         {
             Score = score;
         }
