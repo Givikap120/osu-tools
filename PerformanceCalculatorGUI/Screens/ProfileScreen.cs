@@ -131,7 +131,12 @@ namespace PerformanceCalculatorGUI.Screens
                 {
                     new Drawable[]
                     {
-                        calculationButtonLocal,
+                        calculationButtonLocal = new StatefulButton("Calculate from lazer")
+                        {
+                            RelativeSizeAxes = Axes.X,
+                            Height = username_container_height,
+                            Action = () => { calculateProfiles(usernameTextBox.Current.Value); }
+                        },
                         settingsMenu = new RealmSettingsMenu()
                     }
                 }
@@ -233,7 +238,7 @@ namespace PerformanceCalculatorGUI.Screens
                                             {
                                                 Anchor = Anchor.CentreLeft,
                                                 Origin = Anchor.CentreLeft,
-                                                Current = { Value = true },
+                                                Current = { Value = false },
                                             },
                                             new OsuSpriteText
                                             {
@@ -317,7 +322,7 @@ namespace PerformanceCalculatorGUI.Screens
                         {
                             usernameTextBox,
                             profileImportTypeSwitch,
-                            calculationButtonLocal
+                            calculationButtonServer
                         }
                     };
                 }
@@ -326,8 +331,18 @@ namespace PerformanceCalculatorGUI.Screens
             usernameTextBox.OnCommit += (_, _) => { calculateProfiles(usernameTextBox.Current.Value); };
         }
 
+        private bool isCalculating = false;
+
+        private void addScoreToUI(ExtendedProfileScore score, bool calculatingSingleProfile) => Schedule(() => scores.Add(new DrawableExtendedProfileScore(score, !calculatingSingleProfile)
+        {
+            PopoverMaker = () => new ProfileScreenScorePopover(score)
+        }));
+
         private void calculateProfiles(string usernameString)
         {
+            if (isCalculating) return;
+
+            isCalculating = true;
             string[] usernames = usernameString.Split(", ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             usernames = usernames.Distinct().ToArray();
 
@@ -381,6 +396,9 @@ namespace PerformanceCalculatorGUI.Screens
                 var plays = new List<ExtendedProfileScore>();
                 var players = new List<APIUser>();
 
+                bool calculatingSingleProfile = usernames.Length == 1;
+                bool addScoreImmediately = !onlyDisplayBestCheckbox.Current.Value;
+
                 var rulesetInstance = ruleset.Value.CreateInstance();
 
                 foreach (string username in usernames)
@@ -428,13 +446,10 @@ namespace PerformanceCalculatorGUI.Screens
                             var perfAttributes = await performanceCalculator.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, token).ConfigureAwait(false);
                             score.PP = perfAttributes.Total;
 
-                            var extendedScore = new ExtendedProfileScore(parsedScore.ScoreInfo, livePp, difficultyAttributes, perfAttributes);
+                            var extendedScore = new ExtendedProfileScore(score, livePp, difficultyAttributes, perfAttributes); //parsedScore.ScoreInfo
                             plays.Add(extendedScore);
 
-                            //Schedule(() => scores.Add(new DrawableExtendedProfileScore(extendedScore)
-                            //{
-                            //    PopoverMaker = () => new ProfileScreenScorePopover(extendedScore)
-                            //}));
+                            if (addScoreImmediately) addScoreToUI(extendedScore, calculatingSingleProfile);
                         }
                     }
                     catch (Exception ex)
@@ -447,7 +462,7 @@ namespace PerformanceCalculatorGUI.Screens
                 if (token.IsCancellationRequested)
                     return;
 
-                bool calculatingSingleProfile = players.Count == 1;
+                calculatingSingleProfile = players.Count == 1;
 
                 // Add user card if only calculating single profile
                 if (calculatingSingleProfile)
@@ -487,10 +502,7 @@ namespace PerformanceCalculatorGUI.Screens
                 {
                     foreach (var play in plays)
                     {
-                        scores.Add(new DrawableExtendedProfileScore(play, !calculatingSingleProfile)
-                        {
-                            PopoverMaker = () => new ProfileScreenScorePopover(play)
-                        });
+                        if (!addScoreImmediately) addScoreToUI(play, calculatingSingleProfile);
 
                         if (play.LivePP != null)
                         {
@@ -539,6 +551,7 @@ namespace PerformanceCalculatorGUI.Screens
                     loadingLayer.Hide();
                     calculationButtonServer.State.Value = ButtonState.Done;
                     updateSorting(ProfileSortCriteria.Local);
+                    isCalculating = false;
                 });
             }, TaskContinuationOptions.None);
         }

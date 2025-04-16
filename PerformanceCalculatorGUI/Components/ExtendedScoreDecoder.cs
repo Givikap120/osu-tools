@@ -22,7 +22,6 @@ using osu.Game.Rulesets.Scoring;
 using SharpCompress.Compressors.LZMA;
 using osu.Game.Scoring;
 using osu.Game.Scoring.Legacy;
-using osu.Framework.Configuration;
 using PerformanceCalculatorGUI.Configuration;
 
 namespace PerformanceCalculatorGUI.Components
@@ -126,7 +125,7 @@ namespace PerformanceCalculatorGUI.Components
                     scoreInfo.BeatmapInfo = currentBeatmap.BeatmapInfo;
 
                     // As this is baked into hitobject timing (see `LegacyBeatmapDecoder`) we also need to apply this to replay frame timing.
-                    beatmapOffset = currentBeatmap.BeatmapVersion < 5 ? LegacyBeatmapDecoder.EARLY_VERSION_TIMING_OFFSET : 0;
+                    beatmapOffset = currentBeatmap.BeatmapInfo.BeatmapVersion < 5 ? LegacyBeatmapDecoder.EARLY_VERSION_TIMING_OFFSET : 0;
                 }
 
                 scoreInfo.User = new APIUser { Username = sr.ReadString() };

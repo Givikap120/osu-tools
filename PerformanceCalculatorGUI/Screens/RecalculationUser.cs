@@ -7,18 +7,18 @@ namespace PerformanceCalculatorGUI.Screens
 {
     public class RecalculationUser
     {
-        private string name;
+        public string Name { get; private set; }
         private string id;
         private string[] previousNames;
 
         public RecalculationUser(string name)
         {
-            this.name = name.ToLowerInvariant();
+            this.Name = name.ToLowerInvariant();
         }
 
         public RecalculationUser(string name, int id, string[] previousNames)
         {
-            this.name = name.ToLowerInvariant();
+            this.Name = name.ToLowerInvariant();
             this.id = id.ToString().ToLowerInvariant();
             this.previousNames = previousNames.Select(name => name.ToLowerInvariant()).ToArray();
         }
@@ -26,7 +26,7 @@ namespace PerformanceCalculatorGUI.Screens
         public bool IsThisUsername(string username)
         {
             username = username.ToLowerInvariant();
-            if (username == name) return true;
+            if (username == Name) return true;
             if (username == id) return true;
             return previousNames.Contains(username);
         }

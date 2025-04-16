@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using osu.Framework.Graphics.Containers;
@@ -24,6 +23,9 @@ namespace PerformanceCalculatorGUI.Screens
 {
     public partial class ProfileScreen
     {
+        // For now it supports only one user, maybe in future I will change this
+        private RecalculationUser currentUser;
+
         private void calculateProfileFromLazer(string username)
         {
             if (string.IsNullOrEmpty(username))
@@ -230,6 +232,7 @@ namespace PerformanceCalculatorGUI.Screens
                 {
                     loadingLayer.Hide();
                     calculationButtonLocal.State.Value = ButtonState.Done;
+                    isCalculating = false;
                 });
             }, token);
         }

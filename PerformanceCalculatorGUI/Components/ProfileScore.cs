@@ -29,6 +29,7 @@ using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Rulesets.UI;
 using osu.Game.Scoring;
+using osu.Game.Users.Drawables;
 using osu.Game.Utils;
 using osuTK;
 using osuTK.Input;
@@ -83,19 +84,22 @@ namespace PerformanceCalculatorGUI.Components
                 Statistics = score.Statistics,
                 MaxCombo = score.MaxCombo,
                 Mods = score.APIMods,
+                BeatmapID = score.BeatmapInfo.OnlineID,
                 Beatmap = dummyBeatmap,
                 EndedAt = score.Date,
                 BeatmapSet = dummySet,
+                UserID = score.UserID,
+                User = score.User
             };
 
             return soloScoreInfo;
         }
-
     }
 
     public partial class DrawableProfileScore : OsuClickableContainer, IHasPopover
     {
         private const int height = 40;
+        private const int avatar_size = 35;
         private const int rank_difference_width = 35;
         private const int performance_width = 100;
         private const int rank_width = 35;
@@ -106,6 +110,7 @@ namespace PerformanceCalculatorGUI.Components
 
         protected FillFlowContainer RightInfoContainer;
 
+        public readonly bool ShowAvatar;
         public ProfileScore Score { get; }
 
         [Resolved]
@@ -116,23 +121,35 @@ namespace PerformanceCalculatorGUI.Components
 
         protected OsuSpriteText PositionText;
 
-        public DrawableProfileScore(ProfileScore score)
+        public DrawableProfileScore(ProfileScore score, bool showAvatar = false)
         {
             Score = score;
+            ShowAvatar = showAvatar;
 
             RelativeSizeAxes = Axes.X;
             Height = height;
         }
 
         [BackgroundDependencyLoader]
-        private void load(RulesetStore rulesets)
+        private void load(GameHost host, RulesetStore rulesets)
         {
+            int avatarPadding = ShowAvatar ? avatar_size : 0;
+
             AddInternal(new ProfileItemContainer
             {
                 RelativeSizeAxes = Axes.Both,
                 CornerRadius = ExtendedLabelledTextBox.CORNER_RADIUS,
-                Children = new Drawable[]
+                Children = new[]
                 {
+                    ShowAvatar
+                        ? new ClickableAvatar(Score.SoloScore.User, true)
+                        {
+                            Masking = true,
+                            CornerRadius = ExtendedLabelledTextBox.CORNER_RADIUS,
+                            Size = new Vector2(avatar_size),
+                            Action = () => { host.OpenUrlExternally($"https://osu.ppy.sh/users/{Score.SoloScore.User?.Id}"); }
+                        }
+                        : Empty(),
                     new Container
                     {
                         Name = "Rank difference",
@@ -140,6 +157,7 @@ namespace PerformanceCalculatorGUI.Components
                         Anchor = Anchor.CentreLeft,
                         Origin = Anchor.CentreLeft,
                         Width = rank_width,
+                        Margin = new MarginPadding { Left = avatarPadding },
                         Children = new Drawable[]
                         {
                             PositionText = new OsuSpriteText
@@ -155,7 +173,7 @@ namespace PerformanceCalculatorGUI.Components
                     {
                         Name = "Score info",
                         RelativeSizeAxes = Axes.Both,
-                        Padding = new MarginPadding { Left = rank_difference_width, Right = performance_width },
+                        Padding = new MarginPadding { Left = rank_difference_width + avatarPadding, Right = performance_width },
                         Children = new Drawable[]
                         {
                             new FillFlowContainer
@@ -253,7 +271,7 @@ namespace PerformanceCalculatorGUI.Components
                         }
                     }
                 }
-            }); 
+            });
         }
 
         public Func<Popover> PopoverMaker { get; set; } = null;
