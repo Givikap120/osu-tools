@@ -61,11 +61,11 @@ namespace PerformanceCalculatorGUI.Screens
                 try
                 {
                     player = await apiManager.GetJsonFromApi<APIUser>($"users/{username}/{ruleset.Value.ShortName}");
-                    currentUser = [player.Username, .. player.PreviousUsernames, player.Id.ToString()];
+                    currentUser = new RecalculationUser(player.Username, player.Id, player.PreviousUsernames);
                 }
                 catch (Exception)
                 {
-                    currentUser = [username];
+                    currentUser = new RecalculationUser(username);
                     player = new APIUser
                     {
                         Username = username
@@ -241,7 +241,7 @@ namespace PerformanceCalculatorGUI.Screens
 
             Schedule(() => loadingLayer.Text.Value = "Filtering scores...");
 
-            realmScores.RemoveAll(x => (!currentUser.Contains(x.User.Username) && !currentUser[0].Equals(x.User.Username, StringComparison.OrdinalIgnoreCase)) // Wrong username
+            realmScores.RemoveAll(x => !currentUser.IsThisUsername(x.User.Username) // Wrong username
                                     || x.BeatmapInfo == null // No map for score
                                     || x.Passed == false || x.Rank == ScoreRank.F // Failed score
                                     || x.Ruleset.OnlineID != ruleset.Value.OnlineID // Incorrect ruleset

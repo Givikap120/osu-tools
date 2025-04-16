@@ -68,7 +68,7 @@ namespace PerformanceCalculatorGUI.Screens
         private StatefulButton calculationButtonLocal;
         private RealmSettingsMenu settingsMenu;
 
-        private string[] currentUser;
+        private RecalculationUser currentUser;
 
         private CancellationTokenSource calculationCancellatonToken;
 
@@ -350,7 +350,7 @@ namespace PerformanceCalculatorGUI.Screens
 
                 var player = await apiManager.GetJsonFromApi<APIUser>($"users/{username}/{ruleset.Value.ShortName}").ConfigureAwait(false);
 
-                currentUser = [player.Username];
+                currentUser = new RecalculationUser(player.Username);
 
                 Schedule(() =>
                 {
