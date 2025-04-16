@@ -569,9 +569,12 @@ namespace PerformanceCalculatorGUI.Screens
                                     Text = "Add score to active collection",
                                     Action = () =>
                                     {
-                                        collections.ActiveCollection.Scores.Add(score.ScoreInfoSource);
-                                        collections.Save();
-                                        PopOut();
+                                        if (collections.ActiveCollection != null)
+                                        {
+                                            collections.ActiveCollection.Scores.Add(score.ScoreInfoSource);
+                                            collections.Save();
+                                            PopOut();
+                                        }
                                     }
                                 }
                             }
