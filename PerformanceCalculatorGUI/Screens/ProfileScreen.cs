@@ -455,7 +455,7 @@ namespace PerformanceCalculatorGUI.Screens
                             var perfAttributes = await performanceCalculator.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, token).ConfigureAwait(false);
                             score.PP = perfAttributes.Total;
 
-                            var extendedScore = new ExtendedProfileScore(score, livePp, difficultyAttributes, perfAttributes); //parsedScore.ScoreInfo
+                            var extendedScore = new ExtendedProfileScore(parsedScore.ScoreInfo, livePp, difficultyAttributes, perfAttributes);
                             plays.Add(extendedScore);
 
                             if (addScoreImmediately) addScoreToUI(extendedScore, calculatingSingleProfile);
