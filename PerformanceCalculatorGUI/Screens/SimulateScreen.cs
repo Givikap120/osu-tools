@@ -811,7 +811,7 @@ namespace PerformanceCalculatorGUI.Screens
                 countMeh = mehsTextBox.Value.Value;
             }
 
-            int score = RulesetHelper.AdjustManiaScore(scoreTextBox.Value.Value, appliedMods.Value);
+            int score = ruleset.Value.ShortName == "mania" ? RulesetHelper.AdjustManiaScore(scoreTextBox.Value.Value, appliedMods.Value) : scoreTextBox.Value.Value;
 
             APIUser user = new APIUser
             {
@@ -854,6 +854,7 @@ namespace PerformanceCalculatorGUI.Screens
                     Mods = appliedMods.Value.ToArray(),
                     User = user,
                     TotalScore = score,
+                    LegacyTotalScore = score,
                     Ruleset = ruleset.Value
                 };
             }
@@ -900,8 +901,8 @@ namespace PerformanceCalculatorGUI.Screens
 
             if (ruleset.Value.ShortName == "osu")
             {
-                //scoreTextBox.Text = string.Empty;
-                //scoreTextBox.Show();
+                scoreTextBox.Text = string.Empty;
+                scoreTextBox.Show();
             }
             if (ruleset.Value.ShortName == "osu" || ruleset.Value.ShortName == "taiko" || ruleset.Value.ShortName == "fruits")
             {
@@ -1197,6 +1198,12 @@ namespace PerformanceCalculatorGUI.Screens
                             int sliderTailMisses = scoreInfo.MaximumStatistics[HitResult.SliderTailHit] - sliderTailHits;
                             sliderTailMissesTextBox.Value.Value = sliderTailMisses;
                             sliderTailMissesTextBox.Text = sliderTailMisses.ToString();
+                        }
+
+                        if (scoreInfo.IsLegacyScore && scoreInfo.LegacyTotalScore != null)
+                        {
+                            scoreTextBox.Value.Value = (int)scoreInfo.LegacyTotalScore;
+                            scoreTextBox.Text = scoreInfo.LegacyTotalScore.ToString();
                         }
 
                         calculateDifficulty();

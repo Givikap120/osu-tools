@@ -89,7 +89,9 @@ namespace PerformanceCalculatorGUI.Components.Scores
                 EndedAt = score.Date,
                 BeatmapSet = dummySet,
                 UserID = score.UserID,
-                User = score.User
+                User = score.User,
+                ID = (ulong?)score.OnlineID,
+                LegacyScoreId = (ulong?)score.LegacyOnlineID,
             };
 
             return soloScoreInfo;

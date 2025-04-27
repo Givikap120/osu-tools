@@ -428,7 +428,7 @@ namespace PerformanceCalculatorGUI.Screens
 
                             var working = ProcessorWorkingBeatmap.FromFileOrId(score.BeatmapID.ToString(), cachePath: configManager.GetBindable<string>(Settings.CachePath).Value);
 
-                            Schedule(() => loadingLayer.Text.Value = $"Calculating {working.Metadata}");
+                            Schedule(() => loadingLayer.Text.Value = $"Calculating {working.Metadata} (ID = {working.BeatmapInfo.OnlineID})");
 
                             Mod[] mods = score.Mods.Select(x => x.ToMod(rulesetInstance)).ToArray();
 
