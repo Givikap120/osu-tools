@@ -382,7 +382,7 @@ namespace PerformanceCalculatorGUI.Screens
 
         }
 
-        private partial class CollectionScreenScorePopover : OsuPopover
+        private partial class CollectionScreenScorePopover : ScorePopover
         {
             [Resolved]
             private DialogOverlay dialogOverlay { get; set; }
@@ -390,47 +390,29 @@ namespace PerformanceCalculatorGUI.Screens
             private readonly CollectionsScreen parent;
             private readonly DrawableExtendedProfileScore drawableScore;
 
-            public CollectionScreenScorePopover(CollectionsScreen parent, DrawableExtendedProfileScore drawableScore)
+            public CollectionScreenScorePopover(CollectionsScreen parent, DrawableExtendedProfileScore drawableScore) : base(drawableScore.Score)
             {
                 this.parent = parent;
                 this.drawableScore = drawableScore;
             }
 
-            [BackgroundDependencyLoader]
-            private void load()
+            protected override Drawable[] GetContent()
             {
-                Add(new Container
-                {
-                    AutoSizeAxes = Axes.Y,
-                    Width = 300,
-                    Children = new Drawable[]
+                return base.GetContent().Append(
+                    new RoundedButton
                     {
-                        new FillFlowContainer
+                        RelativeSizeAxes = Axes.X,
+                        Text = "Delete score from collection",
+                        Action = () =>
                         {
-                            Direction = FillDirection.Vertical,
-                            RelativeSizeAxes = Axes.X,
-                            AutoSizeAxes = Axes.Y,
-                            Spacing = new Vector2(12),
-                            Children = new Drawable[]
+                            dialogOverlay.Push(new ConfirmDialog("Are you sure?", () =>
                             {
-                                new RoundedButton
-                                {
-                                    RelativeSizeAxes = Axes.X,
-                                    Text = "Delete score from collection",
-                                    Action = () =>
-                                    {
-                                        dialogOverlay.Push(new ConfirmDialog("Are you sure?", () =>
-                                        {
-                                            parent.DeleteScoreFromCollection(drawableScore);
-                                        }));
+                                parent.DeleteScoreFromCollection(drawableScore);
+                            }));
 
-                                        PopOut();
-                                    }
-                                }
-                            }
+                            PopOut();
                         }
-                    }
-                });
+                    }).ToArray();
             }
         }
     }
