@@ -18,6 +18,7 @@ using osu.Game.Online.Chat;
 using osuTK;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
+using PerformanceCalculatorGUI.Utils;
 
 namespace PerformanceCalculatorGUI.Components
 {

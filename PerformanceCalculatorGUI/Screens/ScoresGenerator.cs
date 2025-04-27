@@ -25,6 +25,7 @@ using osu.Game.Scoring.Legacy;
 using osu.Game.Utils;
 using osuTK;
 using PerformanceCalculatorGUI.Components;
+using PerformanceCalculatorGUI.Utils;
 using SharpCompress.Common;
 
 namespace PerformanceCalculatorGUI.Screens

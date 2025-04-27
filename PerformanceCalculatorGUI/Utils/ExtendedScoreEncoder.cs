@@ -19,7 +19,7 @@ using SharpCompress.Compressors.LZMA;
 using osu.Game.Scoring;
 using osu.Game.Scoring.Legacy;
 
-namespace PerformanceCalculatorGUI.Components
+namespace PerformanceCalculatorGUI.Utils
 {
     public class ExtendedScoreEncoder
     {

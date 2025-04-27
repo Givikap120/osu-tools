@@ -10,7 +10,7 @@ using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Scoring;
 using osu.Game.Users;
 
-namespace PerformanceCalculatorGUI.Configuration
+namespace PerformanceCalculatorGUI.Utils
 {
     public class ScoreInfoCacheManager
     {

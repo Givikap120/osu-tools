@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using PerformanceCalculatorGUI.Screens;
 
-namespace PerformanceCalculatorGUI.Components
+namespace PerformanceCalculatorGUI.Utils
 {
     public static class CSVExporter
     {

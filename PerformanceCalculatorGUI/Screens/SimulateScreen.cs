@@ -44,6 +44,7 @@ using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
 using PerformanceCalculatorGUI.Screens.ObjectInspection;
 using PerformanceCalculatorGUI.Screens.Simulate;
+using PerformanceCalculatorGUI.Utils;
 
 namespace PerformanceCalculatorGUI.Screens
 {

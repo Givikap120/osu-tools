@@ -24,7 +24,7 @@ using osu.Game.Scoring;
 using osu.Game.Scoring.Legacy;
 using PerformanceCalculatorGUI.Configuration;
 
-namespace PerformanceCalculatorGUI.Components
+namespace PerformanceCalculatorGUI.Utils
 {
     public class ExtendedScoreDecoder
     {
@@ -93,7 +93,7 @@ namespace PerformanceCalculatorGUI.Components
             ScoreRank? decodedRank = null;
             bool haveBeatmap = false;
 
-            using (SerializationReader sr = new SerializationReader(stream))
+            using (var sr = new SerializationReader(stream))
             {
                 currentRuleset = GetRuleset(sr.ReadByte());
                 var scoreInfo = new ScoreInfo { Ruleset = currentRuleset.RulesetInfo };
@@ -176,7 +176,7 @@ namespace PerformanceCalculatorGUI.Components
                 {
                     readCompressedData(compressedScoreInfo, reader =>
                     {
-                        LegacyReplaySoloScoreInfo readScore = JsonConvert.DeserializeObject<LegacyReplaySoloScoreInfo>(reader.ReadToEnd());
+                        var readScore = JsonConvert.DeserializeObject<LegacyReplaySoloScoreInfo>(reader.ReadToEnd());
 
                         Debug.Assert(readScore != null);
 
@@ -233,7 +233,7 @@ namespace PerformanceCalculatorGUI.Components
                     if (v < 0)
                         throw new IOException("Can't Read 1");
 
-                    outSize |= (long)(byte)v << (8 * i);
+                    outSize |= (long)(byte)v << 8 * i;
                 }
 
                 long compressedSize = replayInStream.Length - replayInStream.Position;
@@ -259,11 +259,11 @@ namespace PerformanceCalculatorGUI.Components
             var scoreProcessor = rulesetInstance.CreateScoreProcessor();
 
             // Populate the maximum statistics.
-            HitResult maxBasicResult = rulesetInstance.GetHitResults()
+            var maxBasicResult = rulesetInstance.GetHitResults()
                                                       .Select(h => h.result)
                                                       .Where(h => h.IsBasic()).MaxBy(scoreProcessor.GetBaseScoreForResult);
 
-            foreach ((HitResult result, int count) in score.Statistics)
+            foreach ((var result, int count) in score.Statistics)
             {
                 switch (result)
                 {
@@ -320,10 +320,8 @@ namespace PerformanceCalculatorGUI.Components
                     continue;
 
                 if (split[0] == "-12345")
-                {
                     // Todo: The seed is provided in split[3], which we'll need to use at some point
                     continue;
-                }
 
                 float diff = Parsing.ParseFloat(split[0]);
                 float mouseX = Parsing.ParseFloat(split[1], Parsing.MAX_COORDINATE_VALUE);

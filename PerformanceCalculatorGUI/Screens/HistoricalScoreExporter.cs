@@ -14,6 +14,7 @@ using osu.Game.Scoring;
 using osu.Game.Utils;
 using PerformanceCalculatorGUI.Components;
 using osu.Game.Scoring.Legacy;
+using PerformanceCalculatorGUI.Utils;
 
 namespace PerformanceCalculatorGUI.Screens
 {

@@ -5,6 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using osu.Framework.Bindables;
 using osu.Game.Scoring;
+using PerformanceCalculatorGUI.Utils;
 
 namespace PerformanceCalculatorGUI.Configuration
 {

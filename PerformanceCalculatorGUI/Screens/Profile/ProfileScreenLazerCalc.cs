@@ -19,6 +19,8 @@ using System.IO;
 using osuTK.Graphics;
 using osu.Framework.Logging;
 using PerformanceCalculatorGUI.Components.Scores;
+using PerformanceCalculatorGUI.Screens.Profile;
+using PerformanceCalculatorGUI.Utils;
 
 namespace PerformanceCalculatorGUI.Screens
 {
@@ -180,7 +182,7 @@ namespace PerformanceCalculatorGUI.Screens
                     plays.Add(topScore);
                     Schedule(() => scores.Add(new DrawableProfileScore(topScore)
                     {
-                        PopoverMaker = () => new ProfileScreenScorePopover(topScore)
+                        PopoverMaker = () => new ProfileScreenScorePopover(topScore, this)
                     }));
                 }
 
