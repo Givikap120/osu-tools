@@ -396,23 +396,40 @@ namespace PerformanceCalculatorGUI.Screens
                 this.drawableScore = drawableScore;
             }
 
-            protected override Drawable[] GetContent()
-            {
-                return base.GetContent().Append(
-                    new RoundedButton
-                    {
-                        RelativeSizeAxes = Axes.X,
-                        Text = "Delete score from collection",
-                        Action = () =>
-                        {
-                            dialogOverlay.Push(new ConfirmDialog("Are you sure?", () =>
-                            {
-                                parent.DeleteScoreFromCollection(drawableScore);
-                            }));
 
-                            PopOut();
+            [BackgroundDependencyLoader]
+            private void load()
+            {
+                Add(new Container
+                {
+                    AutoSizeAxes = Axes.Y,
+                    Width = 300,
+                    Children = new Drawable[]
+                    {
+                        new FillFlowContainer
+                        {
+                            Direction = FillDirection.Vertical,
+                            RelativeSizeAxes = Axes.X,
+                            AutoSizeAxes = Axes.Y,
+                            Spacing = new Vector2(12),
+                            Children = CreateScoreInfoButtons().Append(
+                                new RoundedButton
+                                {
+                                    RelativeSizeAxes = Axes.X,
+                                    Text = "Delete score from collection",
+                                    Action = () =>
+                                    {
+                                        dialogOverlay.Push(new ConfirmDialog("Are you sure?", () =>
+                                        {
+                                            parent.DeleteScoreFromCollection(drawableScore);
+                                        }));
+
+                                        PopOut();
+                                    }
+                                }).ToArray()
                         }
-                    }).ToArray();
+                    }
+                });
             }
         }
     }

@@ -11,6 +11,8 @@ using PerformanceCalculatorGUI.Components.Scores;
 using osu.Game.Overlays.Dialog;
 using osu.Game.Overlays;
 using AutoMapper.Internal;
+using osu.Framework.Graphics.Containers;
+using osuTK;
 
 namespace PerformanceCalculatorGUI.Screens.Profile
 {
@@ -69,6 +71,26 @@ namespace PerformanceCalculatorGUI.Screens.Profile
             ];
         }
 
-        protected override Drawable[] GetContent() => base.GetContent().Concat(getCollectionButtons()).ToArray();
+
+        [BackgroundDependencyLoader]
+        private void load()
+        {
+            Add(new Container
+            {
+                AutoSizeAxes = Axes.Y,
+                Width = 300,
+                Children = new Drawable[]
+                {
+                    new FillFlowContainer
+                    {
+                        Direction = FillDirection.Vertical,
+                        RelativeSizeAxes = Axes.X,
+                        AutoSizeAxes = Axes.Y,
+                        Spacing = new Vector2(12),
+                        Children = CreateScoreInfoButtons().Concat(getCollectionButtons()).ToArray()
+                    }
+                }
+            });
+        }
     }
 }

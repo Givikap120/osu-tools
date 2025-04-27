@@ -25,7 +25,7 @@ namespace PerformanceCalculatorGUI.Screens
             Score = score;
         }
 
-        private Drawable[] getScoreInfoButtons(GameHost host)
+        protected Drawable[] CreateScoreInfoButtons()
         {
             List<Drawable> result = [];
 
@@ -66,8 +66,6 @@ namespace PerformanceCalculatorGUI.Screens
             return [.. result];
         }
 
-        protected virtual Drawable[] GetContent() => getScoreInfoButtons(host);
-
 
         [BackgroundDependencyLoader]
         private void load()
@@ -84,7 +82,7 @@ namespace PerformanceCalculatorGUI.Screens
                             RelativeSizeAxes = Axes.X,
                             AutoSizeAxes = Axes.Y,
                             Spacing = new Vector2(12),
-                            Children = GetContent()
+                            Children = CreateScoreInfoButtons()
                         }
                 }
             });
