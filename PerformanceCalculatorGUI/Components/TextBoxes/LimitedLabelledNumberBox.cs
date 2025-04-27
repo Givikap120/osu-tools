@@ -57,7 +57,7 @@ namespace PerformanceCalculatorGUI.Components.TextBoxes
 
                 if (string.IsNullOrEmpty(Text))
                 {
-                    textToParse = PlaceholderText.ToString();
+                    textToParse = "0";//PlaceholderText.ToString();
                 }
 
                 if (int.TryParse(textToParse, out int parsed))

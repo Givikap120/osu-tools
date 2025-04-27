@@ -1214,7 +1214,11 @@ namespace PerformanceCalculatorGUI.Screens
                 }
                 catch (Exception e)
                 {
-                    Schedule(() => showError(e));
+                    Schedule(() =>
+                    {
+                        showError(e);
+                        scoreIdPopulateButton.State.Value = ButtonState.Done;
+                    });
                 }
             });
         }

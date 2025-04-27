@@ -159,7 +159,7 @@ namespace PerformanceCalculatorGUI
 
             if (countMeh != null || countGood != null)
             {
-                countGreat = totalResultCount - (countGood ?? 0) - (countMeh ?? 0) - countMiss;
+                countGreat = Math.Max(totalResultCount - (countGood ?? 0) - (countMeh ?? 0) - countMiss, 0);
             }
             else
             {
@@ -453,7 +453,7 @@ namespace PerformanceCalculatorGUI
                 max += 0.6 * countLargeTicks;
             }
 
-            return total / max;
+            return total / Math.Max(max, 1);
         }
 
         private static double getTaikoAccuracy(Dictionary<HitResult, int> statistics)
