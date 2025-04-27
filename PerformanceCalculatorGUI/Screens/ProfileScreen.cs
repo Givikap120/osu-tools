@@ -495,7 +495,7 @@ namespace PerformanceCalculatorGUI.Screens
                     plays = filteredPlays;
                 }
 
-                var localOrdered = plays.OrderByDescending(x => x.SoloScore.PP).ToList();
+                var localOrdered = plays.OrderByDescending(x => x.PerformanceAttributes.Total).ToList();
                 var liveOrdered = plays.OrderByDescending(x => x.LivePP ?? 0).ToList();
 
                 Schedule(() =>

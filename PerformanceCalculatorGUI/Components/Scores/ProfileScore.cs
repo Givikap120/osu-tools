@@ -276,6 +276,13 @@ namespace PerformanceCalculatorGUI.Components.Scores
             });
         }
 
+        protected override void LoadComplete()
+        {
+            Score.Position.BindValueChanged(v => {
+                PositionText.Text = $"{v.NewValue}";
+            });
+        }
+
         public Func<Popover> PopoverMaker { get; set; } = null;
         public Popover GetPopover() => PopoverMaker.Invoke();
 
