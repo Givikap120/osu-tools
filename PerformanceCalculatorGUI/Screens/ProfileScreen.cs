@@ -12,7 +12,6 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Input.Events;
 using osu.Framework.Logging;
-using osu.Game.Beatmaps;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
@@ -20,7 +19,6 @@ using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Overlays;
 using osu.Game.Rulesets;
-using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Scoring;
 using osuTK;
@@ -29,19 +27,10 @@ using osuTK.Input;
 using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
-using System.IO;
 using osu.Framework.Platform;
 using ButtonState = PerformanceCalculatorGUI.Components.ButtonState;
-using System.Text;
-using osu.Game.Utils;
-using osu.Game.Scoring.Legacy;
-using osu.Game.Rulesets.Scoring;
-using osu.Game.Rulesets.Osu.Difficulty;
-using osu.Game.Rulesets.Osu.Mods;
-using osu.Framework.Lists;
-using osu.Game.Overlays.Dialog;
-using Microsoft.Toolkit.HighPerformance.Buffers;
 using PerformanceCalculatorGUI.Components.Scores;
+using PerformanceCalculatorGUI.Screens.Profile;
 
 namespace PerformanceCalculatorGUI.Screens
 {
@@ -102,6 +91,8 @@ namespace PerformanceCalculatorGUI.Screens
         private const float username_container_height = 40;
         private const int max_api_scores = 200;
         private const int max_api_scores_in_one_query = 100;
+
+        public IEnumerable<ScoreInfo> GetProfileScores() => scores.Children.Select(s => s.Score.ScoreInfoSource);
 
         public ProfileScreen()
         {
@@ -338,7 +329,7 @@ namespace PerformanceCalculatorGUI.Screens
 
         private void addScoreToUI(ExtendedProfileScore score, bool calculatingSingleProfile) => Schedule(() => scores.Add(new DrawableExtendedProfileScore(score, !calculatingSingleProfile)
         {
-            PopoverMaker = () => new ProfileScreenScorePopover(score)
+            PopoverMaker = () => new ProfileScreenScorePopover(score, this)
         }));
 
         private void calculateProfiles(string usernameString)
@@ -615,59 +606,6 @@ namespace PerformanceCalculatorGUI.Screens
             for (int i = 0; i < sortedScores.Length; i++)
             {
                 scores.SetLayoutPosition(sortedScores[i], i);
-            }
-        }
-
-        private partial class ProfileScreenScorePopover : OsuPopover
-        {
-            [Resolved]
-            private CollectionManager collections { get; set; }
-
-            private readonly ProfileScore score;
-
-            public ProfileScreenScorePopover(ProfileScore score)
-            {
-                this.score = score;
-            }
-
-            [BackgroundDependencyLoader]
-            private void load()
-            {
-                Add(new Container
-                {
-                    AutoSizeAxes = Axes.Y,
-                    Width = 300,
-                    Children = new Drawable[]
-                    {
-                        new FillFlowContainer
-                        {
-                            Direction = FillDirection.Vertical,
-                            RelativeSizeAxes = Axes.X,
-                            AutoSizeAxes = Axes.Y,
-                            Spacing = new Vector2(12),
-                            Children = new Drawable[]
-                            {
-                                collections.ActiveCollection == null
-                                ? new OsuSpriteText
-                                {
-                                    RelativeSizeAxes = Axes.X,
-                                    Text = "No active collection selected"
-                                }
-                                : new RoundedButton
-                                {
-                                    RelativeSizeAxes = Axes.X,
-                                    Text = "Add score to active collection",
-                                    Action = () =>
-                                    {
-                                        collections.ActiveCollection.Scores.Add(score.ScoreInfoSource);
-                                            collections.Save();
-                                            PopOut();
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
             }
         }
     }
