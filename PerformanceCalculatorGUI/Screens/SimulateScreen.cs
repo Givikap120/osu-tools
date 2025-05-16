@@ -854,7 +854,7 @@ namespace PerformanceCalculatorGUI.Screens
                     Mods = appliedMods.Value.ToArray(),
                     User = user,
                     TotalScore = score,
-                    LegacyTotalScore = score,
+                    LegacyTotalScore = legacyTotalScore,
                     Ruleset = ruleset.Value
                 };
             }
@@ -1044,7 +1044,10 @@ namespace PerformanceCalculatorGUI.Screens
         private void resetCalculations()
         {
             createCalculators();
+
             resetMods();
+
+            legacyTotalScore = null;
 
             var token = resetAndGetToken();
             calculateDifficulty(token).ContinueWith((t) => { calculatePerformance(token); Schedule(() => populateScoreParams()); });
@@ -1136,6 +1139,8 @@ namespace PerformanceCalculatorGUI.Screens
             notificationDisplay.Display(new Notification(message));
         }
 
+        private long? legacyTotalScore;
+
         private void populateSettingsFromScore(long scoreId)
         {
             if (scoreIdPopulateButton.State.Value == ButtonState.Loading)
@@ -1159,6 +1164,8 @@ namespace PerformanceCalculatorGUI.Screens
 
                         ruleset.Value = rulesets.GetRuleset(scoreInfo.RulesetID);
                         appliedMods.Value = scoreInfo.Mods.Select(x => x.ToMod(ruleset.Value.CreateInstance())).ToList();
+
+                        legacyTotalScore = scoreInfo.LegacyTotalScore;
 
                         fullScoreDataSwitch.Current.Value = true;
 
