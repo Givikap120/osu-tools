@@ -854,7 +854,7 @@ namespace PerformanceCalculatorGUI.Screens
                     Mods = appliedMods.Value.ToArray(),
                     User = user,
                     TotalScore = score,
-                    LegacyTotalScore = legacyTotalScore,
+                    LegacyTotalScore = score,
                     Ruleset = ruleset.Value
                 };
             }
