@@ -1,6 +1,7 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using System.Linq;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
@@ -54,10 +55,12 @@ namespace PerformanceCalculatorGUI.Components.Scores
         {
             livePpDisplay.Text = $"{newPp:0}pp";
             ppDifferenceDisplay.Text = $"{Score.PerformanceAttributes.Total - newPp:+0.0;-0.0;-}";
+            percentDifferenceDisplay.Text = $"{Score.PerformanceAttributes.Total / newPp - 1:+0.0%;-0.0%;-}";
         }
 
         private OsuSpriteText livePpDisplay;
         private OsuSpriteText ppDifferenceDisplay;
+        private OsuSpriteText percentDifferenceDisplay;
 
         protected override Drawable[] CreateRightInfoContainerContent(RulesetStore rulesets)
         {
@@ -93,6 +96,9 @@ namespace PerformanceCalculatorGUI.Components.Scores
 
         protected override Drawable CreatePerformanceInfo()
         {
+            double? ppDifference = Score.PerformanceAttributes.Total - Score.LivePP;
+            double? percentageDifference = Score.PerformanceAttributes.Total / Score.LivePP - 1;
+
             return new FillFlowContainer
             {
                 AutoSizeAxes = Axes.Both,
@@ -119,13 +125,51 @@ namespace PerformanceCalculatorGUI.Components.Scores
                     ppDifferenceDisplay = new OsuSpriteText
                     {
                         Font = OsuFont.GetFont(size: SMALL_TEXT_FONT_SIZE),
-                        Text = $"{Score.PerformanceAttributes.Total - Score.LivePP:+0.0;-0.0;-}",
-                        Colour = ColourProvider.Light1,
+                        Text = $"{ppDifference:+0.0;-0.0;-}",
+                        Colour = getColorForPpDifference(ppDifference ?? 0),
+                        Anchor = Anchor.TopCentre,
+                        Origin = Anchor.TopCentre
+                    },
+                    percentDifferenceDisplay = new OsuSpriteText
+                    {
+                        Font = OsuFont.GetFont(size: SMALL_TEXT_FONT_SIZE),
+                        Text = $"{percentageDifference:+0.0%;-0.0%;-}",
+                        Colour = getColorForPercentageDifference(percentageDifference ?? 0),
                         Anchor = Anchor.TopCentre,
                         Origin = Anchor.TopCentre
                     }
                 }
             };
+        }
+
+        private static Colour4 colourLerp(Colour4 from, Colour4 to, float t)
+        {
+            return new Colour4(
+                from.R + (to.R - from.R) * t,
+                from.G + (to.G - from.G) * t,
+                from.B + (to.B - from.B) * t,
+                from.A + (to.A - from.A) * t
+            );
+        }
+
+        private Colour4 getColorForPpDifference(double ppDifference)
+        {
+            double t = Math.Clamp(ppDifference / 100.0, -1.0, 1.0);
+
+            if (t < 0)
+                return colourLerp(Colour4.Red, ColourProvider.Light1, (float)(t + 1.0));
+            else
+                return colourLerp(ColourProvider.Light1, Colour4.Lime, (float)t);
+        }
+
+        private Colour4 getColorForPercentageDifference(double percentageDifference)
+        {
+            double t = Math.Clamp(percentageDifference / 0.25, -1.0, 1.0);
+
+            if (t < 0)
+                return colourLerp(Colour4.Red, ColourProvider.Light1, (float)(t + 1.0));
+            else
+                return colourLerp(ColourProvider.Light1, Colour4.Lime, (float)t);
         }
     }
 }
