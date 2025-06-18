@@ -488,7 +488,7 @@ namespace PerformanceCalculatorGUI.Screens
 
                     foreach (int id in beatmapIDs)
                     {
-                        var bestPlayOnBeatmap = plays.Where(x => x.SoloScore.BeatmapID == id).OrderByDescending(x => x.SoloScore.PP).First();
+                        var bestPlayOnBeatmap = plays.Where(x => x.SoloScore.BeatmapID == id).OrderByDescending(x => x.PerformanceAttributes.Total).First();
                         filteredPlays.Add(bestPlayOnBeatmap);
                     }
 
@@ -518,13 +518,13 @@ namespace PerformanceCalculatorGUI.Screens
 
                     decimal totalLocalPP = 0;
                     for (int i = 0; i < localOrdered.Count; i++)
-                        totalLocalPP += (decimal)(Math.Pow(0.95, i) * (localOrdered[i].SoloScore.PP ?? 0));
+                        totalLocalPP += (decimal)(Math.Pow(0.95, i) * localOrdered[i].PerformanceAttributes.Total);
 
                     decimal totalLivePP = player.Statistics.PP ?? (decimal)0.0;
 
                     decimal nonBonusLivePP = 0;
                     for (int i = 0; i < liveOrdered.Count; i++)
-                        nonBonusLivePP += (decimal)(Math.Pow(0.95, i) * liveOrdered[i].LivePP ?? 0);
+                        nonBonusLivePP += (decimal)(Math.Pow(0.95, i) * (liveOrdered[i].LivePP ?? 0));
 
                     //todo: implement properly. this is pretty damn wrong.
                     decimal playcountBonusPP = (totalLivePP - nonBonusLivePP);
@@ -597,6 +597,10 @@ namespace PerformanceCalculatorGUI.Screens
 
                 case ProfileSortCriteria.Difference:
                     sortedScores = scores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total - ((ExtendedProfileScore)x.Score).LivePP).ToArray();
+                    break;
+
+                case ProfileSortCriteria.Percentage:
+                    sortedScores = scores.Children.OrderByDescending(x => ((ExtendedProfileScore)x.Score).LivePP == 0 ? 1 : x.Score.PerformanceAttributes.Total / ((ExtendedProfileScore)x.Score).LivePP).ToArray();
                     break;
 
                 default:

@@ -7,6 +7,7 @@ namespace PerformanceCalculatorGUI.Components
     {
         Live,
         Difference,
+        Percentage,
         Local
     }
 }
