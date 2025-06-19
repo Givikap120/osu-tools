@@ -63,7 +63,7 @@ namespace PerformanceCalculatorGUI.Components.Scores
                 percentDifferenceDisplay.Text = $"{percentageDifference:+0.0%;-0.0%;-}";
 
                 ppDifferenceDisplay.Colour = getColorForPpDifference(ppDifference ?? 0);
-                percentDifferenceDisplay.Colour = getColorForPpDifference(percentageDifference ?? 0);
+                percentDifferenceDisplay.Colour = getColorForPercentageDifference(percentageDifference ?? 0);
             }
         }
 
