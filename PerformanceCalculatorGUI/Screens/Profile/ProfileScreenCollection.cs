@@ -77,7 +77,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
             Task.Run(async () =>
             {
                 sortingTabControl.Alpha = 1.0f;
-                sortingTabControl.Current.Value = ProfileSortCriteria.Percentage;
+                sortingTabControl.Current.Value = ProfileSortCriteria.Local;
 
                 var rulesetInstance = ruleset.Value.CreateInstance();
 
