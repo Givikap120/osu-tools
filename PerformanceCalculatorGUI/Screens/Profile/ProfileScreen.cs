@@ -126,13 +126,14 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 Width = 150,
                 Child = profileImportTypeDropdown = new OsuEnumDropdown<ProfileCalculationType>
                 {
-                    RelativeSizeAxes = Axes.X
-                }
+                    RelativeSizeAxes = Axes.X,
+                    Current = { Value = ProfileCalculationType.Collection }
+                },
             };
 
             overwriteValuesButton = new StatefulButton("Overwrite pp values")
             {
-                Width = 200,
+                Width = 170,
                 Height = username_container_height,
                 BackgroundColour = colourProvider.Background1,
                 Action = () =>
@@ -154,7 +155,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
             resetFromServerButton = new StatefulButton("Reset from server")
             {
-                Width = 200,
+                Width = 170,
                 Height = username_container_height,
                 BackgroundColour = colourProvider.Background1,
                 Action = () =>
@@ -220,7 +221,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                                             {
                                                 Anchor = Anchor.CentreLeft,
                                                 Origin = Anchor.CentreLeft,
-                                                Current = { Value = true },
+                                                Current = { Value = false },
                                             },
                                             new OsuSpriteText
                                             {

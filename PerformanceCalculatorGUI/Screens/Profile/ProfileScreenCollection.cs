@@ -12,6 +12,10 @@ using PerformanceCalculatorGUI.Configuration;
 using osu.Framework.Allocation;
 using System.Linq;
 using osu.Framework.Logging;
+using System;
+using osu.Framework.Graphics;
+using osu.Game.Online.API.Requests.Responses;
+using osu.Framework.Graphics.Containers;
 
 namespace PerformanceCalculatorGUI.Screens.Profile
 {
@@ -74,10 +78,26 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
             loadingLayer.Show();
 
+            var plays = new List<ExtendedProfileScore>();
+
             Task.Run(async () =>
             {
-                sortingTabControl.Alpha = 1.0f;
-                sortingTabControl.Current.Value = ProfileSortCriteria.Local;
+                Schedule(() =>
+                {
+                    if (userPanel != null)
+                        userPanelContainer.Remove(userPanel, true);
+
+                    sortingTabControl.Alpha = 1.0f;
+                    sortingTabControl.Current.Value = ProfileSortCriteria.Local;
+
+                    layout.RowDimensions = new[]
+                    {
+                        new Dimension(GridSizeMode.Absolute, username_container_height),
+                        new Dimension(GridSizeMode.AutoSize),
+                        new Dimension(GridSizeMode.AutoSize),
+                        new Dimension()
+                    };
+                });
 
                 var rulesetInstance = ruleset.Value.CreateInstance();
 
@@ -104,12 +124,41 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     double livePP = score.PP ?? 0.0;
                     var perfAttributes = await (performanceCalculator?.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, calculationCancellatonToken.Token)).ConfigureAwait(false)!;
 
-                    addScoreToUI(new ExtendedProfileScore(score, livePP, difficultyAttributes, perfAttributes), true);
+                    var play = new ExtendedProfileScore(score, livePP, difficultyAttributes, perfAttributes);
+                    plays.Add(play);
+                    addScoreToUI(play, true);
                 }
 
                 Schedule(() =>
                 {
                     updateSorting(sorting.Value);
+                });
+
+                var localOrdered = plays.OrderByDescending(x => x.PerformanceAttributes.Total).ToList();
+                var liveOrdered = plays.OrderByDescending(x => x.LivePP ?? 0).ToList();
+
+                decimal totalLocalPP = 0;
+                for (int i = 0; i < localOrdered.Count; i++)
+                    totalLocalPP += (decimal)(Math.Pow(0.95, i) * localOrdered[i].PerformanceAttributes.Total);
+
+                decimal totalLivePP = 0;
+                for (int i = 0; i < liveOrdered.Count; i++)
+                    totalLivePP += (decimal)(Math.Pow(0.95, i) * (liveOrdered[i].LivePP ?? 0));
+
+                var player = await apiManager.GetJsonFromApi<APIUser>($"users/{username}/{ruleset.Value.ShortName}").ConfigureAwait(false);
+
+                Schedule(() =>
+                {
+                    userPanelContainer.Add(userPanel = new UserCard(player)
+                    {
+                        RelativeSizeAxes = Axes.X
+                    });
+
+                    userPanel.Data.Value = new UserCardData
+                    {
+                        LivePP = totalLivePP,
+                        LocalPP = totalLocalPP,
+                    };
                 });
 
             }, calculationCancellatonToken.Token).ContinueWith(t =>
