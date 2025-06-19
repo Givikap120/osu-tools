@@ -145,7 +145,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                             var profileScore = drawableScore.Score;
                             var scoreInfo = profileScore.ScoreInfoSource;
                             scoreInfo.PP = profileScore.PerformanceAttributes.Total;
-                            ((DrawableExtendedProfileScore)drawableScore).ChangeLivePp(profileScore.PerformanceAttributes.Total);
+                            ((DrawableExtendedProfileScore)drawableScore).LivePP = profileScore.PerformanceAttributes.Total;
                         }
 
                         collections.SaveCollectionProfiles();
