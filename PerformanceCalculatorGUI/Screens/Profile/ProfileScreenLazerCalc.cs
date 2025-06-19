@@ -41,7 +41,7 @@ namespace PerformanceCalculatorGUI.Screens
             calculationCancellatonToken?.Dispose();
 
             loadingLayer.Show();
-            calculationButtonLocal.State.Value = ButtonState.Loading;
+            calculationButton.State.Value = ButtonState.Loading;
 
             scores.Clear();
 
@@ -234,7 +234,7 @@ namespace PerformanceCalculatorGUI.Screens
                 Schedule(() =>
                 {
                     loadingLayer.Hide();
-                    calculationButtonLocal.State.Value = ButtonState.Done;
+                    calculationButton.State.Value = ButtonState.Done;
                     isCalculating = false;
                 });
             }, token);

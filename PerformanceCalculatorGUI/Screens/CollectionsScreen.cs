@@ -392,7 +392,7 @@ namespace PerformanceCalculatorGUI.Screens
                     break;
 
                 case ProfileSortCriteria.Percentage:
-                    sortedScores = drawableScores.Children.OrderByDescending(x => ((ExtendedProfileScore)x.Score).LivePP == 0 ? 1 : x.Score.PerformanceAttributes.Total / ((ExtendedProfileScore)x.Score).LivePP).ToArray();
+                    sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total / ((ExtendedProfileScore)x.Score).LivePP).ToArray();
                     break;
 
                 default:

@@ -31,6 +31,7 @@ using osu.Framework.Platform;
 using ButtonState = PerformanceCalculatorGUI.Components.ButtonState;
 using PerformanceCalculatorGUI.Components.Scores;
 using PerformanceCalculatorGUI.Screens.Profile;
+using osu.Game.Graphics.UserInterface;
 
 namespace PerformanceCalculatorGUI.Screens
 {
@@ -52,13 +53,11 @@ namespace PerformanceCalculatorGUI.Screens
         private UserCard userPanel;
 
         private GridContainer setupContainer;
-        private SwitchButton profileImportTypeSwitch;
-
-        private StatefulButton calculationButtonServer;
-        private StatefulButton calculationButtonLocal;
-
-        private GridContainer localCalcSetupContainer;
+        private Container profileImportTypeContainer;
+        private OsuEnumDropdown<ProfileCalculationType> profileImportTypeDropdown;
         private RealmSettingsMenu settingsMenu;
+
+        private StatefulButton calculationButton;
 
         private RecalculationUser[] currentUsers = Array.Empty<RecalculationUser>();
 
@@ -87,7 +86,6 @@ namespace PerformanceCalculatorGUI.Screens
 
         public override bool ShouldShowConfirmationDialogOnSwitch => false;
 
-        private const float setup_width = 220;
         private const float username_container_height = 40;
         private const int max_api_scores = 200;
         private const int max_api_scores_in_one_query = 100;
@@ -102,39 +100,32 @@ namespace PerformanceCalculatorGUI.Screens
         [BackgroundDependencyLoader]
         private void load()
         {
-            calculationButtonServer = new StatefulButton("Calculate from server")
+            calculationButton = new StatefulButton("Calculate")
             {
-                Width = setup_width,
+                Width = 200,
                 Height = username_container_height,
                 Action = () => { calculateProfiles(usernameTextBox.Current.Value); }
             };
 
-            localCalcSetupContainer = new GridContainer
+            usernameTextBox = new ExtendedLabelledTextBox
             {
-                Width = setup_width,
-                ColumnDimensions = new[]
+                RelativeSizeAxes = Axes.X,
+                Anchor = Anchor.TopLeft,
+                Label = "Username(s)",
+                PlaceholderText = "peppy, rloseise, peppy2",
+                CommitOnFocusLoss = false
+            };
+
+            profileImportTypeContainer = new Container
+            {
+                Width = 150,
+                Child = profileImportTypeDropdown = new OsuEnumDropdown<ProfileCalculationType>
                 {
-                    new Dimension(),
-                    new Dimension(GridSizeMode.AutoSize)
-                },
-                RowDimensions = new[]
-                {
-                    new Dimension(GridSizeMode.AutoSize)
-                },
-                Content = new[]
-                {
-                    new Drawable[]
-                    {
-                        calculationButtonLocal = new StatefulButton("Calculate from lazer")
-                        {
-                            RelativeSizeAxes = Axes.X,
-                            Height = username_container_height,
-                            Action = () => { calculateProfiles(usernameTextBox.Current.Value); }
-                        },
-                        settingsMenu = new RealmSettingsMenu()
-                    }
+                    RelativeSizeAxes = Axes.X
                 }
             };
+
+            settingsMenu = new RealmSettingsMenu();
 
             InternalChildren = new Drawable[]
             {
@@ -158,36 +149,6 @@ namespace PerformanceCalculatorGUI.Screens
                                 Name = "Setup",
                                 Height = username_container_height,
                                 RelativeSizeAxes = Axes.X,
-                                ColumnDimensions = new[]
-                                {
-                                    new Dimension(),
-                                    new Dimension(GridSizeMode.AutoSize),
-                                    new Dimension(GridSizeMode.AutoSize)
-                                },
-                                RowDimensions = new[]
-                                {
-                                    new Dimension(GridSizeMode.AutoSize)
-                                },
-                                Content = new[]
-                                {
-                                    new Drawable[]
-                                    {
-                                        usernameTextBox = new ExtendedLabelledTextBox
-                                        {
-                                            RelativeSizeAxes = Axes.X,
-                                            Anchor = Anchor.TopLeft,
-                                            Label = "Username(s)",
-                                            PlaceholderText = "peppy, rloseise, peppy2",
-                                            CommitOnFocusLoss = false
-                                        },
-                                        profileImportTypeSwitch = new SwitchButton
-                                        {
-                                            Width = 80,
-                                            Height = username_container_height
-                                        },
-                                        calculationButtonServer
-                                    }
-                                }
                             },
                         },
                         new Drawable[]
@@ -280,47 +241,50 @@ namespace PerformanceCalculatorGUI.Screens
             sorting.ValueChanged += e => { updateSorting(e.NewValue); };
             includePinnedCheckbox.Current.ValueChanged += e => { calculateProfiles(usernameTextBox.Current.Value); };
 
-            profileImportTypeSwitch.Current.BindValueChanged(val =>
+            profileImportTypeDropdown.Current.BindValueChanged(val =>
             {
                 calculationCancellatonToken?.Cancel();
+                switch (val.NewValue)
+                {
+                    case ProfileCalculationType.Server:
+                        setupContainer.ColumnDimensions = new[]
+                        {
+                            new Dimension(),
+                            new Dimension(GridSizeMode.AutoSize),
+                            new Dimension(GridSizeMode.AutoSize)
+                        };
+                        setupContainer.Content = new[]
+                        {
+                            new Drawable[]
+                            {
+                                usernameTextBox,
+                                profileImportTypeContainer,
+                                calculationButton
+                            }
+                        };
+                        break;
 
-                if (val.NewValue)
-                {
-                    setupContainer.ColumnDimensions = new[]
-                    {
-                        new Dimension(),
-                        new Dimension(GridSizeMode.AutoSize),
-                        new Dimension(GridSizeMode.AutoSize)
-                    };
-                    setupContainer.Content = new[]
-                    {
-                        new Drawable[]
+                    case ProfileCalculationType.Realm:
+                        setupContainer.ColumnDimensions = new[]
                         {
-                            usernameTextBox,
-                            profileImportTypeSwitch,
-                            localCalcSetupContainer,
-                        }
-                    };
-                }
-                else
-                {
-                    setupContainer.ColumnDimensions = new[]
-                    {
-                        new Dimension(),
-                        new Dimension(GridSizeMode.AutoSize),
-                        new Dimension(GridSizeMode.AutoSize)
-                    };
-                    setupContainer.Content = new[]
-                    {
-                        new Drawable[]
+                            new Dimension(),
+                            new Dimension(GridSizeMode.AutoSize),
+                            new Dimension(GridSizeMode.AutoSize),
+                            new Dimension(GridSizeMode.AutoSize)
+                        };
+                        setupContainer.Content = new[]
                         {
-                            usernameTextBox,
-                            profileImportTypeSwitch,
-                            calculationButtonServer
-                        }
-                    };
+                            new Drawable[]
+                            {
+                                usernameTextBox,
+                                profileImportTypeContainer,
+                                calculationButton,
+                                settingsMenu
+                            }
+                        };
+                        break;
                 }
-            });
+            }, true);
 
             usernameTextBox.OnCommit += (_, _) => { calculateProfiles(usernameTextBox.Current.Value); };
         }
@@ -340,7 +304,7 @@ namespace PerformanceCalculatorGUI.Screens
             string[] usernames = usernameString.Split(", ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             usernames = usernames.Distinct().ToArray();
 
-            if (profileImportTypeSwitch.Current.Value)
+            if (profileImportTypeDropdown.Current.Value == ProfileCalculationType.Realm)
                 calculateProfileFromLazer(usernames.FirstOrDefault());
             else
                 calculateProfilesFromServer(usernames);
@@ -358,7 +322,7 @@ namespace PerformanceCalculatorGUI.Screens
             calculationCancellatonToken?.Dispose();
 
             loadingLayer.Show();
-            calculationButtonServer.State.Value = ButtonState.Loading;
+            calculationButton.State.Value = ButtonState.Loading;
 
             scores.Clear();
 
@@ -549,7 +513,7 @@ namespace PerformanceCalculatorGUI.Screens
                 Schedule(() =>
                 {
                     loadingLayer.Hide();
-                    calculationButtonServer.State.Value = ButtonState.Done;
+                    calculationButton.State.Value = ButtonState.Done;
                     updateSorting(ProfileSortCriteria.Local);
                     isCalculating = false;
                 });
@@ -580,7 +544,7 @@ namespace PerformanceCalculatorGUI.Screens
             if (!scores.Children.Any())
                 return;
 
-            if (profileImportTypeSwitch.Current.Value)
+            if (profileImportTypeDropdown.Current.Value == ProfileCalculationType.Realm)
                 return;
 
             DrawableProfileScore[] sortedScores;
@@ -600,7 +564,7 @@ namespace PerformanceCalculatorGUI.Screens
                     break;
 
                 case ProfileSortCriteria.Percentage:
-                    sortedScores = scores.Children.OrderByDescending(x => ((ExtendedProfileScore)x.Score).LivePP == 0 ? 1 : x.Score.PerformanceAttributes.Total / ((ExtendedProfileScore)x.Score).LivePP).ToArray();
+                    sortedScores = scores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total / ((ExtendedProfileScore)x.Score).LivePP).ToArray();
                     break;
 
                 default:
