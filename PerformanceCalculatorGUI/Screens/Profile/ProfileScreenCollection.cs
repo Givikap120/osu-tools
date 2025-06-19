@@ -69,8 +69,10 @@ namespace PerformanceCalculatorGUI.Screens.Profile
             calculationCancellatonToken?.Dispose();
             calculationCancellatonToken = new CancellationTokenSource();
 
-            var scores = getScores(username);
-            if (!scores.Any())
+            scores.Clear();
+
+            var collectionScores = getScores(username);
+            if (!collectionScores.Any())
             {
                 resetPlayerCollectionFromServer(username);
                 return;
@@ -101,7 +103,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
                 var rulesetInstance = ruleset.Value.CreateInstance();
 
-                foreach (ScoreInfo score in scores)
+                foreach (ScoreInfo score in collectionScores)
                 {
                     if (calculationCancellatonToken == null || calculationCancellatonToken.IsCancellationRequested)
                         return;
@@ -129,13 +131,22 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     addScoreToUI(play, true);
                 }
 
-                Schedule(() =>
-                {
-                    updateSorting(sorting.Value);
-                });
-
                 var localOrdered = plays.OrderByDescending(x => x.PerformanceAttributes.Total).ToList();
                 var liveOrdered = plays.OrderByDescending(x => x.LivePP ?? 0).ToList();
+
+                Schedule(() =>
+                {
+                    foreach (var play in plays)
+                    {
+                        if (play.LivePP != null)
+                        {
+                            play.Position.Value = localOrdered.IndexOf(play) + 1;
+                            play.PositionChange.Value = liveOrdered.IndexOf(play) - localOrdered.IndexOf(play);
+                        }
+                    }
+
+                    updateSorting(sorting.Value);
+                });
 
                 decimal totalLocalPP = 0;
                 for (int i = 0; i < localOrdered.Count; i++)
@@ -167,8 +178,14 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 notificationDisplay.Display(new Notification(t.Exception?.Flatten().Message));
             }, TaskContinuationOptions.OnlyOnFaulted).ContinueWith(t =>
             {
-                Schedule(() => loadingLayer.Hide());
-            });
+                Schedule(() =>
+                {
+                    loadingLayer.Hide();
+                    calculationButton.State.Value = ButtonState.Done;
+                    updateSorting(ProfileSortCriteria.Local);
+                    isCalculating = false;
+                });
+            }, TaskContinuationOptions.None);
         }
     }
 }
