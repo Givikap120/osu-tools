@@ -30,10 +30,10 @@ using PerformanceCalculatorGUI.Configuration;
 using osu.Framework.Platform;
 using ButtonState = PerformanceCalculatorGUI.Components.ButtonState;
 using PerformanceCalculatorGUI.Components.Scores;
-using PerformanceCalculatorGUI.Screens.Profile;
 using osu.Game.Graphics.UserInterface;
+using osu.Game.Overlays.Dialog;
 
-namespace PerformanceCalculatorGUI.Screens
+namespace PerformanceCalculatorGUI.Screens.Profile
 {
     public partial class ProfileScreen : PerformanceCalculatorScreen
     {
@@ -55,16 +55,18 @@ namespace PerformanceCalculatorGUI.Screens
         private GridContainer setupContainer;
         private Container profileImportTypeContainer;
         private OsuEnumDropdown<ProfileCalculationType> profileImportTypeDropdown;
-        private RealmSettingsMenu settingsMenu;
-
         private StatefulButton calculationButton;
 
-        private RecalculationUser[] currentUsers = Array.Empty<RecalculationUser>();
+        private StatefulButton overwriteValuesButton;
+        private StatefulButton resetFromServerButton;
+        private RealmSettingsMenu settingsMenu;
 
         private CancellationTokenSource calculationCancellatonToken;
 
         private OverlaySortTabControl<ProfileSortCriteria> sortingTabControl;
         private readonly Bindable<ProfileSortCriteria> sorting = new Bindable<ProfileSortCriteria>(ProfileSortCriteria.Local);
+
+        private RecalculationPlayer currentPlayer;
 
         [Resolved]
         private NotificationDisplay notificationDisplay { get; set; }
@@ -83,6 +85,9 @@ namespace PerformanceCalculatorGUI.Screens
 
         [Resolved]
         private SettingsManager configManager { get; set; }
+
+        [Resolved]
+        private DialogOverlay dialogOverlay { get; set; }
 
         public override bool ShouldShowConfirmationDialogOnSwitch => false;
 
@@ -122,6 +127,42 @@ namespace PerformanceCalculatorGUI.Screens
                 Child = profileImportTypeDropdown = new OsuEnumDropdown<ProfileCalculationType>
                 {
                     RelativeSizeAxes = Axes.X
+                }
+            };
+
+            overwriteValuesButton = new StatefulButton("Overwrite pp values")
+            {
+                Width = 200,
+                Height = username_container_height,
+                BackgroundColour = colourProvider.Background1,
+                Action = () =>
+                {
+                    dialogOverlay.Push(new ConfirmDialog("Do you really want to overwrite all pp values with local values?", () =>
+                    {
+                        foreach (var drawableScore in scores.Children)
+                        {
+                            var profileScore = drawableScore.Score;
+                            var scoreInfo = profileScore.ScoreInfoSource;
+                            scoreInfo.PP = profileScore.PerformanceAttributes.Total;
+                            ((DrawableExtendedProfileScore)drawableScore).ChangeLivePp(profileScore.PerformanceAttributes.Total);
+                        }
+
+                        collections.SaveCollectionProfiles();
+                    }));
+                }
+            };
+
+            resetFromServerButton = new StatefulButton("Reset from server")
+            {
+                Width = 200,
+                Height = username_container_height,
+                BackgroundColour = colourProvider.Background1,
+                Action = () =>
+                {
+                    dialogOverlay.Push(new ConfirmDialog("Do you really want to reset all scores to new values from server?", () =>
+                    {
+                        if (currentPlayer != null) resetPlayerCollectionFromServer(currentPlayer.Name);
+                    }));
                 }
             };
 
@@ -244,6 +285,7 @@ namespace PerformanceCalculatorGUI.Screens
             profileImportTypeDropdown.Current.BindValueChanged(val =>
             {
                 calculationCancellatonToken?.Cancel();
+                currentPlayer = null;
                 switch (val.NewValue)
                 {
                     case ProfileCalculationType.Server:
@@ -258,6 +300,28 @@ namespace PerformanceCalculatorGUI.Screens
                             new Drawable[]
                             {
                                 usernameTextBox,
+                                profileImportTypeContainer,
+                                calculationButton
+                            }
+                        };
+                        break;
+
+                    case ProfileCalculationType.Collection:
+                        setupContainer.ColumnDimensions = new[]
+                        {
+                            new Dimension(),
+                            new Dimension(GridSizeMode.AutoSize),
+                            new Dimension(GridSizeMode.AutoSize),
+                            new Dimension(GridSizeMode.AutoSize),
+                            new Dimension(GridSizeMode.AutoSize)
+                        };
+                        setupContainer.Content = new[]
+                        {
+                            new Drawable[]
+                            {
+                                usernameTextBox,
+                                overwriteValuesButton,
+                                resetFromServerButton,
                                 profileImportTypeContainer,
                                 calculationButton
                             }
@@ -304,18 +368,27 @@ namespace PerformanceCalculatorGUI.Screens
             string[] usernames = usernameString.Split(", ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             usernames = usernames.Distinct().ToArray();
 
-            if (profileImportTypeDropdown.Current.Value == ProfileCalculationType.Realm)
-                calculateProfileFromLazer(usernames.FirstOrDefault());
-            else
-                calculateProfilesFromServer(usernames);
+            switch (profileImportTypeDropdown.Current.Value)
+            {
+                case ProfileCalculationType.Server:
+                    calculateProfilesFromServer(usernames);
+                    break;
+                case ProfileCalculationType.Collection:
+                    calculateProfileFromCollection(usernames.FirstOrDefault());
+                    break;
+                case ProfileCalculationType.Realm:
+                    calculateProfileFromRealm(usernames.FirstOrDefault());
+                    break;
+
+            }
         }
 
-        private void calculateProfilesFromServer(string[] usernames)
+        private Task calculateProfilesFromServer(string[] usernames)
         {
             if (usernames.Length < 1)
             {
                 usernameTextBox.FlashColour(Color4.Red, 1);
-                return;
+                return Task.CompletedTask;
             }
 
             calculationCancellatonToken?.Cancel();
@@ -329,7 +402,7 @@ namespace PerformanceCalculatorGUI.Screens
             calculationCancellatonToken = new CancellationTokenSource();
             var token = calculationCancellatonToken.Token;
 
-            Task.Run(async () =>
+            return Task.Run(async () =>
             {
                 Schedule(() =>
                 {
@@ -367,6 +440,8 @@ namespace PerformanceCalculatorGUI.Screens
 
                         var player = await apiManager.GetJsonFromApi<APIUser>($"users/{username}/{ruleset.Value.ShortName}").ConfigureAwait(false);
                         players.Add(player);
+
+                        currentPlayer = new RecalculationPlayer(player);
 
                         Schedule(() => loadingLayer.Text.Value = $"Calculating {player.Username} top scores...");
 

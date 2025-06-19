@@ -518,7 +518,7 @@ namespace PerformanceCalculatorGUI.Screens
                                                     {
                                                         var score = getCurrentScore();
                                                         collections.ActiveCollection.Scores.Add(score);
-                                                        collections.Save();
+                                                        collections.SaveCollections();
                                                         addToActiveCollectionButton.State.Value = ButtonState.Done;
                                                     }
                                                 },

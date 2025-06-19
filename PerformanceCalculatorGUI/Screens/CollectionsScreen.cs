@@ -51,13 +51,7 @@ namespace PerformanceCalculatorGUI.Screens
         private Bindable<RulesetInfo> ruleset { get; set; }
 
         [Resolved]
-        private RulesetStore rulesets { get; set; }
-
-        [Resolved]
         private CollectionManager collections { get; set; }
-
-        [Resolved]
-        private APIManager apiManager { get; set; }
 
         [Resolved]
         private DialogOverlay dialogOverlay { get; set; }
@@ -167,7 +161,7 @@ namespace PerformanceCalculatorGUI.Screens
                                                         drawableScore.ChangeLivePp(profileScore.PerformanceAttributes.Total);
                                                     }
 
-                                                    collections.Save();
+                                                    collections.SaveCollections();
                                                 }));
                                             }
                                         },
@@ -182,7 +176,7 @@ namespace PerformanceCalculatorGUI.Screens
                                                 {
                                                     currentCollection.Scores.Clear();
                                                     drawableScores.Clear();
-                                                    collections.Save();
+                                                    collections.SaveCollections();
                                                 }));
                                             }
                                         }
@@ -256,7 +250,7 @@ namespace PerformanceCalculatorGUI.Screens
                     Action = () =>
                     {
                         collections.Collections.Add(new Collection("New Collection", 0));
-                        collections.Save();
+                        collections.SaveCollections();
                     }
                 });
             });
@@ -267,21 +261,8 @@ namespace PerformanceCalculatorGUI.Screens
             collectionsViewContainer.Hide();
             collectionContainer.Show();
 
-            // Unsubscribe the collection changed event handler from the previously opened collection
-            //if (currentCollection != null)
-            //    currentCollection.Scores.CollectionChanged -= collectionChangedEventHandler;
-
             currentCollection = collection;
             collectionNameText.Text = collection.Name.Value;
-
-            // Store the event handler to unsubscribe when opening a different collection
-            //collectionChangedEventHandler = (sender, e) =>
-            //{
-            //    if (e.Action == NotifyCollectionChangedAction.Add)
-            //        performCalculation(e.NewItems.Cast<ScoreInfo>(), false);
-            //    else if (e.Action == NotifyCollectionChangedAction.Remove)
-            //        drawableScores.RemoveAll(x => e.OldItems.Cast<long>().Contains(x.Score.SoloScore.OnlineID), true);
-            //};
 
             if (collections.ActiveCollection == null) selectAsActiveCollection();
             else updateActiveCollectionButton();
@@ -291,12 +272,10 @@ namespace PerformanceCalculatorGUI.Screens
             performCalculation();
         }
 
-        private void performCalculation(IEnumerable<ScoreInfo> scores = null, bool overwritePp = false)
+        private void performCalculation()
         {
             if (currentCollection == null)
                 return;
-
-            scores ??= currentCollection.Scores;
 
             calculationCancellatonToken?.Cancel();
             calculationCancellatonToken?.Dispose();
@@ -311,7 +290,7 @@ namespace PerformanceCalculatorGUI.Screens
 
                 var rulesetInstance = ruleset.Value.CreateInstance();
 
-                foreach (ScoreInfo score in scores)
+                foreach (ScoreInfo score in currentCollection.Scores)
                 {
                     if (calculationCancellatonToken.IsCancellationRequested)
                         return;
@@ -366,7 +345,7 @@ namespace PerformanceCalculatorGUI.Screens
         public void DeleteScoreFromCollection(DrawableExtendedProfileScore drawableScore)
         {
             currentCollection.Scores.Remove(drawableScore.Score.ScoreInfoSource);
-            collections.Save();
+            collections.SaveCollections();
             drawableScores.Remove(drawableScore, true);
         }
 

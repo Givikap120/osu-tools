@@ -48,7 +48,7 @@ namespace PerformanceCalculatorGUI
             dependencies.CacheAs(apiConfig);
             dependencies.CacheAs(new APIManager(apiConfig));
 
-            CollectionManager collections = new CollectionManager("collections.json");
+            CollectionManager collections = new CollectionManager();
             collections.Load();
             dependencies.CacheAs(collections);
 

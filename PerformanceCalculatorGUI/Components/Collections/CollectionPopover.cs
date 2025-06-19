@@ -31,7 +31,6 @@ namespace PerformanceCalculatorGUI.Components.Collections
 
         private readonly Collection collection;
 
-
         public CollectionPopover(Collection collection)
         {
             this.collection = collection;
@@ -86,7 +85,7 @@ namespace PerformanceCalculatorGUI.Components.Collections
                                     dialogOverlay.Push(new ConfirmDialog("Are you sure?", () =>
                                     {
                                         collections.Collections.Remove(collection);
-                                        collections.Save();
+                                        collections.SaveCollections();
                                     }));
                                 }
                             }
@@ -99,12 +98,12 @@ namespace PerformanceCalculatorGUI.Components.Collections
 
             nameTextBox.OnCommit += (sender, e) =>
             {
-                collections.Save();
+                collections.SaveCollections();
             };
 
             coverBeatmapSetIdTextBox.OnCommit += (sender, e) =>
             {
-                collections.Save();
+                collections.SaveCollections();
             };
         }
 

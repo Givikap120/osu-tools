@@ -6,6 +6,7 @@ namespace PerformanceCalculatorGUI.Components
     public enum ProfileCalculationType
     {
         Server,
+        Collection,
         Realm
     }
 }

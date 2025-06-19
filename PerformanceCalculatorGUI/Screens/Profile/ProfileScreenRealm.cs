@@ -19,17 +19,15 @@ using System.IO;
 using osuTK.Graphics;
 using osu.Framework.Logging;
 using PerformanceCalculatorGUI.Components.Scores;
-using PerformanceCalculatorGUI.Screens.Profile;
 using PerformanceCalculatorGUI.Utils;
 
-namespace PerformanceCalculatorGUI.Screens
+namespace PerformanceCalculatorGUI.Screens.Profile
 {
     public partial class ProfileScreen
     {
-        // For now it supports only one user, maybe in future I will change this
-        private RecalculationUser currentUser;
 
-        private void calculateProfileFromLazer(string username)
+        // For now it supports only one user, maybe in future I will change this
+        private void calculateProfileFromRealm(string username)
         {
             if (string.IsNullOrEmpty(username))
             {
@@ -66,11 +64,11 @@ namespace PerformanceCalculatorGUI.Screens
                 try
                 {
                     player = await apiManager.GetJsonFromApi<APIUser>($"users/{username}/{ruleset.Value.ShortName}");
-                    currentUser = new RecalculationUser(player.Username, player.Id, player.PreviousUsernames);
+                    currentPlayer = new RecalculationPlayer(player);
                 }
                 catch (Exception)
                 {
-                    currentUser = new RecalculationUser(username);
+                    currentPlayer = new RecalculationPlayer(username);
                     player = new APIUser
                     {
                         Username = username
@@ -247,7 +245,7 @@ namespace PerformanceCalculatorGUI.Screens
 
             Schedule(() => loadingLayer.Text.Value = "Filtering scores...");
 
-            realmScores.RemoveAll(x => !currentUser.IsThisUsername(x.User.Username) // Wrong username
+            realmScores.RemoveAll(x => !currentPlayer.IsThisUsername(x.User.Username) // Wrong username
                                     || x.BeatmapInfo == null // No map for score
                                     || x.Passed == false || x.Rank == ScoreRank.F // Failed score
                                     || x.Ruleset.OnlineID != ruleset.Value.OnlineID // Incorrect ruleset

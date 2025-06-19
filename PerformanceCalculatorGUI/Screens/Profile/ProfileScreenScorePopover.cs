@@ -44,7 +44,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     Action = () =>
                     {
                         collections.ActiveCollection.Scores.Add(Score.ScoreInfoSource);
-                        collections.Save();
+                        collections.SaveCollections();
                         PopOut();
                     }
                 },
@@ -63,7 +63,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                                 collections.ActiveCollection.Scores.Add(score);
                             }
 
-                            collections.Save();
+                            collections.SaveCollections();
                             PopOut();
                         }));
                     }

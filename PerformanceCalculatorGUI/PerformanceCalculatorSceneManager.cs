@@ -23,6 +23,7 @@ using osuTK;
 using osuTK.Graphics;
 using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Screens;
+using PerformanceCalculatorGUI.Screens.Profile;
 
 namespace PerformanceCalculatorGUI
 {

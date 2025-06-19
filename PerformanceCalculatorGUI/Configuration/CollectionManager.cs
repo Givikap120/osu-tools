@@ -4,7 +4,9 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
 using osu.Framework.Bindables;
+using osu.Framework.Extensions.ObjectExtensions;
 using osu.Game.Scoring;
+using PerformanceCalculatorGUI.Screens;
 using PerformanceCalculatorGUI.Utils;
 
 namespace PerformanceCalculatorGUI.Configuration
@@ -12,10 +14,10 @@ namespace PerformanceCalculatorGUI.Configuration
     public class Collection
     {
         [JsonProperty("name")]
-        public Bindable<string> Name { get; private set; }
+        public Bindable<string> Name { get; protected set; }
 
         [JsonProperty("cover_beatmapset_id")]
-        public Bindable<string> CoverBeatmapSetId { get; private set; }
+        public Bindable<string> CoverBeatmapSetId { get; protected set; }
 
         [JsonProperty("scores")]
         public List<string> EncodedScores { get; private set; } = [];
@@ -23,14 +25,14 @@ namespace PerformanceCalculatorGUI.Configuration
         [JsonIgnore]
         public BindableList<ScoreInfo> Scores { get; private set; } = [];
 
+        public Collection()
+        {
+        }
+
         public Collection(string name, int coverBeatmapSetId)
         {
             Name = new Bindable<string>(name);
             CoverBeatmapSetId = new Bindable<string>(coverBeatmapSetId.ToString());
-        }
-
-        public Collection()
-        {
         }
 
         public void EncodeScores()
@@ -73,30 +75,54 @@ namespace PerformanceCalculatorGUI.Configuration
             }
         }
     }
+
+    public class ProfileCollection : Collection
+    {
+        [JsonProperty("player")]
+        public Bindable<RecalculationPlayer> Player { get; private set; }
+
+        public ProfileCollection(RecalculationPlayer player)
+        {
+            if (player == null) return;
+
+            Player = new Bindable<RecalculationPlayer>(player);
+            Name = new Bindable<string>(player.Name);
+            CoverBeatmapSetId = new Bindable<string>();
+        }
+    }
+
     public class CollectionManager
     {
-        private readonly string jsonFilePath;
+        private const string collections_file_path = "collections.json";
+        private const string collection_profiles_file_path = "collection_profiles.json";
 
         public BindableList<Collection> Collections { get; private set; }
+        public BindableList<ProfileCollection> CollectionProfiles { get; private set; }
 
         public Collection ActiveCollection = null;
 
-        public CollectionManager(string jsonFile)
+        public CollectionManager()
         {
-            jsonFilePath = jsonFile;
         }
 
-        public void Load()
+        private List<T> loadCollectionList<T>(string filePath) where T : Collection
         {
-            if (!File.Exists(jsonFilePath))
-                File.WriteAllText(jsonFilePath, "[]");
+            if (!File.Exists(filePath))
+                File.WriteAllText(filePath, "[]");
 
-            Collections = new BindableList<Collection>(JsonConvert.DeserializeObject<List<Collection>>(File.ReadAllText(jsonFilePath)));
-            foreach (var collection in Collections)
+            var result = JsonConvert.DeserializeObject<List<T>>(File.ReadAllText(filePath));
+            foreach (var collection in result)
             {
                 collection.DecodeScores();
             }
 
+            return result;
+        }
+
+        public void Load()
+        {
+            Collections = new BindableList<Collection>(loadCollectionList<Collection>(collections_file_path));
+            CollectionProfiles = new BindableList<ProfileCollection>(loadCollectionList<ProfileCollection>(collection_profiles_file_path));
 
             if (!Collections.Any())
             {
@@ -104,15 +130,19 @@ namespace PerformanceCalculatorGUI.Configuration
             }
         }
 
-        public void Save()
+        private void save<T>(BindableList<T> collections, string filePath) where T : Collection
         {
-            foreach (var collection in Collections)
+            foreach (var collection in collections)
             {
                 collection.EncodeScores();
             }
 
-            string json = JsonConvert.SerializeObject(Collections);
-            File.WriteAllText(jsonFilePath, json);
+            string json = JsonConvert.SerializeObject(collections);
+            File.WriteAllText(filePath, json);
         }
+
+        public void SaveCollections() => save(Collections, collections_file_path);
+        public void SaveCollectionProfiles() => save(CollectionProfiles, collection_profiles_file_path);
+
     }
 }
