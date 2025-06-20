@@ -335,7 +335,7 @@ namespace PerformanceCalculatorGUI.Screens
         {
             Schedule(() =>
             {
-                DrawableExtendedProfileScore drawable = new DrawableExtendedProfileScore(score);
+                DrawableExtendedProfileScore drawable = new DrawableExtendedProfileScore(score) { DifferenceMode = DifferenceMode.Percent };
                 drawable.PopoverMaker = () => new CollectionScreenScorePopover(this, drawable);
 
                 drawableScores.Add(drawable);
@@ -355,6 +355,7 @@ namespace PerformanceCalculatorGUI.Screens
                 return;
 
             DrawableProfileScore[] sortedScores;
+            DifferenceMode differenceMode = DifferenceMode.Delta;
 
             switch (sortCriteria)
             {
@@ -372,6 +373,7 @@ namespace PerformanceCalculatorGUI.Screens
 
                 case ProfileSortCriteria.Percentage:
                     sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total / ((ExtendedProfileScore)x.Score).LivePP).ToArray();
+                    differenceMode = DifferenceMode.Percent;
                     break;
 
                 default:
@@ -381,6 +383,7 @@ namespace PerformanceCalculatorGUI.Screens
             for (int i = 0; i < sortedScores.Length; i++)
             {
                 drawableScores.SetLayoutPosition(sortedScores[i], i);
+                ((DrawableExtendedProfileScore)sortedScores[i]).DifferenceMode = differenceMode;
             }
         }
 

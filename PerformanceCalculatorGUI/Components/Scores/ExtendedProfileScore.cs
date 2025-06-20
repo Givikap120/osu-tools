@@ -17,7 +17,7 @@ namespace PerformanceCalculatorGUI.Components.Scores
 {
     public class ExtendedProfileScore : ProfileScore
     {
-        public double? LivePP { get; }
+        public double? LivePP { get; set; }
         public Bindable<int> PositionChange { get; } = new Bindable<int>();
 
         public ExtendedProfileScore(SoloScoreInfo score, double? livePP, DifficultyAttributes difficultyAttributes, PerformanceAttributes performanceAttributes)
@@ -43,6 +43,9 @@ namespace PerformanceCalculatorGUI.Components.Scores
             Score = score;
         }
 
+        private OsuSpriteText livePpDisplay;
+        private OsuSpriteText differenceDisplay;
+
         protected override void LoadComplete()
         {
             base.LoadComplete();
@@ -51,25 +54,49 @@ namespace PerformanceCalculatorGUI.Components.Scores
             Score.PositionChange.BindValueChanged(v => { PositionText.Text = $"{v.NewValue:+0;-0;-}"; });
         }
 
+
+        private DifferenceMode differenceMode;
+
+        public DifferenceMode DifferenceMode
+        {
+            get => differenceMode;
+            set
+            {
+                differenceMode = value;
+                updateLabels();
+            }
+        }
+
         public double LivePP
         {
             set
             {
-                double? ppDifference = Score.PerformanceAttributes.Total - value;
-                double? percentageDifference = Score.PerformanceAttributes.Total / value - 1;
-
-                livePpDisplay.Text = $"{value:0}pp";
-                ppDifferenceDisplay.Text = $"{ppDifference:+0.0;-0.0;-}";
-                percentDifferenceDisplay.Text = $"{percentageDifference:+0.0%;-0.0%;-}";
-
-                ppDifferenceDisplay.Colour = getColorForPpDifference(ppDifference ?? 0);
-                percentDifferenceDisplay.Colour = getColorForPercentageDifference(percentageDifference ?? 0);
+                Score.LivePP = value;
+                updateLabels();
             }
         }
 
-        private OsuSpriteText livePpDisplay;
-        private OsuSpriteText ppDifferenceDisplay;
-        private OsuSpriteText percentDifferenceDisplay;
+        private void updateLabels()
+        {
+            if (livePpDisplay == null || differenceDisplay == null) return;
+
+            livePpDisplay.Text = $"{Score.LivePP:0}pp";
+
+            switch (differenceMode)
+            {
+                case DifferenceMode.Delta:
+                    double? deltaDifference = Score.PerformanceAttributes.Total - Score.LivePP;
+                    differenceDisplay.Text = $"{deltaDifference:+0.0;-0.0;-}";
+                    differenceDisplay.Colour = getColorForPpDifference(deltaDifference ?? 0);
+                    break;
+
+                case DifferenceMode.Percent:
+                    double? percentageDifference = Score.PerformanceAttributes.Total / Score.LivePP - 1;
+                    differenceDisplay.Text = $"{percentageDifference:+0.0%;-0.0%;-}";
+                    differenceDisplay.Colour = getColorForPercentageDifference(percentageDifference ?? 0);
+                    break;
+            }
+        }
 
         protected override Drawable[] CreateRightInfoContainerContent(RulesetStore rulesets)
         {
@@ -105,7 +132,7 @@ namespace PerformanceCalculatorGUI.Components.Scores
 
         protected override Drawable CreatePerformanceInfo()
         {
-            var result = new FillFlowContainer
+            var performanceContainer = new FillFlowContainer
             {
                 AutoSizeAxes = Axes.Both,
                 Padding = new MarginPadding
@@ -128,13 +155,7 @@ namespace PerformanceCalculatorGUI.Components.Scores
                         Origin = Anchor.TopCentre,
                         TooltipContent = $"{AttributeConversion.ToReadableString(Score.DifficultyAttributes, Score.PerformanceAttributes)}"
                     },
-                    ppDifferenceDisplay = new OsuSpriteText
-                    {
-                        Font = OsuFont.GetFont(size: SMALL_TEXT_FONT_SIZE),
-                        Anchor = Anchor.TopCentre,
-                        Origin = Anchor.TopCentre
-                    },
-                    percentDifferenceDisplay = new OsuSpriteText
+                    differenceDisplay = new OsuSpriteText
                     {
                         Font = OsuFont.GetFont(size: SMALL_TEXT_FONT_SIZE),
                         Anchor = Anchor.TopCentre,
@@ -143,9 +164,9 @@ namespace PerformanceCalculatorGUI.Components.Scores
                 }
             };
 
-            LivePP = Score.LivePP ?? 0;
+            updateLabels();
 
-            return result;
+            return performanceContainer;
         }
 
         private static Colour4 colourLerp(Colour4 from, Colour4 to, float t)
@@ -177,5 +198,11 @@ namespace PerformanceCalculatorGUI.Components.Scores
             else
                 return colourLerp(ColourProvider.Light1, Colour4.Lime, (float)t);
         }
+    }
+
+    public enum DifferenceMode
+    {
+        Delta,
+        Percent
     }
 }

@@ -624,6 +624,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 return;
 
             DrawableProfileScore[] sortedScores;
+            DifferenceMode differenceMode = DifferenceMode.Delta;
 
             switch (sortCriteria)
             {
@@ -641,6 +642,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
                 case ProfileSortCriteria.Percentage:
                     sortedScores = scores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total / ((ExtendedProfileScore)x.Score).LivePP).ToArray();
+                    differenceMode = DifferenceMode.Percent;
                     break;
 
                 default:
@@ -650,6 +652,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
             for (int i = 0; i < sortedScores.Length; i++)
             {
                 scores.SetLayoutPosition(sortedScores[i], i);
+                ((DrawableExtendedProfileScore)sortedScores[i]).DifferenceMode = differenceMode;
             }
         }
     }
