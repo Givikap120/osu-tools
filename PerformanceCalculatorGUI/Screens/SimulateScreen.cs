@@ -758,6 +758,7 @@ namespace PerformanceCalculatorGUI.Screens
             {
                 try
                 {
+                    performanceAttributes = null;
                     difficultyAttributes = difficultyCalculator.Value.Calculate(appliedMods.Value);
                     if (token.IsCancellationRequested) return;
 
@@ -854,7 +855,8 @@ namespace PerformanceCalculatorGUI.Screens
                     Mods = appliedMods.Value.ToArray(),
                     User = user,
                     TotalScore = score,
-                    LegacyTotalScore = score,
+                    LegacyTotalScore = score > 0 ? score : null,
+                    PP = performanceAttributes?.Total ?? 0,
                     Ruleset = ruleset.Value
                 };
             }
@@ -867,6 +869,8 @@ namespace PerformanceCalculatorGUI.Screens
 
         }
 
+        private PerformanceAttributes performanceAttributes = null;
+
         private void calculatePerformance(CancellationToken token = default)
         {
             if (working == null || difficultyAttributes == null)
@@ -876,11 +880,11 @@ namespace PerformanceCalculatorGUI.Screens
 
             try
             {
-                var ppAttributes = performanceCalculator?.Calculate(getCurrentScore(), difficultyAttributes);
+                performanceAttributes = performanceCalculator?.Calculate(getCurrentScore(), difficultyAttributes);
 
                 Schedule(() =>
                 {
-                    performanceAttributesContainer.Attributes.Value = AttributeConversion.ToDictionary(ppAttributes);
+                    performanceAttributesContainer.Attributes.Value = AttributeConversion.ToDictionary(performanceAttributes);
                 });
             }
             catch (Exception e)
