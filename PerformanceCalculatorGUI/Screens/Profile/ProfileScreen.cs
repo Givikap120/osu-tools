@@ -191,6 +191,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                                 Name = "Setup",
                                 Height = username_container_height,
                                 RelativeSizeAxes = Axes.X,
+                                Depth = -1,
                             },
                         },
                         new Drawable[]
