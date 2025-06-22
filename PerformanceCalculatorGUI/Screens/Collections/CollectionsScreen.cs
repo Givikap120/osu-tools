@@ -1,14 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using osu.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
+using osu.Framework.Extensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Cursor;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input.Events;
@@ -20,16 +20,14 @@ using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Overlays;
 using osu.Game.Overlays.Dialog;
 using osu.Game.Rulesets;
-using osu.Game.Rulesets.Mods;
 using osu.Game.Scoring;
-using osuTK;
 using osuTK.Input;
 using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Components.Collections;
 using PerformanceCalculatorGUI.Components.Scores;
 using PerformanceCalculatorGUI.Configuration;
 
-namespace PerformanceCalculatorGUI.Screens
+namespace PerformanceCalculatorGUI.Screens.Collections
 {
     public partial class CollectionsScreen : PerformanceCalculatorScreen
     {
@@ -69,9 +67,12 @@ namespace PerformanceCalculatorGUI.Screens
         private const float collection_controls_height = 40;
 
         private RoundedButton activeCollectionButton;
+        private AddScoresButton addScoresButton;
 
         private OverlaySortTabControl<ProfileSortCriteria> sortingTabControl;
         private readonly Bindable<ProfileSortCriteria> sorting = new Bindable<ProfileSortCriteria>(ProfileSortCriteria.Percentage);
+
+        private bool isCalculating = false;
 
         [BackgroundDependencyLoader]
         private void load()
@@ -115,6 +116,7 @@ namespace PerformanceCalculatorGUI.Screens
                                     new Dimension(GridSizeMode.AutoSize),
                                     new Dimension(GridSizeMode.AutoSize),
                                     new Dimension(GridSizeMode.AutoSize),
+                                    new Dimension(GridSizeMode.AutoSize),
                                 },
                                 Content = new[]
                                 {
@@ -138,15 +140,13 @@ namespace PerformanceCalculatorGUI.Screens
                                         },
                                         activeCollectionButton = new RoundedButton()
                                         {
-                                            Width = 250,
+                                            Width = 100,
                                             Height = collection_controls_height,
-                                            Text = "Select as active collection",
-                                            BackgroundColour = colourProvider.Background1,
                                             Action = selectAsActiveCollection
                                         },
                                         new StatefulButton("Overwrite pp values")
                                         {
-                                            Width = 200,
+                                            Width = 150,
                                             Height = collection_controls_height,
                                             BackgroundColour = colourProvider.Background1,
                                             Action = () =>
@@ -165,10 +165,22 @@ namespace PerformanceCalculatorGUI.Screens
                                                 }));
                                             }
                                         },
-                                        new StatefulButton("Clear collection")
+                                        addScoresButton = new AddScoresButton()
                                         {
                                             Width = 150,
                                             Height = collection_controls_height,
+                                            Text = "Add Score",
+                                            BackgroundColour = colourProvider.Background1,
+                                            Action = () =>
+                                            {
+                                                addScoresButton.ShowPopover();
+                                            }
+                                        },
+                                        new RoundedButton()
+                                        {
+                                            Width = 150,
+                                            Height = collection_controls_height,
+                                            Text = "Clear collection",
                                             BackgroundColour = colourProvider.Background1,
                                             Action = () =>
                                             {
@@ -227,12 +239,12 @@ namespace PerformanceCalculatorGUI.Screens
             if (collections.ActiveCollection == currentCollection)
             {
                 activeCollectionButton.BackgroundColour = colours.Green;
-                activeCollectionButton.Text = "This collection is active";
+                activeCollectionButton.Text = "Active";
             }
             else
             {
                 activeCollectionButton.BackgroundColour = colourProvider.Background1;
-                activeCollectionButton.Text = "Select as active collection";
+                activeCollectionButton.Text = "Select";
             }
         }
 
@@ -274,7 +286,7 @@ namespace PerformanceCalculatorGUI.Screens
 
         private void performCalculation()
         {
-            if (currentCollection == null)
+            if (currentCollection == null || isCalculating)
                 return;
 
             calculationCancellatonToken?.Cancel();
@@ -282,11 +294,16 @@ namespace PerformanceCalculatorGUI.Screens
             calculationCancellatonToken = new CancellationTokenSource();
 
             loadingLayer.Show();
+            isCalculating = true;
 
             Task.Run(async () =>
             {
-                sortingTabControl.Alpha = 1.0f;
-                sortingTabControl.Current.Value = ProfileSortCriteria.Percentage;
+                Schedule(() =>
+                {
+                    sortingTabControl.Alpha = 1.0f;
+                    sortingTabControl.Current.Value = ProfileSortCriteria.Percentage;
+                    drawableScores.Clear();
+                });
 
                 var rulesetInstance = ruleset.Value.CreateInstance();
 
@@ -299,7 +316,7 @@ namespace PerformanceCalculatorGUI.Screens
 
                     Schedule(() => loadingLayer.Text.Value = $"Calculating {working.Metadata}");
 
-                    Mod[] mods = score.Mods;
+                    var mods = score.Mods;
 
                     var parsedScore = new ProcessorScoreDecoder(working).Parse(score);
 
@@ -325,9 +342,11 @@ namespace PerformanceCalculatorGUI.Screens
             {
                 Logger.Log(t.Exception?.ToString(), level: LogLevel.Error);
                 notificationDisplay.Display(new Notification(t.Exception?.Flatten().Message));
+                isCalculating = false;
             }, TaskContinuationOptions.OnlyOnFaulted).ContinueWith(t =>
             {
                 Schedule(() => loadingLayer.Hide());
+                isCalculating = false;
             });
         }
 
@@ -335,8 +354,8 @@ namespace PerformanceCalculatorGUI.Screens
         {
             Schedule(() =>
             {
-                DrawableExtendedProfileScore drawable = new DrawableExtendedProfileScore(score) { DifferenceMode = DifferenceMode.Percent };
-                drawable.PopoverMaker = () => new CollectionScreenScorePopover(this, drawable);
+                var drawable = new DrawableExtendedProfileScore(score) { DifferenceMode = DifferenceMode.Percent };
+                drawable.PopoverMaker = () => new CollectionsScreenScorePopover(this, drawable);
 
                 drawableScores.Add(drawable);
             });
@@ -355,7 +374,7 @@ namespace PerformanceCalculatorGUI.Screens
                 return;
 
             DrawableProfileScore[] sortedScores;
-            DifferenceMode differenceMode = DifferenceMode.Delta;
+            var differenceMode = DifferenceMode.Delta;
 
             switch (sortCriteria)
             {
@@ -392,9 +411,13 @@ namespace PerformanceCalculatorGUI.Screens
             if (e.Key == Key.Escape)
             {
                 calculationCancellatonToken?.Cancel();
-                collectionContainer.Hide();
-                collectionsViewContainer.Show();
-                currentCollection = null;
+
+                if (!isCalculating)
+                {
+                    collectionContainer.Hide();
+                    collectionsViewContainer.Show();
+                    currentCollection = null;
+                }
             }
 
             return base.OnKeyDown(e);
@@ -413,38 +436,9 @@ namespace PerformanceCalculatorGUI.Screens
 
         }
 
-        private partial class CollectionScreenScorePopover : ScorePopover
+        private partial class AddScoresButton : RoundedButton, IHasPopover
         {
-            [Resolved]
-            private DialogOverlay dialogOverlay { get; set; }
-
-            private readonly CollectionsScreen parent;
-            private readonly DrawableExtendedProfileScore drawableScore;
-
-            public CollectionScreenScorePopover(CollectionsScreen parent, DrawableExtendedProfileScore drawableScore) : base(drawableScore.Score)
-            {
-                this.parent = parent;
-                this.drawableScore = drawableScore;
-            }
-
-            [BackgroundDependencyLoader]
-            private void load()
-            {
-                Buttons.Add(new RoundedButton
-                {
-                    RelativeSizeAxes = Axes.X,
-                    Text = "Delete score from collection",
-                    Action = () =>
-                    {
-                        dialogOverlay.Push(new ConfirmDialog("Are you sure?", () =>
-                        {
-                            parent.DeleteScoreFromCollection(drawableScore);
-                        }));
-
-                        PopOut();
-                    }
-                });
-            }
+            public Popover GetPopover() => new CollectionsScreenAddScorePopover();
         }
     }
 }
