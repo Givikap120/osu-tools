@@ -90,8 +90,8 @@ namespace PerformanceCalculatorGUI.Components.Scores
                 BeatmapSet = dummySet,
                 UserID = score.UserID,
                 User = score.User,
-                ID = (ulong?)score.OnlineID,
-                LegacyScoreId = (ulong?)score.LegacyOnlineID,
+                ID = score?.OnlineID > 0 ? (ulong?)score.OnlineID : 0,
+                LegacyScoreId = score?.LegacyOnlineID > 0 ? (ulong ?)score.LegacyOnlineID : 0,
             };
 
             return soloScoreInfo;

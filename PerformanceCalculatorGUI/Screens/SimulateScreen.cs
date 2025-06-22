@@ -846,6 +846,8 @@ namespace PerformanceCalculatorGUI.Screens
                     accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, beatmap, statistics);
                 }
 
+                long.TryParse(scoreIdTextBox.Text, out long scoreId);
+
                 return new ScoreInfo(beatmap.BeatmapInfo, ruleset.Value)
                 {
                     Accuracy = accuracy,
@@ -857,7 +859,9 @@ namespace PerformanceCalculatorGUI.Screens
                     TotalScore = score,
                     LegacyTotalScore = score > 0 ? score : null,
                     PP = performanceAttributes?.Total ?? 0,
-                    Ruleset = ruleset.Value
+                    Ruleset = ruleset.Value,
+                    OnlineID = scoreId,
+                    LegacyOnlineID = 0
                 };
             }
             catch (Exception e)
@@ -1324,7 +1328,7 @@ namespace PerformanceCalculatorGUI.Screens
         {
             var beatmap = working.GetPlayableBeatmap(ruleset.Value, appliedMods.Value);
             var extendedCalculator = (ExtendedOsuDifficultyCalculator)difficultyCalculator.Value;
-            double clockRate = getClockRate(appliedMods.Value);
+            double clockRate = ModUtils.CalculateRateWithMods(appliedMods.Value);
 
             var hitObjects = extendedCalculator.GetDifficultyHitObjects(beatmap, clockRate);
 
@@ -1358,13 +1362,6 @@ namespace PerformanceCalculatorGUI.Screens
             ScoresGenerator.CalculatePpForScores(generatedScores, performanceCalculator, diffAttributes);
 
             CSVExporter.ExportToCSV(generatedScores, $"{working.BeatmapInfo.Metadata.Title} Score Data.csv");
-        }
-
-        private static double getClockRate(IEnumerable<Mod> mods)
-        {
-            var track = new TrackVirtual(10000);
-            mods.OfType<IApplicableToTrack>().ForEach(m => m.ApplyToTrack(track));
-            return track.Rate;
         }
     }
 }

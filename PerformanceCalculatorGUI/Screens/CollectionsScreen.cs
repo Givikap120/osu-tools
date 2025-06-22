@@ -427,38 +427,21 @@ namespace PerformanceCalculatorGUI.Screens
                 this.drawableScore = drawableScore;
             }
 
-
             [BackgroundDependencyLoader]
             private void load()
             {
-                Add(new Container
+                Buttons.Add(new RoundedButton
                 {
-                    AutoSizeAxes = Axes.Y,
-                    Width = 300,
-                    Children = new Drawable[]
+                    RelativeSizeAxes = Axes.X,
+                    Text = "Delete score from collection",
+                    Action = () =>
                     {
-                        new FillFlowContainer
+                        dialogOverlay.Push(new ConfirmDialog("Are you sure?", () =>
                         {
-                            Direction = FillDirection.Vertical,
-                            RelativeSizeAxes = Axes.X,
-                            AutoSizeAxes = Axes.Y,
-                            Spacing = new Vector2(12),
-                            Children = CreateScoreInfoButtons().Append(
-                                new RoundedButton
-                                {
-                                    RelativeSizeAxes = Axes.X,
-                                    Text = "Delete score from collection",
-                                    Action = () =>
-                                    {
-                                        dialogOverlay.Push(new ConfirmDialog("Are you sure?", () =>
-                                        {
-                                            parent.DeleteScoreFromCollection(drawableScore);
-                                        }));
+                            parent.DeleteScoreFromCollection(drawableScore);
+                        }));
 
-                                        PopOut();
-                                    }
-                                }).ToArray()
-                        }
+                        PopOut();
                     }
                 });
             }

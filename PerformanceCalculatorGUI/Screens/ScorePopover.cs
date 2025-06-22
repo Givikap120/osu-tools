@@ -25,7 +25,7 @@ namespace PerformanceCalculatorGUI.Screens
             Score = score;
         }
 
-        protected Drawable[] CreateScoreInfoButtons()
+        private Drawable[] createButtons()
         {
             List<Drawable> result = [];
 
@@ -66,6 +66,8 @@ namespace PerformanceCalculatorGUI.Screens
             return [.. result];
         }
 
+        protected FillFlowContainer Buttons;
+
 
         [BackgroundDependencyLoader]
         private void load()
@@ -76,13 +78,13 @@ namespace PerformanceCalculatorGUI.Screens
                 Width = 300,
                 Children = new Drawable[]
                 {
-                        new FillFlowContainer
+                        Buttons = new FillFlowContainer
                         {
                             Direction = FillDirection.Vertical,
                             RelativeSizeAxes = Axes.X,
                             AutoSizeAxes = Axes.Y,
                             Spacing = new Vector2(12),
-                            Children = CreateScoreInfoButtons()
+                            Children = createButtons()
                         }
                 }
             });
