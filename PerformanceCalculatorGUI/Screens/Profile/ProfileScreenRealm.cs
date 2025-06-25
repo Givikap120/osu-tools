@@ -20,6 +20,9 @@ using osuTK.Graphics;
 using osu.Framework.Logging;
 using PerformanceCalculatorGUI.Components.Scores;
 using PerformanceCalculatorGUI.Utils;
+using osu.Game.Rulesets.Mods;
+using osu.Game.Utils;
+using osu.Game.Rulesets;
 
 namespace PerformanceCalculatorGUI.Screens.Profile
 {
@@ -103,7 +106,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 var realmScores = getRelevantScores(scoreManager);
 
                 int currentScoresCount = 0;
-                var totalScoresCount = realmScores.Sum(childList => childList.Count);
+                int totalScoresCount = realmScores.Sum(childList => childList.Count);
 
                 var allScores = new List<(ScoreInfo score, WorkingBeatmap beatmap, DifficultyAttributes attributes)>();
 
@@ -136,13 +139,16 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                             return;
 
                         Schedule(() => loadingLayer.Text.Value = $"Calculating {player.Username}'s scores... {currentScoresCount} / {totalScoresCount}");
+                        currentScoresCount++;
+
+                        // if (getAdjustedDifficulty(score.Mods, working.BeatmapInfo, rulesetInstance).ApproachRate < 11) continue;
 
                         DifficultyAttributes difficultyAttributes;
                         int modsHash = RulesetHelper.GenerateModsHash(score.Mods, working.BeatmapInfo.Difficulty, ruleset.Value);
 
-                        if (attributesCache.ContainsKey(modsHash))
+                        if (attributesCache.TryGetValue(modsHash, out var value))
                         {
-                            difficultyAttributes = attributesCache[modsHash];
+                            difficultyAttributes = value;
                         }
                         else
                         {
@@ -150,12 +156,9 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                             attributesCache[modsHash] = difficultyAttributes;
                         }
 
-                        performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
-                        var perfAttributes = await performanceCalculator?.CalculateAsync(score, difficultyAttributes, token)!;
+                        var perfAttributes = performanceCalculator?.Calculate(score, difficultyAttributes);
 
                         score.PP = perfAttributes?.Total ?? 0.0;
-
-                        currentScoresCount++;
 
                         // Check if passed
                         int totalHitsMap = working.Beatmap.HitObjects.Count;
@@ -236,6 +239,19 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     isCalculating = false;
                 });
             }, token);
+        }
+
+        private BeatmapDifficulty getAdjustedDifficulty(Mod[] mods, IBeatmapInfo beatmapInfo, Ruleset rulesetInstance)
+        {
+            double rate = ModUtils.CalculateRateWithMods(mods);
+            BeatmapDifficulty difficulty = new BeatmapDifficulty(beatmapInfo.Difficulty);
+
+            foreach (var mod in mods.OfType<IApplicableToDifficulty>())
+                mod.ApplyToDifficulty(difficulty);
+
+            difficulty = rulesetInstance.GetRateAdjustedDisplayDifficulty(difficulty, rate);
+
+            return difficulty;
         }
 
         private List<List<ScoreInfo>> getRelevantScores(ScoreInfoCacheManager scoreManager)
