@@ -70,7 +70,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
         private AddScoresButton addScoresButton;
 
         private OverlaySortTabControl<ProfileSortCriteria> sortingTabControl;
-        private readonly Bindable<ProfileSortCriteria> sorting = new Bindable<ProfileSortCriteria>(ProfileSortCriteria.Percentage);
+        private readonly Bindable<ProfileSortCriteria> sorting = new Bindable<ProfileSortCriteria>(ProfileSortCriteria.Difference);
 
         private bool isCalculating = false;
 
@@ -301,7 +301,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
                 Schedule(() =>
                 {
                     sortingTabControl.Alpha = 1.0f;
-                    sortingTabControl.Current.Value = ProfileSortCriteria.Percentage;
+                    sortingTabControl.Current.Value = ProfileSortCriteria.Difference;
                     drawableScores.Clear();
                 });
 
@@ -354,7 +354,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
         {
             Schedule(() =>
             {
-                var drawable = new DrawableExtendedProfileScore(score) { DifferenceMode = DifferenceMode.Percent };
+                var drawable = new DrawableExtendedProfileScore(score) { DifferenceMode = sorting.Value.GetDifferenceMode() };
                 drawable.PopoverMaker = () => new CollectionsScreenScorePopover(this, drawable);
 
                 drawableScores.Add(drawable);
@@ -374,7 +374,6 @@ namespace PerformanceCalculatorGUI.Screens.Collections
                 return;
 
             DrawableProfileScore[] sortedScores;
-            var differenceMode = DifferenceMode.Delta;
 
             switch (sortCriteria)
             {
@@ -392,12 +391,13 @@ namespace PerformanceCalculatorGUI.Screens.Collections
 
                 case ProfileSortCriteria.Percentage:
                     sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total / ((ExtendedProfileScore)x.Score).LivePP).ToArray();
-                    differenceMode = DifferenceMode.Percent;
                     break;
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(sortCriteria), sortCriteria, null);
             }
+
+            DifferenceMode differenceMode = sortCriteria.GetDifferenceMode();
 
             for (int i = 0; i < sortedScores.Length; i++)
             {
