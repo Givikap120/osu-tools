@@ -51,6 +51,8 @@ namespace PerformanceCalculatorGUI.Components
 
         private void updateGraphs(ValueChangedEvent<Skill[]> val)
         {
+            if (val.NewValue == null) return;
+
             var skills = val.NewValue.Where(x => x is StrainSkill).ToArray();
 
             // dont bother if there are no strain skills to draw
