@@ -1379,7 +1379,7 @@ namespace PerformanceCalculatorGUI.Screens
             CSVExporter.ExportToCSV(generatedScores, $"{working.BeatmapInfo.Metadata.Title} Score Data.csv");
         }
         
-        private bool validateScoreId(string scoreId)
+        private static bool validateScoreId(string scoreId)
         {
             string[] validRulesetNames = { "osu", "taiko", "fruits", "mania" };
 
@@ -1392,12 +1392,13 @@ namespace PerformanceCalculatorGUI.Screens
 
             // Check if it's valid legacy database score id
             string[] parts = scoreId.Split('/');
+
             if (parts.Length == 2)
             {
-                string ruleset = parts[0];
+                string rulesetPart = parts[0];
                 string idPart = parts[1];
 
-                if (validRulesetNames.Contains(ruleset) && long.TryParse(idPart, out _))
+                if (validRulesetNames.Contains(rulesetPart) && long.TryParse(idPart, out _))
                     return true;
             }
 
