@@ -66,7 +66,7 @@ namespace PerformanceCalculatorGUI.Screens
         private LimitedLabelledNumberBox comboTextBox;
         private LimitedLabelledNumberBox scoreTextBox;
 
-        private LabelledNumberBox scoreIdTextBox;
+        private LabelledTextBox scoreIdTextBox;
         private StatefulButton scoreIdPopulateButton;
 
         private GridContainer accuracyContainer;
@@ -237,12 +237,12 @@ namespace PerformanceCalculatorGUI.Screens
                                                     Direction = FillDirection.Horizontal,
                                                     Children = new Drawable[]
                                                     {
-                                                        scoreIdTextBox = new LabelledNumberBox
+                                                        scoreIdTextBox = new LabelledTextBox
                                                         {
                                                             RelativeSizeAxes = Axes.X,
                                                             Width = 0.7f,
                                                             Label = "Score ID",
-                                                            PlaceholderText = "0",
+                                                            PlaceholderText = "0 or osu/0",
                                                         },
                                                         scoreIdPopulateButton = new StatefulButton("Populate from score")
                                                         {
@@ -250,9 +250,9 @@ namespace PerformanceCalculatorGUI.Screens
                                                             Width = 0.3f,
                                                             Action = () =>
                                                             {
-                                                                if (!string.IsNullOrEmpty(scoreIdTextBox.Current.Value))
+                                                                if (validateScoreId(scoreIdTextBox.Current.Value))
                                                                 {
-                                                                    populateSettingsFromScore(long.Parse(scoreIdTextBox.Current.Value));
+                                                                    populateSettingsFromScore(scoreIdTextBox.Current.Value);
                                                                 }
                                                                 else
                                                                 {
@@ -832,18 +832,18 @@ namespace PerformanceCalculatorGUI.Screens
                     // official rulesets can generate more precise hits from accuracy
                     if (appliedMods.Value.OfType<OsuModClassic>().Any(m => m.NoSliderHeadAccuracy.Value))
                     {
-                        statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, accuracyTextBox.Value.Value / 100.0, beatmap, missesTextBox.Value.Value, countMeh, countGood,
+                        statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, accuracyTextBox.Value.Value / 100.0, beatmap, appliedMods.Value.ToArray(), missesTextBox.Value.Value, countMeh, countGood,
                             null, null);
                         maximumStatistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, 1, beatmap, 0, 0, 0, null, null);
                     }
                     else
                     {
-                        statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, accuracyTextBox.Value.Value / 100.0, beatmap, missesTextBox.Value.Value, countMeh, countGood,
+                        statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, accuracyTextBox.Value.Value / 100.0, beatmap, appliedMods.Value.ToArray(), missesTextBox.Value.Value, countMeh, countGood,
                             largeTickMissesTextBox.Value.Value, sliderTailMissesTextBox.Value.Value);
                         maximumStatistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, 1, beatmap, 0, 0, 0, 0, 0);
                     }
 
-                    accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, beatmap, statistics);
+                    accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, beatmap, statistics, appliedMods.Value.ToArray());
                 }
 
                 long.TryParse(scoreIdTextBox.Text, out long scoreId);
@@ -1149,7 +1149,7 @@ namespace PerformanceCalculatorGUI.Screens
 
         private long? legacyTotalScore;
 
-        private void populateSettingsFromScore(long scoreId)
+        private void populateSettingsFromScore(string scoreId)
         {
             if (scoreIdPopulateButton.State.Value == ButtonState.Loading)
                 return;
@@ -1200,6 +1200,21 @@ namespace PerformanceCalculatorGUI.Screens
                         {
                             mehsTextBox.Value.Value = mehs;
                             mehsTextBox.Text = mehs.ToString();
+                        }
+
+                        if (ruleset.Value?.ShortName == "fruits")
+                        {
+                            if (scoreInfo.Statistics.TryGetValue(HitResult.LargeTickHit, out int largeTickHits))
+                            {
+                                goodsTextBox.Value.Value = largeTickHits;
+                                goodsTextBox.Text = largeTickHits.ToString();
+                            }
+
+                            if (scoreInfo.Statistics.TryGetValue(HitResult.SmallTickHit, out int smallTickHits))
+                            {
+                                mehsTextBox.Value.Value = smallTickHits;
+                                mehsTextBox.Text = smallTickHits.ToString();
+                            }
                         }
 
                         if (scoreInfo.Statistics.TryGetValue(HitResult.LargeTickMiss, out int largeTickMisses))
@@ -1362,6 +1377,31 @@ namespace PerformanceCalculatorGUI.Screens
             ScoresGenerator.CalculatePpForScores(generatedScores, performanceCalculator, diffAttributes);
 
             CSVExporter.ExportToCSV(generatedScores, $"{working.BeatmapInfo.Metadata.Title} Score Data.csv");
+        }
+        
+        private bool validateScoreId(string scoreId)
+        {
+            string[] validRulesetNames = { "osu", "taiko", "fruits", "mania" };
+
+            if (string.IsNullOrWhiteSpace(scoreId))
+                return false;
+
+            // Check if it's just a numeric id from lazer leaderboard
+            if (long.TryParse(scoreId, out _))
+                return true;
+
+            // Check if it's valid legacy database score id
+            string[] parts = scoreId.Split('/');
+            if (parts.Length == 2)
+            {
+                string ruleset = parts[0];
+                string idPart = parts[1];
+
+                if (validRulesetNames.Contains(ruleset) && long.TryParse(idPart, out _))
+                    return true;
+            }
+
+            return false;
         }
     }
 }
