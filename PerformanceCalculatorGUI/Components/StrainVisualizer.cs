@@ -67,7 +67,7 @@ namespace PerformanceCalculatorGUI.Components
             graphAlpha = Math.Min(1.5f / skills.Length, 0.9f);
             var strainLists = getStrainLists(skills);
 
-            createStrainBars(skills, strainLists).ContinueWith((t) => Schedule(() =>
+            createStrainBars(skills, strainLists).ContinueWith(t => Schedule(() =>
             {
                 graphsContainer.Clear();
                 addStrainBars(t.GetResultSafely(), skills, strainLists);
@@ -83,7 +83,7 @@ namespace PerformanceCalculatorGUI.Components
                     {
                         // this is ugly, but it works
                         var graphToggleBindable = new Bindable<bool>();
-                        var graphNum = i;
+                        int graphNum = i;
                         graphToggleBindable.BindValueChanged(state =>
                         {
                             if (state.NewValue)
@@ -106,20 +106,20 @@ namespace PerformanceCalculatorGUI.Components
                             AutoSizeAxes = Axes.Both,
                             Children = new Drawable[]
                             {
-                            new Box
-                            {
-                                RelativeSizeAxes = Axes.Both,
-                                Colour = colourProvider.Background5
-                            },
-                            new ExtendedOsuCheckbox
-                            {
-                                Padding = new MarginPadding(10),
-                                RelativeSizeAxes = Axes.None,
-                                Width = 200,
-                                Current = { BindTarget = graphToggleBindable, Default = true, Value = true },
-                                LabelText = skills[i].GetType().Name,
-                                TextColour = skillColours[i % skillColours.Length]
-                            }
+                                new Box
+                                {
+                                    RelativeSizeAxes = Axes.Both,
+                                    Colour = colourProvider.Background5
+                                },
+                                new ExtendedOsuCheckbox
+                                {
+                                    Padding = new MarginPadding(10),
+                                    RelativeSizeAxes = Axes.None,
+                                    Width = 200,
+                                    Current = { BindTarget = graphToggleBindable, Default = true, Value = true },
+                                    LabelText = skills[i].GetType().Name,
+                                    TextColour = skillColours[i % skillColours.Length]
+                                }
                             }
                         });
                     }
@@ -200,11 +200,11 @@ namespace PerformanceCalculatorGUI.Components
         {
             List<StrainBarGraph> graphs = [];
 
-            var strainMaxValue = strainLists.Max(list => list.Max());
+            float strainMaxValue = strainLists.Max(list => list.Max());
 
             for (int i = 0; i < skills.Length; i++)
             {
-                graphs.Add(new StrainBarGraph()
+                graphs.Add(new StrainBarGraph
                 {
                     RelativeSizeAxes = Axes.Both,
                     MaxValue = strainMaxValue,
@@ -225,11 +225,11 @@ namespace PerformanceCalculatorGUI.Components
                 {
                     new BufferedContainer(cachedFrameBuffer: true)
                     {
-                    RelativeSizeAxes = Axes.Both,
-                    Alpha = graphAlpha,
-                    Colour = skillColours[i % skillColours.Length],
-                    Child = graphs[i]
-                }
+                        RelativeSizeAxes = Axes.Both,
+                        Alpha = graphAlpha,
+                        Colour = skillColours[i % skillColours.Length],
+                        Child = graphs[i]
+                    }
                 });
             }
 
