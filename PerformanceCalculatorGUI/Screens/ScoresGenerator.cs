@@ -128,7 +128,7 @@ namespace PerformanceCalculatorGUI.Screens
                 OnlineID = 0,
             };
 
-            double accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset, beatmap, hitResults);
+            double accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset, beatmap, hitResults, []);
 
             return new ScoreInfo(beatmap.BeatmapInfo, ruleset)
             {
