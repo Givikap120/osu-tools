@@ -124,10 +124,10 @@ namespace PerformanceCalculatorGUI.Configuration
 
         public void Load()
         {
-            Collections = new BindableList<Collection>(loadCollectionList<Collection>(collections_file_path));
-            CollectionProfiles = new BindableList<ProfileCollection>(loadCollectionList<ProfileCollection>(collection_profiles_file_path));
+            Collections = [.. loadCollectionList<Collection>(collections_file_path)];
+            CollectionProfiles = [.. loadCollectionList<ProfileCollection>(collection_profiles_file_path)];
 
-            if (!Collections.Any())
+            if (Collections.Count == 0)
             {
                 Collections.Add(new Collection("Test Collection", 1));
             }
