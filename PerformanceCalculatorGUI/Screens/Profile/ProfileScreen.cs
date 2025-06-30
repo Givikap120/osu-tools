@@ -385,6 +385,8 @@ namespace PerformanceCalculatorGUI.Screens.Profile
             }
         }
 
+        private decimal playcountBonusPP = 0;
+
         private Task calculateProfilesFromServer(string[] usernames)
         {
             if (usernames.Length < 1)
@@ -568,7 +570,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                         nonBonusLivePP += (decimal)(Math.Pow(0.95, i) * (liveOrdered[i].LivePP ?? 0));
 
                     //todo: implement properly. this is pretty damn wrong.
-                    decimal playcountBonusPP = (totalLivePP - nonBonusLivePP);
+                    playcountBonusPP = (totalLivePP - nonBonusLivePP);
                     totalLocalPP += playcountBonusPP;
 
                     Schedule(() =>

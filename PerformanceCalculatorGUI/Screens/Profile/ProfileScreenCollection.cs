@@ -24,14 +24,14 @@ namespace PerformanceCalculatorGUI.Screens.Profile
         [Resolved]
         private CollectionManager collections { get; set; }
 
-        private IEnumerable<ScoreInfo> getScores(string username)
+        private ProfileCollection getCollection(string username)
         {
             var collection = collections.CollectionProfiles.FirstOrDefault(c => c.Player.Value?.IsThisUsername(username) ?? false);
-            if (collection == null) return Enumerable.Empty<ScoreInfo>();
+            if (collection == null) return null;
 
             currentPlayer = collection.Player.Value;
 
-            return collection.Scores;
+            return collection;
         }
 
         private void resetPlayerCollectionFromServer(string username)
@@ -45,7 +45,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 var collection = collections.CollectionProfiles.FirstOrDefault(c => c.Player.Value?.IsThisUsername(username) ?? false);
                 if (collection == null)
                 {
-                    collection = new ProfileCollection(currentPlayer);
+                    collection = new ProfileCollection(currentPlayer) { BonusPp = playcountBonusPP };
                     collections.CollectionProfiles.Add(collection);
                 }
 
@@ -71,7 +71,9 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
             scores.Clear();
 
-            var collectionScores = getScores(username);
+            var collection = getCollection(username);
+            var collectionScores = collection?.Scores ?? Enumerable.Empty<ScoreInfo>();
+
             if (!collectionScores.Any())
             {
                 resetPlayerCollectionFromServer(username);
@@ -167,8 +169,9 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
                     userPanel.Data.Value = new UserCardData
                     {
-                        LivePP = totalLivePP,
-                        LocalPP = totalLocalPP,
+                        LivePP = totalLivePP + collection.BonusPp,
+                        LocalPP = totalLocalPP + collection.BonusPp,
+                        PlaycountPP = collection.BonusPp,
                     };
                 });
 

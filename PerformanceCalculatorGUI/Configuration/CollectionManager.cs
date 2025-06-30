@@ -81,6 +81,9 @@ namespace PerformanceCalculatorGUI.Configuration
         [JsonProperty("player")]
         public Bindable<RecalculationPlayer> Player { get; private set; }
 
+        [JsonProperty("bonus_pp")]
+        public decimal BonusPp { get; set; }
+
         public ProfileCollection(RecalculationPlayer player)
         {
             if (player == null) return;
