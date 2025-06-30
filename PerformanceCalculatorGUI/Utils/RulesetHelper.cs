@@ -511,5 +511,31 @@ namespace PerformanceCalculatorGUI
 
             return total / max;
         }
+
+        public static bool ValidateScoreId(string scoreId)
+        {
+            string[] validRulesetNames = { "osu", "taiko", "fruits", "mania" };
+
+            if (string.IsNullOrWhiteSpace(scoreId))
+                return false;
+
+            // Check if it's just a numeric id from lazer leaderboard
+            if (long.TryParse(scoreId, out _))
+                return true;
+
+            // Check if it's valid legacy database score id
+            string[] parts = scoreId.Split('/');
+
+            if (parts.Length == 2)
+            {
+                string rulesetPart = parts[0];
+                string idPart = parts[1];
+
+                if (validRulesetNames.Contains(rulesetPart) && long.TryParse(idPart, out _))
+                    return true;
+            }
+
+            return false;
+        }
     }
 }

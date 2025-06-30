@@ -91,7 +91,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
                                 RelativeSizeAxes = Axes.X,
                                 Action = () =>
                                 {
-                                    if (!string.IsNullOrEmpty(scoreIdTextBox.Current.Value))
+                                    if (RulesetHelper.ValidateScoreId(scoreIdTextBox.Current.Value))
                                     {
                                         tryAddScoreFromId(scoreIdTextBox.Current.Value);
                                     }

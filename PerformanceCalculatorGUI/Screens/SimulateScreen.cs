@@ -250,7 +250,7 @@ namespace PerformanceCalculatorGUI.Screens
                                                             Width = 0.3f,
                                                             Action = () =>
                                                             {
-                                                                if (validateScoreId(scoreIdTextBox.Current.Value))
+                                                                if (RulesetHelper.ValidateScoreId(scoreIdTextBox.Current.Value))
                                                                 {
                                                                     populateSettingsFromScore(scoreIdTextBox.Current.Value);
                                                                 }
@@ -821,7 +821,8 @@ namespace PerformanceCalculatorGUI.Screens
 
             try
             {
-                var beatmap = working.GetPlayableBeatmap(ruleset.Value, appliedMods.Value);
+                Mod[] mods = appliedMods.Value.ToArray();
+                var beatmap = working.GetPlayableBeatmap(ruleset.Value, mods);
 
                 double accuracy = accuracyTextBox.Value.Value / 100.0;
                 Dictionary<HitResult, int> statistics = new Dictionary<HitResult, int>();
@@ -830,20 +831,20 @@ namespace PerformanceCalculatorGUI.Screens
                 if (ruleset.Value.OnlineID != -1)
                 {
                     // official rulesets can generate more precise hits from accuracy
-                    if (appliedMods.Value.OfType<OsuModClassic>().Any(m => m.NoSliderHeadAccuracy.Value))
+                    if (mods.OfType<OsuModClassic>().Any(m => m.NoSliderHeadAccuracy.Value))
                     {
-                        statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, accuracyTextBox.Value.Value / 100.0, beatmap, appliedMods.Value.ToArray(), missesTextBox.Value.Value, countMeh, countGood,
+                        statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, accuracyTextBox.Value.Value / 100.0, beatmap, mods, missesTextBox.Value.Value, countMeh, countGood,
                             null, null);
-                        maximumStatistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, 1, beatmap, 0, 0, 0, null, null);
+                        maximumStatistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, 1, beatmap, mods, 0, 0, 0, null, null);
                     }
                     else
                     {
-                        statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, accuracyTextBox.Value.Value / 100.0, beatmap, appliedMods.Value.ToArray(), missesTextBox.Value.Value, countMeh, countGood,
+                        statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, accuracyTextBox.Value.Value / 100.0, beatmap, mods, missesTextBox.Value.Value, countMeh, countGood,
                             largeTickMissesTextBox.Value.Value, sliderTailMissesTextBox.Value.Value);
-                        maximumStatistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, 1, beatmap, 0, 0, 0, 0, 0);
+                        maximumStatistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, 1, beatmap, mods, 0, 0, 0, 0, 0);
                     }
 
-                    accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, beatmap, statistics, appliedMods.Value.ToArray());
+                    accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, beatmap, statistics, mods);
                 }
 
                 long.TryParse(scoreIdTextBox.Text, out long scoreId);
@@ -1305,17 +1306,17 @@ namespace PerformanceCalculatorGUI.Screens
                 countMeh = mehsTextBox.Value.Value;
             }
 
-            var totalScore = RulesetHelper.AdjustManiaScore(scoreTextBox.Value.Value, mods);
+            int totalScore = RulesetHelper.AdjustManiaScore(scoreTextBox.Value.Value, mods);
 
             var beatmap = working.GetPlayableBeatmap(ruleset.Value, mods);
 
-            var accuracy = accuracyTextBox.Value.Value / 100.0;
+            double accuracy = accuracyTextBox.Value.Value / 100.0;
             Dictionary<HitResult, int> statistics = new Dictionary<HitResult, int>();
 
             if (ruleset.Value.OnlineID != -1)
             {
-                statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, accuracyTextBox.Value.Value / 100.0, beatmap, missesTextBox.Value.Value, countMeh, countGood, largeTickMissesTextBox.Value.Value, sliderTailMissesTextBox.Value.Value);
-                accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, beatmap, statistics);
+                statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, accuracyTextBox.Value.Value / 100.0, beatmap, mods.ToArray(), missesTextBox.Value.Value, countMeh, countGood, largeTickMissesTextBox.Value.Value, sliderTailMissesTextBox.Value.Value);
+                accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, beatmap, statistics, mods.ToArray());
             }
 
             var score = new ScoreInfo(beatmap.BeatmapInfo, ruleset.Value)
@@ -1377,32 +1378,6 @@ namespace PerformanceCalculatorGUI.Screens
             ScoresGenerator.CalculatePpForScores(generatedScores, performanceCalculator, diffAttributes);
 
             CSVExporter.ExportToCSV(generatedScores, $"{working.BeatmapInfo.Metadata.Title} Score Data.csv");
-        }
-        
-        private static bool validateScoreId(string scoreId)
-        {
-            string[] validRulesetNames = { "osu", "taiko", "fruits", "mania" };
-
-            if (string.IsNullOrWhiteSpace(scoreId))
-                return false;
-
-            // Check if it's just a numeric id from lazer leaderboard
-            if (long.TryParse(scoreId, out _))
-                return true;
-
-            // Check if it's valid legacy database score id
-            string[] parts = scoreId.Split('/');
-
-            if (parts.Length == 2)
-            {
-                string rulesetPart = parts[0];
-                string idPart = parts[1];
-
-                if (validRulesetNames.Contains(rulesetPart) && long.TryParse(idPart, out _))
-                    return true;
-            }
-
-            return false;
         }
     }
 }
