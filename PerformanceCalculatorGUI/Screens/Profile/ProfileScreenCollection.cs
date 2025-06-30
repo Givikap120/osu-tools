@@ -45,11 +45,12 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 var collection = collections.CollectionProfiles.FirstOrDefault(c => c.Player.Value?.IsThisUsername(username) ?? false);
                 if (collection == null)
                 {
-                    collection = new ProfileCollection(currentPlayer) { BonusPp = playcountBonusPP };
+                    collection = new ProfileCollection(currentPlayer);
                     collections.CollectionProfiles.Add(collection);
                 }
 
                 collection.Player.Value = currentPlayer;
+                collection.BonusPp = playcountBonusPP;
 
                 collection.Scores.Clear();
                 var allScores = GetProfileScores();
