@@ -669,11 +669,9 @@ namespace PerformanceCalculatorGUI.Screens
                 }, 100);
             };
 
-            calculateDifficultyAsync().ContinueWith(_ =>
-            {
-                updateCombo(false);
-                calculatePerformance();
-            });
+            Schedule(() => updateCombo(false));
+
+            calculateDifficultyAsync().ContinueWith(_ => calculatePerformance());
         }
 
         private void resetBeatmap()
@@ -752,7 +750,15 @@ namespace PerformanceCalculatorGUI.Screens
 
             return Task.Run(() =>
             {
-                difficultyAttributes = difficultyCalculator.Value.Calculate(appliedMods.Value, cancellationTokenSource.Token);
+                try
+                {
+                    difficultyAttributes = difficultyCalculator.Value.Calculate(appliedMods.Value, cancellationTokenSource.Token);
+                }
+                catch (Exception e)
+                {
+                    Schedule(() => showError(e));
+                    return;
+                }
 
                 if (cancellationTokenSource.IsCancellationRequested)
                     return;
