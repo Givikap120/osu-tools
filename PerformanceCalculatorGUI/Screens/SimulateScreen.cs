@@ -129,13 +129,15 @@ namespace PerformanceCalculatorGUI.Screens
 
         [Cached]
         private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Blue);
+
+        private CancellationTokenSource cancellationTokenSource;
+
         public override bool ShouldShowConfirmationDialogOnSwitch => working != null;
 
         private const int file_selection_container_height = 40;
         private const int map_title_container_height = 40;
         private const float mod_selection_container_scale = 0.7f;
 
-        private CancellationTokenSource cancellationTokenSource;
         public SimulateScreen()
         {
             RelativeSizeAxes = Axes.Both;
@@ -621,7 +623,7 @@ namespace PerformanceCalculatorGUI.Screens
             {
                 HotReloadCallbackReceiver.CompilationFinished += _ => Schedule(() =>
                 {
-                    calculateDifficulty().ContinueWith((t) => calculatePerformance());
+                    calculateDifficultyAsync().ContinueWith(_ => calculatePerformance());
                 });
             }
         }
@@ -629,7 +631,6 @@ namespace PerformanceCalculatorGUI.Screens
         protected override void Dispose(bool isDisposing)
         {
             cancellationTokenSource?.Cancel();
-
             modSettingChangeTracker?.Dispose();
 
             appliedMods.UnbindAll();
@@ -666,21 +667,24 @@ namespace PerformanceCalculatorGUI.Screens
                 debouncedStatisticsUpdate?.Cancel();
                 debouncedStatisticsUpdate = Scheduler.AddDelayed(() =>
                 {
-                    var token = resetAndGetToken();
                     createCalculators();
                     updateMissesTextboxes();
-                    calculateDifficulty(token).ContinueWith((t) => calculatePerformance(token));
+                    calculateDifficultyAsync().ContinueWith(_ => calculatePerformance());
                 }, 100);
             };
 
-            var token = resetAndGetToken();
-            calculateDifficulty(token).ContinueWith((t) => { updateCombo(false); calculatePerformance(token); });
+            calculateDifficultyAsync().ContinueWith(_ =>
+            {
+                updateCombo(false);
+                calculatePerformance();
+            });
         }
 
         private void resetBeatmap()
         {
             working = null;
             beatmapTitle.Clear();
+            cancellationTokenSource?.Cancel();
             resetMods();
             beatmapDataContainer.Hide();
 
@@ -742,46 +746,25 @@ namespace PerformanceCalculatorGUI.Screens
             performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
         }
 
-        private CancellationToken resetAndGetToken()
-        {
-            cancellationTokenSource?.Cancel();
-            cancellationTokenSource = new CancellationTokenSource();
-            return cancellationTokenSource.Token;
-        }
-
-        private Task calculateDifficulty(CancellationToken token = default)
+        private Task calculateDifficultyAsync()
         {
             if (working == null || difficultyCalculator.Value == null)
                 return Task.CompletedTask;
 
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource = new CancellationTokenSource();
+
             return Task.Run(() =>
             {
-                try
-                {
-                    performanceAttributes = null;
-                    difficultyAttributes = difficultyCalculator.Value.Calculate(appliedMods.Value);
-                    if (token.IsCancellationRequested) return;
+                difficultyAttributes = difficultyCalculator.Value.Calculate(appliedMods.Value, cancellationTokenSource.Token);
 
-                    Schedule(() =>
-                    {
-                        difficultyAttributesContainer.Attributes.Value = AttributeConversion.ToDictionary(difficultyAttributes);
-                    });
-                }
-                catch (Exception e)
-                {
-                    Schedule(() =>
-                    {
-                        showError(e);
-                        //resetBeatmap();
-                    });
-                    return;
-                }
-
-                if (token.IsCancellationRequested)
+                if (cancellationTokenSource.IsCancellationRequested)
                     return;
 
                 Schedule(() =>
                 {
+                    difficultyAttributesContainer.Attributes.Value = AttributeConversion.ToDictionary(difficultyAttributes);
+
                     if (difficultyCalculator.Value is IExtendedDifficultyCalculator extendedDifficultyCalculator)
                     {
                         // StrainSkill always skips the first object
@@ -793,7 +776,10 @@ namespace PerformanceCalculatorGUI.Screens
                     else
                         strainVisualizer.Skills.Value = Array.Empty<Skill>();
                 });
-            }, token);
+            }).ContinueWith(t =>
+            {
+                Schedule(() => showError(t.Exception));
+            }, TaskContinuationOptions.OnlyOnFaulted);
         }
 
         private void debouncedCalculatePerformance()
@@ -894,8 +880,7 @@ namespace PerformanceCalculatorGUI.Screens
             }
             catch (Exception e)
             {
-                showError(e);
-                //resetBeatmap();
+                Schedule(() => showError(e));
             }
         }
 
@@ -1053,13 +1038,10 @@ namespace PerformanceCalculatorGUI.Screens
         private void resetCalculations()
         {
             createCalculators();
-
             resetMods();
+            populateScoreParams();
 
-            legacyTotalScore = null;
-
-            var token = resetAndGetToken();
-            calculateDifficulty(token).ContinueWith((t) => { calculatePerformance(token); Schedule(() => populateScoreParams()); });
+            calculateDifficultyAsync().ContinueWith(_ => calculatePerformance());
         }
 
         // This is to make sure combo resets when classic mod is applied
@@ -1148,8 +1130,6 @@ namespace PerformanceCalculatorGUI.Screens
             notificationDisplay.Display(new Notification(message));
         }
 
-        private long? legacyTotalScore;
-
         private void populateSettingsFromScore(string scoreId)
         {
             if (scoreIdPopulateButton.State.Value == ButtonState.Loading)
@@ -1172,7 +1152,7 @@ namespace PerformanceCalculatorGUI.Screens
                     ruleset.Value = rulesets.GetRuleset(scoreInfo.RulesetID);
                     appliedMods.Value = scoreInfo.Mods.Select(x => x.ToMod(ruleset.Value.CreateInstance())).ToList();
 
-                    legacyTotalScore = scoreInfo.LegacyTotalScore;
+                    scoreTextBox.Text = scoreInfo.LegacyTotalScore.ToString();
 
                     fullScoreDataSwitch.Current.Value = true;
 
@@ -1229,10 +1209,7 @@ namespace PerformanceCalculatorGUI.Screens
                         sliderTailMissesTextBox.Text = sliderTailMisses.ToString();
                     }
 
-                    calculateDifficulty();
-                    calculatePerformance();
-
-                    scoreIdPopulateButton.State.Value = ButtonState.Done;
+                    calculateDifficultyAsync().ContinueWith(_ => calculatePerformance());
                 });
             }).ContinueWith(t =>
             {
