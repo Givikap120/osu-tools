@@ -224,8 +224,6 @@ namespace PerformanceCalculatorGUI.Screens.Collections
             populateCollectionsContainer();
 
             collections.Collections.CollectionChanged += (sender, e) => populateCollectionsContainer();
-
-            ruleset.ValueChanged += _ => performCalculation();
         }
 
         private void selectAsActiveCollection()
@@ -261,7 +259,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
                 {
                     Action = () =>
                     {
-                        collections.Collections.Add(new Collection("New Collection", 0));
+                        collections.Collections.Add(new Collection("New Collection", 0, ruleset.Value.OnlineID));
                         collections.SaveCollections();
                     }
                 });
@@ -281,6 +279,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
 
             collection.Scores.CollectionChanged += collectionChangedEventHandler;
 
+            ruleset.Value = RulesetHelper.GetRulesetFromLegacyID(collection.RulesetId).RulesetInfo;
             performCalculation();
         }
 

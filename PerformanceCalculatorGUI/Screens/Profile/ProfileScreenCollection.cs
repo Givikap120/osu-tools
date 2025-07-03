@@ -26,7 +26,8 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
         private ProfileCollection getCollection(string username)
         {
-            var collection = collections.CollectionProfiles.FirstOrDefault(c => c.Player.Value?.IsThisUsername(username) ?? false);
+            var collection = collections.CollectionProfiles.FirstOrDefault(
+                c => (c.Player.Value?.IsThisUsername(username) ?? false) && (c.RulesetId == ruleset.Value.OnlineID));
             if (collection == null) return null;
 
             currentPlayer = collection.Player.Value;
@@ -45,7 +46,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 var collection = collections.CollectionProfiles.FirstOrDefault(c => c.Player.Value?.IsThisUsername(username) ?? false);
                 if (collection == null)
                 {
-                    collection = new ProfileCollection(currentPlayer);
+                    collection = new ProfileCollection(currentPlayer, ruleset.Value.OnlineID);
                     collections.CollectionProfiles.Add(collection);
                 }
 

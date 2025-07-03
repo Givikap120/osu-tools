@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Newtonsoft.Json;
 using osu.Framework.Bindables;
-using osu.Framework.Extensions.ObjectExtensions;
 using osu.Game.Scoring;
 using PerformanceCalculatorGUI.Screens;
-using PerformanceCalculatorGUI.Utils;
 
 namespace PerformanceCalculatorGUI.Configuration
 {
@@ -19,8 +16,11 @@ namespace PerformanceCalculatorGUI.Configuration
         [JsonProperty("cover_beatmapset_id")]
         public Bindable<string> CoverBeatmapSetId { get; protected set; }
 
+        [JsonProperty("ruleset_id")]
+        public int RulesetId { get; set; }
+
         [JsonProperty("scores")]
-        public List<string> EncodedScores { get; private set; } = [];
+        public List<string> EncodedScores { get; protected set; } = [];
 
         [JsonIgnore]
         public BindableList<ScoreInfo> Scores { get; private set; } = [];
@@ -29,10 +29,11 @@ namespace PerformanceCalculatorGUI.Configuration
         {
         }
 
-        public Collection(string name, int coverBeatmapSetId)
+        public Collection(string name, int coverBeatmapSetId, int rulesetId)
         {
             Name = new Bindable<string>(name);
             CoverBeatmapSetId = new Bindable<string>(coverBeatmapSetId.ToString());
+            RulesetId = rulesetId;
         }
 
         public void EncodeScores()
@@ -48,7 +49,7 @@ namespace PerformanceCalculatorGUI.Configuration
         public void DecodeScores()
         {
             Scores.Clear();
-            foreach (var score in EncodedScores)
+            foreach (string score in EncodedScores)
             {
                 ScoreInfo decodedScore = decodeScore(score);
                 Scores.Add(decodedScore);
@@ -84,13 +85,14 @@ namespace PerformanceCalculatorGUI.Configuration
         [JsonProperty("bonus_pp")]
         public decimal BonusPp { get; set; }
 
-        public ProfileCollection(RecalculationPlayer player)
+        public ProfileCollection(RecalculationPlayer player, int rulesetId)
         {
             if (player == null) return;
 
             Player = new Bindable<RecalculationPlayer>(player);
             Name = new Bindable<string>(player.Name);
             CoverBeatmapSetId = new Bindable<string>();
+            RulesetId = rulesetId;
         }
     }
 
@@ -129,7 +131,7 @@ namespace PerformanceCalculatorGUI.Configuration
 
             if (Collections.Count == 0)
             {
-                Collections.Add(new Collection("Test Collection", 1));
+                Collections.Add(new Collection("Test Collection", 1, 0));
             }
         }
 

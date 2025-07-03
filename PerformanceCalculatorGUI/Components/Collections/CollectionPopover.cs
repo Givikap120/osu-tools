@@ -26,6 +26,7 @@ namespace PerformanceCalculatorGUI.Components.Collections
 
         private LabelledTextBox nameTextBox;
         private LabelledNumberBox coverBeatmapSetIdTextBox;
+        private LabelledNumberBox rulesetIdTextBox;
 
         private RoundedButton activeCollectionButton;
 
@@ -64,6 +65,11 @@ namespace PerformanceCalculatorGUI.Components.Collections
                                 Label = "Cover Beatmap Set ID",
                                 Text = collection.CoverBeatmapSetId.Value,
                                 Current = collection.CoverBeatmapSetId
+                            },
+                            rulesetIdTextBox = new LabelledNumberBox
+                            {
+                                Label = "Ruleset ID",
+                                Text = collection.RulesetId.ToString(),
                             },
                             activeCollectionButton = new RoundedButton
                             {
@@ -104,6 +110,15 @@ namespace PerformanceCalculatorGUI.Components.Collections
             coverBeatmapSetIdTextBox.OnCommit += (sender, e) =>
             {
                 collections.SaveCollections();
+            };
+
+            rulesetIdTextBox.OnCommit += (sender, e) =>
+            {
+                if (int.TryParse(rulesetIdTextBox.Current.Value, out int newId))
+                {
+                    collection.RulesetId = newId;
+                    collections.SaveCollections();
+                }
             };
         }
 
