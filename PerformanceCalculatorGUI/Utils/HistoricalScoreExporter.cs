@@ -12,18 +12,16 @@ using osu.Game.Rulesets.Scoring;
 using osu.Game.Rulesets;
 using osu.Game.Scoring;
 using osu.Game.Utils;
-using PerformanceCalculatorGUI.Components;
 using osu.Game.Scoring.Legacy;
-using PerformanceCalculatorGUI.Utils;
 
-namespace PerformanceCalculatorGUI.Screens
+namespace PerformanceCalculatorGUI.Utils
 {
     public static class HistoricalScoreExporter
     {
         public static void OutputHistoricalScoresCSV(List<(ScoreInfo score, WorkingBeatmap beatmap, DifficultyAttributes attributes)> allScores, Ruleset rulesetInstance, string username)
         {
             // Ensure Dot as a separator
-            System.Globalization.CultureInfo customCulture = (System.Globalization.CultureInfo)Thread.CurrentThread.CurrentCulture.Clone();
+            var customCulture = (System.Globalization.CultureInfo)Thread.CurrentThread.CurrentCulture.Clone();
             customCulture.NumberFormat.NumberDecimalSeparator = ".";
 
             var currentCulture = Thread.CurrentThread.CurrentCulture;
@@ -34,7 +32,7 @@ namespace PerformanceCalculatorGUI.Screens
 
             HashSet<string> allMapHashes = [];
             HashSet<string> topPlayMapHashes = [];
-            SortedList<ScoreInfo> topPlays = new SortedList<ScoreInfo>((a, b) => a.PP < b.PP ? 1 : (a.PP > b.PP ? -1 : 0));
+            var topPlays = new SortedList<ScoreInfo>((a, b) => a.PP < b.PP ? 1 : a.PP > b.PP ? -1 : 0);
 
             int currentTopPlaysCount = 0;
             int uniquePlaysCount = 0;
@@ -125,12 +123,12 @@ namespace PerformanceCalculatorGUI.Screens
             double length = Beatmap.CalculatePlayableLength() * 0.001 / rate;
             double starRating = Attributes.StarRating;
 
-            BeatmapDifficulty originalDifficulty = new BeatmapDifficulty(BeatmapInfo.Difficulty);
+            var originalDifficulty = new BeatmapDifficulty(BeatmapInfo.Difficulty);
 
             foreach (var mod in Score.Mods.OfType<IApplicableToDifficulty>())
                 mod.ApplyToDifficulty(originalDifficulty);
 
-            BeatmapDifficulty adjustedDifficulty = Ruleset.GetRateAdjustedDisplayDifficulty(originalDifficulty, rate);
+            var adjustedDifficulty = Ruleset.GetRateAdjustedDisplayDifficulty(originalDifficulty, rate);
 
             string modInfo = $"{modsString},{rate:F2},{bpm:F0},{length:F0},{starRating:F2},{adjustedDifficulty.CircleSize:F1},{adjustedDifficulty.DrainRate:F1},{adjustedDifficulty.OverallDifficulty:F1},{adjustedDifficulty.ApproachRate:F1}";
 

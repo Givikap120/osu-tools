@@ -10,7 +10,7 @@ using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Scoring;
 using osu.Game.Users;
 
-namespace PerformanceCalculatorGUI.Utils
+namespace PerformanceCalculatorGUI.Configuration
 {
     public class ScoreInfoCacheManager
     {
@@ -29,7 +29,7 @@ namespace PerformanceCalculatorGUI.Utils
             this.gameHost = gameHost;
             this.lazerPath = lazerPath;
 
-            var realmPath = Path.Combine(lazerPath, @"client.realm");
+            string realmPath = Path.Combine(lazerPath, @"client.realm");
             realm = RulesetHelper.GetRealmAccess(gameHost, lazerPath);
 
             if (File.Exists(CacheFileName))
@@ -66,17 +66,16 @@ namespace PerformanceCalculatorGUI.Utils
             using (var stream = new FileStream(CacheFileName, FileMode.Open, FileAccess.Read))
             using (var reader = new BinaryReader(stream))
             {
-                var cacheVersion = reader.ReadInt32();
+                int cacheVersion = reader.ReadInt32();
                 if (cacheVersion != version)
                 {
                     Logger.Log("Cache has wrong version");
                     return writeToCache();
                 }
 
+                int scoreCount = reader.ReadInt32();
 
-                var scoreCount = reader.ReadInt32();
-
-                for (var i = 0; i < scoreCount; i++)
+                for (int i = 0; i < scoreCount; i++)
                 {
                     var score = ReadScore(reader);
                     scores.Add(score);
@@ -184,7 +183,7 @@ namespace PerformanceCalculatorGUI.Utils
 
         private static BeatmapInfo readBeatmap(BinaryReader reader)
         {
-            var hasBeatmap = reader.ReadBoolean();
+            bool hasBeatmap = reader.ReadBoolean();
             if (!hasBeatmap) return null;
 
             var beatmap = new BeatmapInfo();
