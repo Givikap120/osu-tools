@@ -43,13 +43,14 @@ namespace PerformanceCalculatorGUI.Screens.Profile
             {
                 if (currentPlayer == null) return;
 
-                var collection = collections.CollectionProfiles.FirstOrDefault(c => c.Player.Value?.IsThisUsername(username) ?? false);
+                var collection = getCollection(username);
                 if (collection == null)
                 {
                     collection = new ProfileCollection(currentPlayer, ruleset.Value.OnlineID);
                     collections.CollectionProfiles.Add(collection);
                 }
 
+                collection.RulesetId = ruleset.Value.OnlineID;
                 collection.Player.Value = currentPlayer;
                 collection.BonusPp = playcountBonusPP;
 
