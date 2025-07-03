@@ -571,6 +571,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
                     //todo: implement properly. this is pretty damn wrong.
                     playcountBonusPP = (totalLivePP - nonBonusLivePP);
+                    playcountBonusPP = Math.Max(playcountBonusPP, (decimal)(416.6667 * (1 - Math.Pow(0.995, localOrdered.Count))));
                     totalLocalPP += playcountBonusPP;
 
                     Schedule(() =>
