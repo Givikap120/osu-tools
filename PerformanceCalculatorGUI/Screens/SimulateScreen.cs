@@ -1030,11 +1030,12 @@ namespace PerformanceCalculatorGUI.Screens
             resetMods();
             populateScoreParams();
 
-            calculateDifficultyAsync().ContinueWith(_ => calculatePerformance());
+            calculateDifficultyAsync().ContinueWith(_ =>
+            {
+                Schedule(() => updateCombo(false));
+                calculatePerformance();
+            });
         }
-
-        // This is to make sure combo resets when classic mod is applied
-        private int previousMaxCombo;
 
         private void updateCombo(bool reset)
         {
@@ -1047,8 +1048,7 @@ namespace PerformanceCalculatorGUI.Screens
             comboTextBox.MaxValue = difficultyAttributes.MaxCombo;
 
             if (comboTextBox.Value.Value > difficultyAttributes.MaxCombo ||
-                missesTextBox.Value.Value > difficultyAttributes.MaxCombo ||
-                previousMaxCombo != difficultyAttributes.MaxCombo)
+                missesTextBox.Value.Value > difficultyAttributes.MaxCombo)
                 reset = true;
 
             if (reset)
@@ -1058,8 +1058,6 @@ namespace PerformanceCalculatorGUI.Screens
                 missesTextBox.Value.Value = 0;
                 missesTextBox.Text = string.Empty;
             }
-
-            previousMaxCombo = difficultyAttributes.MaxCombo;
         }
 
         private void loadBackground()
