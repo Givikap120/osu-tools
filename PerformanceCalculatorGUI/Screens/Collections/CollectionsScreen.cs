@@ -69,8 +69,8 @@ namespace PerformanceCalculatorGUI.Screens.Collections
         private RoundedButton activeCollectionButton;
         private AddScoresButton addScoresButton;
 
-        private OverlaySortTabControl<ProfileSortCriteria> sortingTabControl;
-        private readonly Bindable<ProfileSortCriteria> sorting = new Bindable<ProfileSortCriteria>(ProfileSortCriteria.Difference);
+        private OverlaySortTabControl<CollectionSortCriteria> sortingTabControl;
+        private readonly Bindable<CollectionSortCriteria> sorting = new Bindable<CollectionSortCriteria>(CollectionSortCriteria.Difference);
 
         private bool isCalculating = false;
 
@@ -130,7 +130,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
                                             Origin = Anchor.CentreLeft
                                         },
                                         new EmptyDrawable(),
-                                        sortingTabControl = new OverlaySortTabControl<ProfileSortCriteria>
+                                        sortingTabControl = new OverlaySortTabControl<CollectionSortCriteria>
                                         {
                                             Anchor = Anchor.CentreRight,
                                             Origin = Anchor.CentreRight,
@@ -300,7 +300,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
                 Schedule(() =>
                 {
                     sortingTabControl.Alpha = 1.0f;
-                    sortingTabControl.Current.Value = ProfileSortCriteria.Difference;
+                    sortingTabControl.Current.Value = CollectionSortCriteria.Difference;
                     drawableScores.Clear();
                 });
 
@@ -367,7 +367,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
             drawableScores.Remove(drawableScore, true);
         }
 
-        private void updateSorting(ProfileSortCriteria sortCriteria)
+        private void updateSorting(CollectionSortCriteria sortCriteria)
         {
             if (!drawableScores.Children.Any())
                 return;
@@ -376,19 +376,23 @@ namespace PerformanceCalculatorGUI.Screens.Collections
 
             switch (sortCriteria)
             {
-                case ProfileSortCriteria.Live:
+                case CollectionSortCriteria.Index:
+                    sortedScores = drawableScores.Children.OrderBy(x => currentCollection.Scores.IndexOf(x.Score.ScoreInfoSource)).ToArray();
+                    break;
+
+                case CollectionSortCriteria.Live:
                     sortedScores = drawableScores.Children.OrderByDescending(x => ((ExtendedProfileScore)x.Score).LivePP).ToArray();
                     break;
 
-                case ProfileSortCriteria.Local:
+                case CollectionSortCriteria.Local:
                     sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total).ToArray();
                     break;
 
-                case ProfileSortCriteria.Difference:
+                case CollectionSortCriteria.Difference:
                     sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total - ((ExtendedProfileScore)x.Score).LivePP).ToArray();
                     break;
 
-                case ProfileSortCriteria.Percentage:
+                case CollectionSortCriteria.Percentage:
                     sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total / ((ExtendedProfileScore)x.Score).LivePP).ToArray();
                     break;
 

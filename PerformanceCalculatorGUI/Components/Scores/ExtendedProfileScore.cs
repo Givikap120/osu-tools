@@ -210,5 +210,8 @@ namespace PerformanceCalculatorGUI.Components.Scores
     {
         public static DifferenceMode GetDifferenceMode(this ProfileSortCriteria sorting)
             => sorting == ProfileSortCriteria.Percentage ? DifferenceMode.Percent : DifferenceMode.Delta;
+
+        public static DifferenceMode GetDifferenceMode(this CollectionSortCriteria sorting)
+            => sorting == CollectionSortCriteria.Percentage ? DifferenceMode.Percent : DifferenceMode.Delta;
     }
 }

@@ -10,4 +10,13 @@ namespace PerformanceCalculatorGUI.Components
         Percentage,
         Local
     }
+
+    public enum CollectionSortCriteria
+    {
+        Live,
+        Index,
+        Difference,
+        Percentage,
+        Local
+    }
 }
