@@ -144,7 +144,7 @@ namespace PerformanceCalculatorGUI
         {
             return ruleset.OnlineID switch
             {
-                0 => generateOsuHitResults(accuracy, beatmap, mods, countMiss, countMeh, countGood, countLargeTickMisses, countSliderTailMisses),
+                0 => GenerateOsuHitResults(accuracy, beatmap, mods, countMiss, countMeh, countGood, countLargeTickMisses, countSliderTailMisses),
                 1 => generateTaikoHitResults(accuracy, beatmap, countMiss, countGood),
                 2 => generateCatchHitResults(accuracy, beatmap, countMiss, countMeh, countGood),
                 3 => generateManiaHitResults(accuracy, beatmap, mods, countMiss),
@@ -152,7 +152,7 @@ namespace PerformanceCalculatorGUI
             };
         }
 
-        private static Dictionary<HitResult, int> generateOsuHitResults(double accuracy, IBeatmap beatmap, Mod[] mods, int countMiss, int? countMeh, int? countGood, int? countLargeTickMisses, int? countSliderTailMisses)
+        public static Dictionary<HitResult, int> GenerateOsuHitResults(double accuracy, IBeatmap beatmap, Mod[] mods, int countMiss, int? countMeh, int? countGood, int? countLargeTickMisses, int? countSliderTailMisses)
         {
             bool usingClassicSliderAccuracy = mods.OfType<OsuModClassic>().Any(m => m.NoSliderHeadAccuracy.Value);
 

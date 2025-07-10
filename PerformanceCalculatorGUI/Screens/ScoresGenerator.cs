@@ -106,7 +106,7 @@ namespace PerformanceCalculatorGUI.Screens
             }
 
             maxCombo = Math.Max(maxCombo, currentCombo);
-            Dictionary<HitResult, int> accuracyHitResults = RulesetHelper.GenerateOsuHitResults(targetAccuracy, beatmap, 0, null, null, null, null);
+            Dictionary<HitResult, int> accuracyHitResults = RulesetHelper.GenerateOsuHitResults(targetAccuracy, beatmap, [], 0, null, null, null, null);
             accuracyHitResults[HitResult.Great] -= countCircleMiss + countSliderMiss;
 
             var fullInfoHitResults = new Dictionary<HitResult, int>(accuracyHitResults);
