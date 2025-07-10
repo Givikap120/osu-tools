@@ -38,7 +38,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     Text = "Add score to active collection",
                     Action = () =>
                     {
-                        collections.ActiveCollection.Scores.Add(Score.ScoreInfoSource);
+                        collections.ActiveCollection.Scores.Insert(0, Score.ScoreInfoSource);;
                         collections.SaveCollections();
                         PopOut();
                     }

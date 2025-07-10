@@ -48,7 +48,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
                 var soloScoreInfo = await apiManager.GetJsonFromApi<SoloScoreInfo>($"scores/{scoreId}").ConfigureAwait(false);
                 var beatmap = ProcessorWorkingBeatmap.FromFileOrId(soloScoreInfo.BeatmapID.ToString(), null, configManager.GetBindable<string>(Settings.CachePath).Value);
                 var score = soloScoreInfo.ToScoreInfo(rulesets, beatmap?.BeatmapInfo);
-                collections.ActiveCollection.Scores.Add(score);
+                collections.ActiveCollection.Scores.Insert(0, score);
                 collections.SaveCollections();
             }).ContinueWith(t =>
             {
