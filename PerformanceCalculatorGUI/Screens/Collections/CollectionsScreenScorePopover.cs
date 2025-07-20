@@ -7,6 +7,7 @@ using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Overlays;
 using osu.Game.Overlays.Dialog;
 using PerformanceCalculatorGUI.Components.Scores;
+using PerformanceCalculatorGUI.Configuration;
 
 namespace PerformanceCalculatorGUI.Screens.Collections
 {
@@ -14,6 +15,9 @@ namespace PerformanceCalculatorGUI.Screens.Collections
     {
         [Resolved]
         private DialogOverlay dialogOverlay { get; set; }
+
+        [Resolved]
+        private CollectionManager collections { get; set; }
 
         private readonly CollectionsScreen parent;
         private readonly DrawableExtendedProfileScore drawableScore;
@@ -27,6 +31,18 @@ namespace PerformanceCalculatorGUI.Screens.Collections
         [BackgroundDependencyLoader]
         private void load()
         {
+            if (collections.ActiveCollection != null && collections.ActiveCollection != parent.CurrentCollection) Buttons.Add(new RoundedButton
+            {
+                RelativeSizeAxes = Axes.X,
+                Text = "Add score to active collection",
+                Action = () =>
+                {
+                    collections.ActiveCollection.Scores.Insert(0, Score.ScoreInfoSource); ;
+                    collections.SaveCollections();
+                    PopOut();
+                }
+            });
+
             Buttons.Add(new RoundedButton
             {
                 RelativeSizeAxes = Axes.X,

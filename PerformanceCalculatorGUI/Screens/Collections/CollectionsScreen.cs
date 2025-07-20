@@ -54,6 +54,8 @@ namespace PerformanceCalculatorGUI.Screens.Collections
         [Resolved]
         private DialogOverlay dialogOverlay { get; set; }
 
+        public Collection CurrentCollection { get; private set; }
+
         private VerboseLoadingLayer loadingLayer;
         private FillFlowContainer collectionsViewContainer;
         private GridContainer collectionContainer;
@@ -61,7 +63,6 @@ namespace PerformanceCalculatorGUI.Screens.Collections
         private FillFlowContainer<DrawableExtendedProfileScore> drawableScores;
 
         private CancellationTokenSource calculationCancellatonToken;
-        private Collection currentCollection;
         private NotifyCollectionChangedEventHandler collectionChangedEventHandler;
 
         private const float collection_controls_height = 40;
@@ -186,7 +187,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
                                             {
                                                 dialogOverlay.Push(new ConfirmDialog("Do you really want to delete all scores in this collection?", () =>
                                                 {
-                                                    currentCollection.Scores.Clear();
+                                                    CurrentCollection.Scores.Clear();
                                                     drawableScores.Clear();
                                                     collections.SaveCollections();
                                                 }));
@@ -228,13 +229,13 @@ namespace PerformanceCalculatorGUI.Screens.Collections
 
         private void selectAsActiveCollection()
         {
-            collections.ActiveCollection = currentCollection;
+            collections.ActiveCollection = CurrentCollection;
             updateActiveCollectionButton();
         }
 
         private void updateActiveCollectionButton()
         {
-            if (collections.ActiveCollection == currentCollection)
+            if (collections.ActiveCollection == CurrentCollection)
             {
                 activeCollectionButton.BackgroundColour = colours.Green;
                 activeCollectionButton.Text = "Active";
@@ -271,7 +272,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
             collectionsViewContainer.Hide();
             collectionContainer.Show();
 
-            currentCollection = collection;
+            CurrentCollection = collection;
             collectionNameText.Text = collection.Name.Value;
 
             if (collections.ActiveCollection == null) selectAsActiveCollection();
@@ -285,7 +286,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
 
         private void performCalculation()
         {
-            if (currentCollection == null || isCalculating)
+            if (CurrentCollection == null || isCalculating)
                 return;
 
             calculationCancellatonToken?.Cancel();
@@ -306,7 +307,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
 
                 var rulesetInstance = ruleset.Value.CreateInstance();
 
-                foreach (ScoreInfo score in currentCollection.Scores)
+                foreach (ScoreInfo score in CurrentCollection.Scores)
                 {
                     if (calculationCancellatonToken.IsCancellationRequested)
                         return;
@@ -362,7 +363,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
 
         public void DeleteScoreFromCollection(DrawableExtendedProfileScore drawableScore)
         {
-            currentCollection.Scores.Remove(drawableScore.Score.ScoreInfoSource);
+            CurrentCollection.Scores.Remove(drawableScore.Score.ScoreInfoSource);
             collections.SaveCollections();
             drawableScores.Remove(drawableScore, true);
         }
@@ -377,7 +378,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
             switch (sortCriteria)
             {
                 case CollectionSortCriteria.Index:
-                    sortedScores = drawableScores.Children.OrderBy(x => currentCollection.Scores.IndexOf(x.Score.ScoreInfoSource)).ToArray();
+                    sortedScores = drawableScores.Children.OrderBy(x => CurrentCollection.Scores.IndexOf(x.Score.ScoreInfoSource)).ToArray();
                     break;
 
                 case CollectionSortCriteria.Live:
@@ -419,7 +420,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
                 {
                     collectionContainer.Hide();
                     collectionsViewContainer.Show();
-                    currentCollection = null;
+                    CurrentCollection = null;
                 }
             }
 
