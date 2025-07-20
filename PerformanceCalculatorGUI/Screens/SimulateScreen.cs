@@ -688,7 +688,7 @@ namespace PerformanceCalculatorGUI.Screens
             }
         }
 
-        private void changeBeatmap(string beatmap)
+        private void changeBeatmap(string beatmap, bool overwriteCache = false)
         {
             beatmapDataContainer.Hide();
 
@@ -701,7 +701,7 @@ namespace PerformanceCalculatorGUI.Screens
 
             try
             {
-                working = ProcessorWorkingBeatmap.FromFileOrId(beatmap, audio, configManager.GetBindable<string>(Settings.CachePath).Value);
+                working = ProcessorWorkingBeatmap.FromFileOrId(beatmap, audio, configManager.GetBindable<string>(Settings.CachePath).Value, overwriteCache);
             }
             catch (Exception e)
             {
@@ -723,7 +723,28 @@ namespace PerformanceCalculatorGUI.Screens
             }
 
             beatmapTitle.Clear();
-            beatmapTitle.Add(new BeatmapCard(working));
+            beatmapTitle.Add(new GridContainer
+            {
+                RelativeSizeAxes = Axes.Both,
+                ColumnDimensions = new[] { new Dimension(), new Dimension(GridSizeMode.AutoSize) },
+                RowDimensions = new[] { new Dimension() },
+                Content = new []
+                {
+                    new Drawable[]
+                    {
+                        new BeatmapCard(working),
+                        beatmapImportTypeSwitch.Current.Value ? Empty() : new RoundedButton
+                        {
+                            Width = 150,
+                            Text = "Reset Cache",
+                            Action = () =>
+                            {
+                                changeBeatmap(beatmap, true);
+                            }
+                        }
+                    }
+                }
+            });
 
             loadBackground();
 
@@ -1028,11 +1049,10 @@ namespace PerformanceCalculatorGUI.Screens
         {
             createCalculators();
             resetMods();
-            populateScoreParams();
 
             calculateDifficultyAsync().ContinueWith(_ =>
             {
-                Schedule(() => updateCombo(false));
+                Schedule(() => populateScoreParams());
                 calculatePerformance();
             });
         }

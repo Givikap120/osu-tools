@@ -56,7 +56,7 @@ namespace PerformanceCalculatorGUI
                 return Decoder.GetDecoder<Beatmap>(reader).Decode(reader);
         }
 
-        public static ProcessorWorkingBeatmap FromFileOrId(string fileOrId, AudioManager audioManager = null, string cachePath = "cache")
+        public static ProcessorWorkingBeatmap FromFileOrId(string fileOrId, AudioManager audioManager = null, string cachePath = "cache", bool overwriteCache = false)
         {
             if (fileOrId.EndsWith(".osu", StringComparison.Ordinal))
             {
@@ -71,7 +71,7 @@ namespace PerformanceCalculatorGUI
 
             cachePath = Path.Combine(cachePath, $"{beatmapId}.osu");
 
-            if (!File.Exists(cachePath))
+            if (!File.Exists(cachePath) || overwriteCache)
             {
                 Console.WriteLine($"Downloading {beatmapId}.osu...");
 
