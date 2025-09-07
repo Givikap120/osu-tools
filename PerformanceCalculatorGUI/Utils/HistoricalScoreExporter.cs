@@ -123,12 +123,7 @@ namespace PerformanceCalculatorGUI.Utils
             double length = Beatmap.CalculatePlayableLength() * 0.001 / rate;
             double starRating = Attributes.StarRating;
 
-            var originalDifficulty = new BeatmapDifficulty(BeatmapInfo.Difficulty);
-
-            foreach (var mod in Score.Mods.OfType<IApplicableToDifficulty>())
-                mod.ApplyToDifficulty(originalDifficulty);
-
-            var adjustedDifficulty = Ruleset.GetRateAdjustedDisplayDifficulty(originalDifficulty, rate);
+            var adjustedDifficulty = Ruleset.GetAdjustedDisplayDifficulty(BeatmapInfo, Score.Mods);
 
             string modInfo = $"{modsString},{rate:F2},{bpm:F0},{length:F0},{starRating:F2},{adjustedDifficulty.CircleSize:F1},{adjustedDifficulty.DrainRate:F1},{adjustedDifficulty.OverallDifficulty:F1},{adjustedDifficulty.ApproachRate:F1}";
 

@@ -20,9 +20,6 @@ using osuTK.Graphics;
 using osu.Framework.Logging;
 using PerformanceCalculatorGUI.Components.Scores;
 using PerformanceCalculatorGUI.Utils;
-using osu.Game.Rulesets.Mods;
-using osu.Game.Utils;
-using osu.Game.Rulesets;
 
 namespace PerformanceCalculatorGUI.Screens.Profile
 {
@@ -239,19 +236,6 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     isCalculating = false;
                 });
             }, token);
-        }
-
-        private BeatmapDifficulty getAdjustedDifficulty(Mod[] mods, IBeatmapInfo beatmapInfo, Ruleset rulesetInstance)
-        {
-            double rate = ModUtils.CalculateRateWithMods(mods);
-            BeatmapDifficulty difficulty = new BeatmapDifficulty(beatmapInfo.Difficulty);
-
-            foreach (var mod in mods.OfType<IApplicableToDifficulty>())
-                mod.ApplyToDifficulty(difficulty);
-
-            difficulty = rulesetInstance.GetRateAdjustedDisplayDifficulty(difficulty, rate);
-
-            return difficulty;
         }
 
         private List<List<ScoreInfo>> getRelevantScores(ScoreInfoCacheManager scoreManager)
