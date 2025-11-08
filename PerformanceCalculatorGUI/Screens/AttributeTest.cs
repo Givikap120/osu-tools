@@ -8,6 +8,7 @@ using osu.Framework.Extensions.ObjectExtensions;
 using osu.Game.Beatmaps;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Osu.Difficulty;
+using osu.Game.Rulesets.Osu.Difficulty.Preprocessing;
 using osu.Game.Rulesets.Osu.Mods;
 
 namespace PerformanceCalculatorGUI.Screens
@@ -174,18 +175,120 @@ namespace PerformanceCalculatorGUI.Screens
             if (savedAR != null) DA.ApproachRate.Value = savedAR;
         }
 
-        public static void TestCS(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
+        public static void TestCS_old(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
         {
             List<Mod> localMods = new List<Mod>(appliedMods);
-
-            // HALF TIME
             OsuModDifficultyAdjust DA = getModOrAdd<OsuModDifficultyAdjust>(localMods);
-            for (float CS = 0f; CS <= 7.01f; CS += 0.5f)
+
+            for (float CS = 2f; CS <= 8.01f; CS += 0.1f)
             {
                 DA.CircleSize.Value = CS;
                 var (difficulty, performance) = calc(localMods);
-                Console.WriteLine($"CS{CS:0.0#} (AR{beatmapDifficulty.ApproachRate:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+                //Console.WriteLine($"CS{CS:0.0#} (AR{beatmapDifficulty.ApproachRate:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+                //Console.WriteLine($"CS{CS:0.0#}: {difficulty.StarRating:0.##}* {performance.Total:0}pp ({performance.Aim:0} aim, {performance.Speed:0} speed)");
+                Console.WriteLine($"{CS:0.0#},{difficulty.StarRating:0.##},{performance.Total:0},{performance.Aim:0},{performance.Speed:0}");
             }
+        }
+
+        public static void TestCS(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
+        {
+            List<Mod> localMods = new List<Mod>(appliedMods);
+            OsuModDifficultyAdjust DA = getModOrAdd<OsuModDifficultyAdjust>(localMods);
+
+            const double base_cs = 0;
+            double baseRadius = 54.4 - 4.48 * base_cs;
+
+            //const double base_spacing = 60.5;
+
+            for (double d = 1; d <= 4; d += 0.01)
+            {
+                double radius = baseRadius / d;
+                double CS = (54.4 - radius) / 4.48;
+
+                DA.CircleSize.Value = (float)CS;
+                var (difficulty, performance) = calc(localMods);
+
+                //double spacing = d * base_spacing / (2 * OsuDifficultyHitObject.NORMALISED_RADIUS);
+
+                Console.WriteLine($"{d:0.0#},{difficulty.StarRating:0.##},{performance.Total:0},{performance.Aim:0},{performance.Speed:0}");
+            }
+        }
+
+        public static void TestHR(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
+        {
+            var localMods = new List<Mod>(appliedMods);
+            var da = getModOrAdd<OsuModDifficultyAdjust>(localMods);
+
+            var beatmapDifficultyHR = beatmapDifficulty.Clone();
+            new OsuModHardRock().ApplyToDifficulty(beatmapDifficultyHR);
+
+            applyDifficultyToDA(beatmapDifficulty, da);
+            double baseVal = calc(localMods).performance.Total;
+
+            applyDifficultyToDA(beatmapDifficultyHR, da);
+            double hrVal = calc(localMods).performance.Total;
+
+            Console.WriteLine($"{baseVal:0}pp -> {hrVal:0}pp");
+
+            testParam("CS", d => d.CircleSize, beatmapDifficulty, beatmapDifficultyHR, da, calc, localMods, baseVal, hrVal);
+            testParam("AR", d => d.ApproachRate, beatmapDifficulty, beatmapDifficultyHR, da, calc, localMods, baseVal, hrVal);
+            testParam("OD", d => d.OverallDifficulty, beatmapDifficulty, beatmapDifficultyHR, da, calc, localMods, baseVal, hrVal);
+        }
+
+        public static void TestEZ(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
+        {
+            var localMods = new List<Mod>(appliedMods);
+            var da = getModOrAdd<OsuModDifficultyAdjust>(localMods);
+
+            var beatmapDifficultyEZ = beatmapDifficulty.Clone();
+            new OsuModEasy().ApplyToDifficulty(beatmapDifficultyEZ);
+
+            applyDifficultyToDA(beatmapDifficulty, da);
+            double baseVal = calc(localMods).performance.Total;
+
+            applyDifficultyToDA(beatmapDifficultyEZ, da);
+            double hrVal = calc(localMods).performance.Total;
+
+            Console.WriteLine($"{baseVal:0}pp -> {hrVal:0}pp");
+
+            testParam("CS", d => d.CircleSize, beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, hrVal);
+            testParam("AR", d => d.ApproachRate, beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, hrVal);
+            testParam("OD", d => d.OverallDifficulty, beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, hrVal);
+        }
+
+        private static void testParam(string name, Func<BeatmapDifficulty, double> getter, BeatmapDifficulty diff, BeatmapDifficulty diffAdj, OsuModDifficultyAdjust da, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes diffAttr, OsuPerformanceAttributes perfAttr)> calc, List<Mod> localMods, double baseVal, double adjVal)
+        {
+            double plus, minus;
+
+            applyDifficultyToDA(diff, da);
+            setParamInDA(da, name, getter(diffAdj));
+            plus = calc(localMods).perfAttr.Total;
+
+            applyDifficultyToDA(diffAdj, da);
+            setParamInDA(da, name, getter(diff));
+            minus = calc(localMods).perfAttr.Total;
+
+            int result = (int)Math.Round(((plus - baseVal) + (adjVal - minus)) / 2);
+            Console.WriteLine($"{name}: {result:+0;-0;0}pp");
+            //Console.WriteLine($"{name}: {result:+0;-0;0}pp ({plus - baseVal:0.##}pp, {adjVal - minus:0.##}pp)");
+        }
+
+        private static void setParamInDA(OsuModDifficultyAdjust DA, string name, double value)
+        {
+            switch (name)
+            {
+                case "CS": DA.CircleSize.Value = (float)value; break;
+                case "AR": DA.ApproachRate.Value = (float)value; break;
+                case "OD": DA.OverallDifficulty.Value = (float)value; break;
+            }
+        }
+
+        private static void applyDifficultyToDA(BeatmapDifficulty source, OsuModDifficultyAdjust DA)
+        {
+            DA.CircleSize.Value = source.CircleSize;
+            DA.ApproachRate.Value = source.ApproachRate;
+            DA.OverallDifficulty.Value = source.OverallDifficulty;
+            DA.DrainRate.Value = source.DrainRate;
         }
     }
 }

@@ -431,6 +431,22 @@ namespace PerformanceCalculatorGUI.Screens
                                                             BackgroundColour = colourProvider.Background1,
                                                             Text = "CS"
                                                         },
+                                                        new RoundedButton
+                                                        {
+                                                            Width = 40,
+                                                            Margin = new MarginPadding { Top = 4.0f, Right = 5.0f },
+                                                            Action = testHR,
+                                                            BackgroundColour = colourProvider.Background1,
+                                                            Text = "HR"
+                                                        },
+                                                        new RoundedButton
+                                                        {
+                                                            Width = 40,
+                                                            Margin = new MarginPadding { Top = 4.0f, Right = 5.0f },
+                                                            Action = testEZ,
+                                                            BackgroundColour = colourProvider.Background1,
+                                                            Text = "EZ"
+                                                        },
                                                         skillTextBox = new LimitedLabelledNumberBox
                                                         {
                                                             RelativeSizeAxes = Axes.None,
@@ -1305,12 +1321,11 @@ namespace PerformanceCalculatorGUI.Screens
         }
 
         private void testAR() => AttributeTest.TestAR(working.BeatmapInfo.Difficulty, appliedMods.Value, calc);
-
         private void testDT() => AttributeTest.TestDT(working.BeatmapInfo.Difficulty, appliedMods.Value, calc);
-
         private void testDTfixedAR() => AttributeTest.TestDTFixedAR(working.BeatmapInfo.Difficulty, appliedMods.Value, calc);
-
         private void testCS() => AttributeTest.TestCS(working.BeatmapInfo.Difficulty, appliedMods.Value, calc);
+        private void testHR() => AttributeTest.TestHR(working.BeatmapInfo.Difficulty, appliedMods.Value, calc);
+        private void testEZ() => AttributeTest.TestEZ(working.BeatmapInfo.Difficulty, appliedMods.Value, calc);
 
         private List<ObjectProbablityInfo> getHitDataInfo()
         {
