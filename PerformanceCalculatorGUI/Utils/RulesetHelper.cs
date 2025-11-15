@@ -474,8 +474,10 @@ namespace PerformanceCalculatorGUI
         public static RealmAccess GetRealmAccess(GameHost gameHost, string lazerPath)
         {
             var storage = gameHost.GetStorage(lazerPath);
-            File.Copy(Path.Combine(lazerPath, @"client.realm"), getValidRealmCopyName(lazerPath), true);
-            var realmAccess = new RealmAccess(storage, @"client_osutools_copy.realm");
+            string copyName = getValidRealmCopyName(lazerPath);
+
+            File.Copy(Path.Combine(lazerPath, @"client.realm"), copyName, true);
+            var realmAccess = new RealmAccess(storage, copyName);
             return realmAccess;
         }
 
