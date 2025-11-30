@@ -13,7 +13,7 @@ using osu.Game.Rulesets;
 using PerformanceCalculatorGUI.Configuration;
 using osu.Framework.Logging;
 
-namespace PerformanceCalculatorGUI.Screens.Collections
+namespace PerformanceCalculatorGUI.Screens.MyCollections
 {
     public partial class CollectionsScreenAddScorePopover : OsuPopover
     {

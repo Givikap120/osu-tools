@@ -30,9 +30,9 @@ namespace PerformanceCalculatorGUI.Components.Collections
 
         private RoundedButton activeCollectionButton;
 
-        private readonly Collection collection;
+        private readonly MyCollection collection;
 
-        public CollectionPopover(Collection collection)
+        public CollectionPopover(MyCollection collection)
         {
             this.collection = collection;
         }

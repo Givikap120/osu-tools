@@ -27,9 +27,9 @@ using PerformanceCalculatorGUI.Components.Collections;
 using PerformanceCalculatorGUI.Components.Scores;
 using PerformanceCalculatorGUI.Configuration;
 
-namespace PerformanceCalculatorGUI.Screens.Collections
+namespace PerformanceCalculatorGUI.Screens.MyCollections
 {
-    public partial class CollectionsScreen : PerformanceCalculatorScreen
+    public partial class MyCollectionsScreen : PerformanceCalculatorScreen
     {
         public override bool ShouldShowConfirmationDialogOnSwitch => false;
 
@@ -54,7 +54,7 @@ namespace PerformanceCalculatorGUI.Screens.Collections
         [Resolved]
         private DialogOverlay dialogOverlay { get; set; }
 
-        public Collection CurrentCollection { get; private set; }
+        public MyCollection CurrentCollection { get; private set; }
 
         private VerboseLoadingLayer loadingLayer;
         private FillFlowContainer collectionsViewContainer;
@@ -253,21 +253,21 @@ namespace PerformanceCalculatorGUI.Screens.Collections
             {
                 collectionsViewContainer.Clear();
 
-                foreach (Collection collection in collections.Collections)
+                foreach (MyCollection collection in collections.Collections)
                     collectionsViewContainer.Add(new CollectionCard(collection) { Action = () => openCollection(collection) });
 
                 collectionsViewContainer.Add(new CollectionCard()
                 {
                     Action = () =>
                     {
-                        collections.Collections.Add(new Collection("New Collection", 0, ruleset.Value.OnlineID));
+                        collections.Collections.Add(new MyCollection("New Collection", 0, ruleset.Value.OnlineID));
                         collections.SaveCollections();
                     }
                 });
             });
         }
 
-        private void openCollection(Collection collection)
+        private void openCollection(MyCollection collection)
         {
             collectionsViewContainer.Hide();
             collectionContainer.Show();

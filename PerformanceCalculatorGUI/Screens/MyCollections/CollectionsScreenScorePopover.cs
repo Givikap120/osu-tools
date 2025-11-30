@@ -9,7 +9,7 @@ using osu.Game.Overlays.Dialog;
 using PerformanceCalculatorGUI.Components.Scores;
 using PerformanceCalculatorGUI.Configuration;
 
-namespace PerformanceCalculatorGUI.Screens.Collections
+namespace PerformanceCalculatorGUI.Screens.MyCollections
 {
     public partial class CollectionsScreenScorePopover : ScorePopover
     {
@@ -19,10 +19,10 @@ namespace PerformanceCalculatorGUI.Screens.Collections
         [Resolved]
         private CollectionManager collections { get; set; }
 
-        private readonly CollectionsScreen parent;
+        private readonly MyCollectionsScreen parent;
         private readonly DrawableExtendedProfileScore drawableScore;
 
-        public CollectionsScreenScorePopover(CollectionsScreen parent, DrawableExtendedProfileScore drawableScore) : base(drawableScore.Score)
+        public CollectionsScreenScorePopover(MyCollectionsScreen parent, DrawableExtendedProfileScore drawableScore) : base(drawableScore.Score)
         {
             this.parent = parent;
             this.drawableScore = drawableScore;

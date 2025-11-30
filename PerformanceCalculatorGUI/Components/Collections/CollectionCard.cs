@@ -28,12 +28,12 @@ namespace PerformanceCalculatorGUI.Components.Collections
         private CancellationTokenSource cancellationToken;
         private Sprite backgroundSprite;
 
-        public Collection Collection { get; }
+        public MyCollection Collection { get; }
 
         [Resolved]
         private LargeTextureStore textures { get; set; }
 
-        public CollectionCard(Collection collection = null)
+        public CollectionCard(MyCollection collection = null)
             : base(HoverSampleSet.Button)
         {
             Collection = collection;

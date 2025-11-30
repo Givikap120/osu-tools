@@ -8,7 +8,7 @@ using PerformanceCalculatorGUI.Screens;
 
 namespace PerformanceCalculatorGUI.Configuration
 {
-    public class Collection
+    public class MyCollection
     {
         [JsonProperty("name")]
         public Bindable<string> Name { get; protected set; }
@@ -25,11 +25,11 @@ namespace PerformanceCalculatorGUI.Configuration
         [JsonIgnore]
         public BindableList<ScoreInfo> Scores { get; private set; } = [];
 
-        public Collection()
+        public MyCollection()
         {
         }
 
-        public Collection(string name, int coverBeatmapSetId, int rulesetId)
+        public MyCollection(string name, int coverBeatmapSetId, int rulesetId)
         {
             Name = new Bindable<string>(name);
             CoverBeatmapSetId = new Bindable<string>(coverBeatmapSetId.ToString());
@@ -77,7 +77,7 @@ namespace PerformanceCalculatorGUI.Configuration
         }
     }
 
-    public class ProfileCollection : Collection
+    public class ProfileCollection : MyCollection
     {
         [JsonProperty("player")]
         public Bindable<RecalculationPlayer> Player { get; private set; }
@@ -101,16 +101,16 @@ namespace PerformanceCalculatorGUI.Configuration
         private const string collections_file_path = "collections.json";
         private const string collection_profiles_file_path = "collection_profiles.json";
 
-        public BindableList<Collection> Collections { get; private set; }
+        public BindableList<MyCollection> Collections { get; private set; }
         public BindableList<ProfileCollection> CollectionProfiles { get; private set; }
 
-        public Collection ActiveCollection = null;
+        public MyCollection ActiveCollection = null;
 
         public CollectionManager()
         {
         }
 
-        private List<T> loadCollectionList<T>(string filePath) where T : Collection
+        private List<T> loadCollectionList<T>(string filePath) where T : MyCollection
         {
             if (!File.Exists(filePath))
                 File.WriteAllText(filePath, "[]");
@@ -126,16 +126,16 @@ namespace PerformanceCalculatorGUI.Configuration
 
         public void Load()
         {
-            Collections = [.. loadCollectionList<Collection>(collections_file_path)];
+            Collections = [.. loadCollectionList<MyCollection>(collections_file_path)];
             CollectionProfiles = [.. loadCollectionList<ProfileCollection>(collection_profiles_file_path)];
 
             if (Collections.Count == 0)
             {
-                Collections.Add(new Collection("Test Collection", 1, 0));
+                Collections.Add(new MyCollection("Test Collection", 1, 0));
             }
         }
 
-        private void save<T>(BindableList<T> collections, string filePath) where T : Collection
+        private void save<T>(BindableList<T> collections, string filePath) where T : MyCollection
         {
             foreach (var collection in collections)
             {
