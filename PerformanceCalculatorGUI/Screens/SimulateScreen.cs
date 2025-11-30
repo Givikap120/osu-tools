@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using osu.Framework;
 using osu.Framework.Allocation;
@@ -132,6 +133,9 @@ namespace PerformanceCalculatorGUI.Screens
 
         public override bool ShouldShowConfirmationDialogOnSwitch => working != null;
 
+        [GeneratedRegex(@"osu\.ppy\.sh/(?:b|beatmapsets/\d+#\w+|beatmaps)/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+        private partial Regex beatmapLinkRegex();
+
         private const int file_selection_container_height = 40;
         private const int map_title_container_height = 40;
         private const float mod_selection_container_scale = 0.7f;
@@ -146,6 +150,12 @@ namespace PerformanceCalculatorGUI.Screens
         {
             InternalChildren = new Drawable[]
             {
+                new Box
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Colour = colourProvider.Background6,
+                    Alpha = 0.85f
+                },
                 new GridContainer
                 {
                     RelativeSizeAxes = Axes.Both,
@@ -176,11 +186,11 @@ namespace PerformanceCalculatorGUI.Screens
                                             FixedLabelWidth = 100f,
                                             PlaceholderText = "Click to select a beatmap file"
                                         },
-                                        beatmapIdTextBox = new LimitedLabelledNumberBox
+                                        beatmapIdTextBox = new ExtendedLabelledTextBox
                                         {
                                             Label = "Beatmap ID",
                                             FixedLabelWidth = 100f,
-                                            PlaceholderText = "Enter beatmap ID",
+                                            PlaceholderText = "Enter a beatmap ID or link",
                                             CommitOnFocusLoss = false
                                         },
                                         beatmapImportTypeSwitch = new SwitchButton
@@ -715,6 +725,13 @@ namespace PerformanceCalculatorGUI.Screens
                 return;
             }
 
+            var beatmapLinkMatch = beatmapLinkRegex().Match(beatmap);
+
+            if (beatmapLinkMatch.Success && beatmapLinkMatch.Groups.Count == 2)
+            {
+                beatmap = beatmapLinkMatch.Groups[1].ToString();
+            }
+
             try
             {
                 working = ProcessorWorkingBeatmap.FromFileOrId(beatmap, audio, configManager.GetBindable<string>(Settings.CachePath).Value, overwriteCache);
@@ -1119,12 +1136,6 @@ namespace PerformanceCalculatorGUI.Screens
                             Anchor = Anchor.Centre,
                             Origin = Anchor.Centre,
                             FillMode = FillMode.Fill
-                        },
-                        new Box
-                        {
-                            RelativeSizeAxes = Axes.Both,
-                            Colour = OsuColour.Gray(0),
-                            Alpha = 0.85f
                         },
                     }
                 }).ContinueWith(_ =>

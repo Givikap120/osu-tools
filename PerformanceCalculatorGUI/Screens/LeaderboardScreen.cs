@@ -11,6 +11,7 @@ using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Shapes;
 using osu.Framework.Logging;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.UserInterface;
@@ -87,6 +88,11 @@ namespace PerformanceCalculatorGUI.Screens
         {
             InternalChildren = new Drawable[]
             {
+                new Box
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Colour = colourProvider.Background6
+                },
                 new GridContainer
                 {
                     RelativeSizeAxes = Axes.Both,
@@ -278,7 +284,7 @@ namespace PerformanceCalculatorGUI.Screens
 
                     foreach (var calculatedScore in calculatedScores.OrderByDescending(x => x.PerformanceAttributes.Total))
                     {
-                        scores.Add(new DrawableExtendedProfileScore(calculatedScore));
+                        scores.Add(new ExtendedProfileScore(calculatedScore, true));
                     }
                 });
             }, token).ContinueWith(t =>
@@ -324,11 +330,11 @@ namespace PerformanceCalculatorGUI.Screens
                         var difficultyAttributes = difficultyCalculator.Calculate(mods);
                         var performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
 
-                        double? livePp = score.PP;
                         var perfAttributes = performanceCalculator?.Calculate(parsedScore.ScoreInfo, difficultyAttributes);
-                        score.PP = perfAttributes?.Total ?? 0.0;
+                        //score.PP = perfAttributes?.Total ?? 0.0;
 
-                        var extendedScore = new ExtendedProfileScore(score, livePp, difficultyAttributes, perfAttributes);
+                        //var extendedScore = new ExtendedProfileScore(score, livePp, difficultyAttributes, perfAttributes);
+                        var extendedScore = new ExtendedScore(score, difficultyAttributes, perfAttributes);
                         plays.Add(extendedScore);
                     }
                     catch (Exception e)
@@ -346,11 +352,11 @@ namespace PerformanceCalculatorGUI.Screens
             }
             catch (OperationCanceledException) { }
 
-            var localOrdered = plays.OrderByDescending(x => x.SoloScore.PP).ToList();
+            var localOrdered = plays.OrderByDescending(x => x.PerformanceAttributes.Total).ToList();
             var liveOrdered = plays.OrderByDescending(x => x.LivePP ?? 0.0).ToList();
 
             int index = 0;
-            decimal totalLocalPP = (decimal)(localOrdered.Select(x => x.SoloScore.PP).Sum(play => Math.Pow(0.95, index++) * play) ?? 0.0);
+            decimal totalLocalPP = (decimal)localOrdered.Select(x => x.PerformanceAttributes.Total).Sum(play => Math.Pow(0.95, index++) * play);
             decimal totalLivePP = player.PP ?? (decimal)0.0;
 
             index = 0;

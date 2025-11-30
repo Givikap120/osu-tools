@@ -109,7 +109,7 @@ namespace PerformanceCalculatorGUI.Components
                                 new Box
                                 {
                                     RelativeSizeAxes = Axes.Both,
-                                    Colour = colourProvider.Background5
+                                    Colour = colourProvider.Background4
                                 },
                                 new ExtendedOsuCheckbox
                                 {
@@ -164,7 +164,7 @@ namespace PerformanceCalculatorGUI.Components
                     new Box
                     {
                         RelativeSizeAxes = Axes.Both,
-                        Colour = colourProvider.Background6,
+                        Colour = colourProvider.Background5,
                         Alpha = 0.6f
                     },
                     new FillFlowContainer

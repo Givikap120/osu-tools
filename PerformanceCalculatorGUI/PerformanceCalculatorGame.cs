@@ -17,6 +17,7 @@ using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Osu;
 using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Configuration;
+using PerformanceCalculatorGUI.Screens.Collections;
 
 namespace PerformanceCalculatorGUI
 {
@@ -60,6 +61,9 @@ namespace PerformanceCalculatorGUI
             var notificationDisplay = new NotificationDisplay();
             dependencies.CacheAs(notificationDisplay);
 
+            var scoreCache = new ScoreCache();
+            dependencies.CacheAs(scoreCache);
+
             AddRange(new Drawable[]
             {
                 new OsuContextMenuContainer
@@ -68,7 +72,8 @@ namespace PerformanceCalculatorGUI
                     Child = new PerformanceCalculatorSceneManager()
                 },
                 dialogOverlay,
-                notificationDisplay
+                notificationDisplay,
+                scoreCache
             });
         }
 

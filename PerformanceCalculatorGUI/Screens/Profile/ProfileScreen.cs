@@ -10,6 +10,7 @@ using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Shapes;
 using osu.Framework.Input.Events;
 using osu.Framework.Logging;
 using osu.Game.Graphics;
@@ -171,6 +172,11 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
             InternalChildren = new Drawable[]
             {
+                new Box
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Colour = colourProvider.Background6
+                },
                 layout = new GridContainer
                 {
                     RelativeSizeAxes = Axes.Both,
@@ -485,11 +491,11 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                             if (performanceCalculator == null)
                                 continue;
 
-                            double? livePp = score.PP;
                             var perfAttributes = await performanceCalculator.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, token).ConfigureAwait(false);
-                            score.PP = perfAttributes.Total;
+                            //score.PP = perfAttributes.Total;
 
-                            var extendedScore = new ExtendedProfileScore(parsedScore.ScoreInfo, livePp, difficultyAttributes, perfAttributes);
+                            //var extendedScore = new ExtendedProfileScore(parsedScore.ScoreInfo, livePp, difficultyAttributes, perfAttributes);
+                            var extendedScore = new ExtendedScore(score, difficultyAttributes, perfAttributes);
                             plays.Add(extendedScore);
 
                             if (addScoreImmediately) addScoreToUI(extendedScore, calculatingSingleProfile);
@@ -560,6 +566,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     var player = players.First();
 
                     decimal totalLocalPP = 0;
+
                     for (int i = 0; i < localOrdered.Count; i++)
                         totalLocalPP += (decimal)(Math.Pow(0.95, i) * localOrdered[i].PerformanceAttributes.Total);
 
@@ -569,9 +576,14 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     for (int i = 0; i < liveOrdered.Count; i++)
                         nonBonusLivePP += (decimal)(Math.Pow(0.95, i) * (liveOrdered[i].LivePP ?? 0));
 
-                    //todo: implement properly. this is pretty damn wrong.
+                    // This is correct implementation but I'm not using it for the sake of accuracy
+                    // https://github.com/ppy/osu-queue-score-statistics/blob/842653412d66eef527f7b7067b7cf50e886de954/osu.Server.Queues.ScoreStatisticsProcessor/Helpers/UserTotalPerformanceAggregateHelper.cs#L36-L38
+                    // this might be slightly incorrect for some profiles due to the deduplication happening on the osu-queue-score-statistics side which we can't account for here
+                    //decimal playcountBonusPP = (decimal)((417.0 - 1.0 / 3.0) * (1.0 - Math.Pow(0.995, Math.Min(player.BeatmapPlayCountsCount, 1000))));
+
                     playcountBonusPP = (totalLivePP - nonBonusLivePP);
                     playcountBonusPP = Math.Max(playcountBonusPP, (decimal)(416.6667 * (1 - Math.Pow(0.995, localOrdered.Count))));
+                    
                     totalLocalPP += playcountBonusPP;
 
                     Schedule(() =>
