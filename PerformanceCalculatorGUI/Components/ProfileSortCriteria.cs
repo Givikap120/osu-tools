@@ -11,7 +11,7 @@ namespace PerformanceCalculatorGUI.Components
         Local
     }
 
-    public enum CollectionSortCriteria
+    public enum MyCollectionSortCriteria
     {
         Live,
         Index,

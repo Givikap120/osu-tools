@@ -30,7 +30,6 @@ using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
 using osu.Framework.Platform;
 using ButtonState = PerformanceCalculatorGUI.Components.ButtonState;
-using PerformanceCalculatorGUI.Components.Scores;
 using osu.Game.Graphics.UserInterface;
 using osu.Game.Overlays.Dialog;
 
@@ -47,7 +46,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
         private GridContainer layout;
 
-        private FillFlowContainer<DrawableProfileScore> scores;
+        private FillFlowContainer<ExtendedProfileScore> scores;
 
         private LabelledTextBox usernameTextBox;
         private Container userPanelContainer;
@@ -146,7 +145,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                             var profileScore = drawableScore.Score;
                             var scoreInfo = profileScore.ScoreInfoSource;
                             scoreInfo.PP = profileScore.PerformanceAttributes.Total;
-                            ((DrawableExtendedProfileScore)drawableScore).LivePP = profileScore.PerformanceAttributes.Total;
+                            ((ExtendedProfileScore)drawableScore).LivePP = profileScore.PerformanceAttributes.Total;
                         }
 
                         collections.SaveCollectionProfiles();
@@ -270,7 +269,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                             new OsuScrollContainer(Direction.Vertical)
                             {
                                 RelativeSizeAxes = Axes.Both,
-                                Child = scores = new FillFlowContainer<DrawableProfileScore>
+                                Child = scores = new FillFlowContainer<ExtendedProfileScore>
                                 {
                                     RelativeSizeAxes = Axes.X,
                                     AutoSizeAxes = Axes.Y,
@@ -363,7 +362,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
         private bool isCalculating = false;
 
-        private void addScoreToUI(ExtendedProfileScore score, bool calculatingSingleProfile) => Schedule(() => scores.Add(new DrawableExtendedProfileScore(score, !calculatingSingleProfile)
+        private void addScoreToUI(ExtendedScore score, bool calculatingSingleProfile) => Schedule(() => scores.Add(new ExtendedProfileScore(score, !calculatingSingleProfile)
         {
             PopoverMaker = () => new ProfileScreenScorePopover(score, this)
         }));
@@ -434,7 +433,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 if (token.IsCancellationRequested)
                     return;
 
-                var plays = new List<ExtendedProfileScore>();
+                var plays = new List<ExtendedScore>();
                 var players = new List<APIUser>();
 
                 bool calculatingSingleProfile = usernames.Length == 1;
@@ -491,11 +490,11 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                             if (performanceCalculator == null)
                                 continue;
 
+                            double? livePp = score.PP;
                             var perfAttributes = await performanceCalculator.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, token).ConfigureAwait(false);
-                            //score.PP = perfAttributes.Total;
+                            score.PP = perfAttributes.Total;
 
-                            //var extendedScore = new ExtendedProfileScore(parsedScore.ScoreInfo, livePp, difficultyAttributes, perfAttributes);
-                            var extendedScore = new ExtendedScore(score, difficultyAttributes, perfAttributes);
+                            var extendedScore = new ExtendedScore(parsedScore.ScoreInfo, livePp, difficultyAttributes, perfAttributes);
                             plays.Add(extendedScore);
 
                             if (addScoreImmediately) addScoreToUI(extendedScore, calculatingSingleProfile);
@@ -530,7 +529,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 {
                     Schedule(() => loadingLayer.Text.Value = "Filtering plays");
 
-                    var filteredPlays = new List<ExtendedProfileScore>();
+                    var filteredPlays = new List<ExtendedScore>();
 
                     // List of all beatmap IDs in plays without duplicates
                     var beatmapIDs = plays.Select(x => x.SoloScore.BeatmapID).Distinct().ToList();
@@ -583,7 +582,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
                     playcountBonusPP = (totalLivePP - nonBonusLivePP);
                     playcountBonusPP = Math.Max(playcountBonusPP, (decimal)(416.6667 * (1 - Math.Pow(0.995, localOrdered.Count))));
-                    
+
                     totalLocalPP += playcountBonusPP;
 
                     Schedule(() =>
@@ -639,12 +638,12 @@ namespace PerformanceCalculatorGUI.Screens.Profile
             if (profileImportTypeDropdown.Current.Value == ProfileCalculationType.Realm)
                 return;
 
-            DrawableProfileScore[] sortedScores;
+            ExtendedProfileScore[] sortedScores;
 
             switch (sortCriteria)
             {
                 case ProfileSortCriteria.Live:
-                    sortedScores = scores.Children.OrderByDescending(x => ((ExtendedProfileScore)x.Score).LivePP).ToArray();
+                    sortedScores = scores.Children.OrderByDescending(x => (x.Score).LivePP).ToArray();
                     break;
 
                 case ProfileSortCriteria.Local:
@@ -652,11 +651,11 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     break;
 
                 case ProfileSortCriteria.Difference:
-                    sortedScores = scores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total - ((ExtendedProfileScore)x.Score).LivePP).ToArray();
+                    sortedScores = scores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total - (x.Score).LivePP).ToArray();
                     break;
 
                 case ProfileSortCriteria.Percentage:
-                    sortedScores = scores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total / ((ExtendedProfileScore)x.Score).LivePP).ToArray();
+                    sortedScores = scores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total / (x.Score).LivePP).ToArray();
                     break;
 
                 default:
@@ -668,7 +667,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
             for (int i = 0; i < sortedScores.Length; i++)
             {
                 scores.SetLayoutPosition(sortedScores[i], i);
-                ((DrawableExtendedProfileScore)sortedScores[i]).DifferenceMode = differenceMode;
+                sortedScores[i].DifferenceMode = differenceMode;
             }
         }
     }

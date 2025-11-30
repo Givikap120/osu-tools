@@ -6,10 +6,10 @@ using System.Collections.Generic;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Platform;
 using osu.Game.Graphics.UserInterfaceV2;
 using osuTK;
-using PerformanceCalculatorGUI.Components.Scores;
-using osu.Framework.Platform;
+using PerformanceCalculatorGUI.Components;
 
 namespace PerformanceCalculatorGUI.Screens
 {
@@ -18,9 +18,9 @@ namespace PerformanceCalculatorGUI.Screens
         [Resolved]
         private GameHost host { get; set; }
 
-        protected ProfileScore Score { get; private set; }
+        protected ExtendedScore Score { get; private set; }
 
-        public ScorePopover(ProfileScore score)
+        public ScorePopover(ExtendedScore score)
         {
             Score = score;
         }

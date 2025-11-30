@@ -24,7 +24,6 @@ using osu.Game.Scoring;
 using osuTK.Input;
 using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Components.Collections;
-using PerformanceCalculatorGUI.Components.Scores;
 using PerformanceCalculatorGUI.Configuration;
 
 namespace PerformanceCalculatorGUI.Screens.MyCollections
@@ -60,7 +59,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
         private FillFlowContainer collectionsViewContainer;
         private GridContainer collectionContainer;
         private SpriteText collectionNameText;
-        private FillFlowContainer<DrawableExtendedProfileScore> drawableScores;
+        private FillFlowContainer<ExtendedProfileScore> drawableScores;
 
         private CancellationTokenSource calculationCancellatonToken;
         private NotifyCollectionChangedEventHandler collectionChangedEventHandler;
@@ -70,8 +69,8 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
         private RoundedButton activeCollectionButton;
         private AddScoresButton addScoresButton;
 
-        private OverlaySortTabControl<CollectionSortCriteria> sortingTabControl;
-        private readonly Bindable<CollectionSortCriteria> sorting = new Bindable<CollectionSortCriteria>(CollectionSortCriteria.Difference);
+        private OverlaySortTabControl<MyCollectionSortCriteria> sortingTabControl;
+        private readonly Bindable<MyCollectionSortCriteria> sorting = new Bindable<MyCollectionSortCriteria>(MyCollectionSortCriteria.Difference);
 
         private bool isCalculating = false;
 
@@ -131,7 +130,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                                             Origin = Anchor.CentreLeft
                                         },
                                         new EmptyDrawable(),
-                                        sortingTabControl = new OverlaySortTabControl<CollectionSortCriteria>
+                                        sortingTabControl = new OverlaySortTabControl<MyCollectionSortCriteria>
                                         {
                                             Anchor = Anchor.CentreRight,
                                             Origin = Anchor.CentreRight,
@@ -166,7 +165,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                                                 }));
                                             }
                                         },
-                                        addScoresButton = new AddScoresButton()
+                                        addScoresButton = new AddScoresButton(this)
                                         {
                                             Width = 150,
                                             Height = collection_controls_height,
@@ -202,7 +201,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                             new OsuScrollContainer(Direction.Vertical)
                             {
                                 RelativeSizeAxes = Axes.Both,
-                                Child = drawableScores = new FillFlowContainer<DrawableExtendedProfileScore>
+                                Child = drawableScores = new FillFlowContainer<ExtendedProfileScore>
                                 {
                                     RelativeSizeAxes = Axes.X,
                                     AutoSizeAxes = Axes.Y,
@@ -301,7 +300,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                 Schedule(() =>
                 {
                     sortingTabControl.Alpha = 1.0f;
-                    sortingTabControl.Current.Value = CollectionSortCriteria.Difference;
+                    sortingTabControl.Current.Value = MyCollectionSortCriteria.Difference;
                     drawableScores.Clear();
                 });
 
@@ -330,7 +329,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                     double livePP = score.PP ?? 0.0;
                     var perfAttributes = await (performanceCalculator?.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, calculationCancellatonToken.Token)).ConfigureAwait(false)!;
 
-                    addScoreToUI(new ExtendedProfileScore(score, livePP, difficultyAttributes, perfAttributes));
+                    addScoreToUI(new ExtendedScore(score, livePP, difficultyAttributes, perfAttributes));
                 }
 
                 Schedule(() =>
@@ -350,51 +349,51 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
             });
         }
 
-        private void addScoreToUI(ExtendedProfileScore score)
+        private void addScoreToUI(ExtendedScore score)
         {
             Schedule(() =>
             {
-                var drawable = new DrawableExtendedProfileScore(score) { DifferenceMode = sorting.Value.GetDifferenceMode() };
+                var drawable = new ExtendedProfileScore(score) { DifferenceMode = sorting.Value.GetDifferenceMode() };
                 drawable.PopoverMaker = () => new CollectionsScreenScorePopover(this, drawable);
 
                 drawableScores.Add(drawable);
             });
         }
 
-        public void DeleteScoreFromCollection(DrawableExtendedProfileScore drawableScore)
+        public void DeleteScoreFromCollection(ExtendedProfileScore drawableScore)
         {
             CurrentCollection.Scores.Remove(drawableScore.Score.ScoreInfoSource);
             collections.SaveCollections();
             drawableScores.Remove(drawableScore, true);
         }
 
-        private void updateSorting(CollectionSortCriteria sortCriteria)
+        private void updateSorting(MyCollectionSortCriteria sortCriteria)
         {
             if (!drawableScores.Children.Any())
                 return;
 
-            DrawableProfileScore[] sortedScores;
+            ExtendedProfileScore[] sortedScores;
 
             switch (sortCriteria)
             {
-                case CollectionSortCriteria.Index:
+                case MyCollectionSortCriteria.Index:
                     sortedScores = drawableScores.Children.OrderBy(x => CurrentCollection.Scores.IndexOf(x.Score.ScoreInfoSource)).ToArray();
                     break;
 
-                case CollectionSortCriteria.Live:
-                    sortedScores = drawableScores.Children.OrderByDescending(x => ((ExtendedProfileScore)x.Score).LivePP).ToArray();
+                case MyCollectionSortCriteria.Live:
+                    sortedScores = drawableScores.Children.OrderByDescending(x => (x.Score).LivePP).ToArray();
                     break;
 
-                case CollectionSortCriteria.Local:
+                case MyCollectionSortCriteria.Local:
                     sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total).ToArray();
                     break;
 
-                case CollectionSortCriteria.Difference:
-                    sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total - ((ExtendedProfileScore)x.Score).LivePP).ToArray();
+                case MyCollectionSortCriteria.Difference:
+                    sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total - (x.Score).LivePP).ToArray();
                     break;
 
-                case CollectionSortCriteria.Percentage:
-                    sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total / ((ExtendedProfileScore)x.Score).LivePP).ToArray();
+                case MyCollectionSortCriteria.Percentage:
+                    sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total / (x.Score).LivePP).ToArray();
                     break;
 
                 default:
@@ -406,7 +405,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
             for (int i = 0; i < sortedScores.Length; i++)
             {
                 drawableScores.SetLayoutPosition(sortedScores[i], i);
-                ((DrawableExtendedProfileScore)sortedScores[i]).DifferenceMode = differenceMode;
+                sortedScores[i].DifferenceMode = differenceMode;
             }
         }
 
@@ -442,7 +441,14 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
 
         private partial class AddScoresButton : RoundedButton, IHasPopover
         {
-            public Popover GetPopover() => new CollectionsScreenAddScorePopover();
+            private MyCollectionsScreen parent;
+
+            public AddScoresButton(MyCollectionsScreen parent)
+            {
+                this.parent = parent;
+            }
+
+            public Popover GetPopover() => new CollectionsScreenAddScorePopover(parent.CurrentCollection);
         }
     }
 }

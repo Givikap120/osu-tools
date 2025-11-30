@@ -24,7 +24,6 @@ namespace PerformanceCalculatorGUI
 
             return attributeValues.Select(x => new KeyValuePair<string, object>(x.Key.Humanize().ToLowerInvariant(), x.Value)).ToDictionary(x => x.Key, y => y.Value);
         }
-
         public static string ToReadableString(DifficultyAttributes attributes)
         {
             var dictionary = ToDictionary(attributes);
@@ -34,10 +33,9 @@ namespace PerformanceCalculatorGUI
 
         public static string ToReadableString(PerformanceAttributes attributes)
         {
-            var dictionary = ToDictionary(performanceAttributes);
-            string performanceAttributesString = string.Join("\n", dictionary.Select(x => $"{x.Key}: {x.Value:N2}"));
+            var dictionary = ToDictionary(attributes);
 
-            return $"Star Rating: {difficultyAttributes.StarRating:N2}★\n" + performanceAttributesString;
+            return string.Join("\n", dictionary.Select(x => $"{x.Key}: {x.Value:N2}"));
         }
     }
 }

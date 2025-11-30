@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Scoring;
-using PerformanceCalculatorGUI.Components.Scores;
 using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Configuration;
 using osu.Framework.Allocation;
@@ -85,7 +84,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
             loadingLayer.Show();
 
-            var plays = new List<ExtendedProfileScore>();
+            var plays = new List<ExtendedScore>();
 
             Task.Run(async () =>
             {
@@ -131,7 +130,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     double livePP = score.PP ?? 0.0;
                     var perfAttributes = await (performanceCalculator?.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, calculationCancellatonToken.Token)).ConfigureAwait(false)!;
 
-                    var play = new ExtendedProfileScore(score, livePP, difficultyAttributes, perfAttributes);
+                    var play = new ExtendedScore(score, livePP, difficultyAttributes, perfAttributes);
                     plays.Add(play);
                     addScoreToUI(play, true);
                 }

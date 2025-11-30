@@ -33,8 +33,14 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
         private SettingsManager configManager { get; set; }
 
         private LabelledTextBox scoreIdTextBox;
-        private SwitchButton legasyScoreSwitch;
         private StatefulButton addScoreButton;
+
+        private MyCollection currentCollection;
+
+        public CollectionsScreenAddScorePopover(MyCollection currentCollection)
+        {
+            this.currentCollection = currentCollection;
+        }
 
         private void tryAddScoreFromId(string scoreId)
         {
@@ -48,7 +54,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                 var soloScoreInfo = await apiManager.GetJsonFromApi<SoloScoreInfo>($"scores/{scoreId}").ConfigureAwait(false);
                 var beatmap = ProcessorWorkingBeatmap.FromFileOrId(soloScoreInfo.BeatmapID.ToString(), null, configManager.GetBindable<string>(Settings.CachePath).Value);
                 var score = soloScoreInfo.ToScoreInfo(rulesets, beatmap?.BeatmapInfo);
-                collections.ActiveCollection.Scores.Insert(0, score);
+                currentCollection.Scores.Insert(0, score);
                 collections.SaveCollections();
             }).ContinueWith(t =>
             {

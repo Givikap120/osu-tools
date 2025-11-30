@@ -4,10 +4,10 @@
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Game.Graphics.UserInterfaceV2;
-using PerformanceCalculatorGUI.Configuration;
-using PerformanceCalculatorGUI.Components.Scores;
-using osu.Game.Overlays.Dialog;
 using osu.Game.Overlays;
+using osu.Game.Overlays.Dialog;
+using PerformanceCalculatorGUI.Components;
+using PerformanceCalculatorGUI.Configuration;
 
 namespace PerformanceCalculatorGUI.Screens.Profile
 {
@@ -21,7 +21,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
         private readonly ProfileScreen parent;
 
-        public ProfileScreenScorePopover(ProfileScore score, ProfileScreen parent) : base(score)
+        public ProfileScreenScorePopover(ExtendedScore score, ProfileScreen parent) : base(score)
         {
             this.parent = parent;
         }

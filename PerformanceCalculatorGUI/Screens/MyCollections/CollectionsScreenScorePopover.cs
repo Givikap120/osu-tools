@@ -6,7 +6,7 @@ using osu.Framework.Graphics;
 using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Overlays;
 using osu.Game.Overlays.Dialog;
-using PerformanceCalculatorGUI.Components.Scores;
+using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Configuration;
 
 namespace PerformanceCalculatorGUI.Screens.MyCollections
@@ -20,9 +20,9 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
         private CollectionManager collections { get; set; }
 
         private readonly MyCollectionsScreen parent;
-        private readonly DrawableExtendedProfileScore drawableScore;
+        private readonly ExtendedProfileScore drawableScore;
 
-        public CollectionsScreenScorePopover(MyCollectionsScreen parent, DrawableExtendedProfileScore drawableScore) : base(drawableScore.Score)
+        public CollectionsScreenScorePopover(MyCollectionsScreen parent, ExtendedProfileScore drawableScore) : base(drawableScore.Score)
         {
             this.parent = parent;
             this.drawableScore = drawableScore;

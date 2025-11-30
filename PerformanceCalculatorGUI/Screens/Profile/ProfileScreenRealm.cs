@@ -18,7 +18,6 @@ using osu.Game.Scoring.Legacy;
 using System.IO;
 using osuTK.Graphics;
 using osu.Framework.Logging;
-using PerformanceCalculatorGUI.Components.Scores;
 using PerformanceCalculatorGUI.Utils;
 
 namespace PerformanceCalculatorGUI.Screens.Profile
@@ -97,7 +96,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 if (token.IsCancellationRequested)
                     return;
 
-                var plays = new List<ProfileScore>();
+                var plays = new List<ExtendedScore>();
 
                 var rulesetInstance = ruleset.Value.CreateInstance();
                 var realmScores = getRelevantScores(scoreManager);
@@ -126,7 +125,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
                     var difficultyCalculator = rulesetInstance.CreateDifficultyCalculator(working);
 
-                    List<ProfileScore> tempScores = [];
+                    List<ExtendedScore> tempScores = [];
 
                     Dictionary<int, DifficultyAttributes> attributesCache = new();
 
@@ -170,7 +169,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                         if (settingsMenu.ExportInCSV)
                             allScores.Add((score, working, difficultyAttributes));
 
-                        tempScores.Add(new ProfileScore(score, difficultyAttributes, perfAttributes));
+                        tempScores.Add(new ExtendedScore(score, difficultyAttributes, perfAttributes));
                     }
 
                     var topScore = tempScores.MaxBy(s => s.SoloScore.PP);
@@ -178,7 +177,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                         continue;
 
                     plays.Add(topScore);
-                    Schedule(() => scores.Add(new DrawableProfileScore(topScore)
+                    Schedule(() => scores.Add(new ExtendedProfileScore(topScore)
                     {
                         PopoverMaker = () => new ProfileScreenScorePopover(topScore, this)
                     }));

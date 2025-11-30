@@ -22,7 +22,6 @@ using osu.Game.Rulesets;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Users;
 using PerformanceCalculatorGUI.Components;
-using PerformanceCalculatorGUI.Components.Scores;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
 
@@ -33,7 +32,7 @@ namespace PerformanceCalculatorGUI.Screens
         public decimal LivePP { get; set; }
         public decimal LocalPP { get; set; }
 
-        public List<ExtendedProfileScore> Scores { get; set; }
+        public List<ExtendedScore> Scores { get; set; }
     }
 
     public partial class LeaderboardScreen : PerformanceCalculatorScreen
@@ -249,7 +248,7 @@ namespace PerformanceCalculatorGUI.Screens
                 var leaderboard = await apiManager.GetJsonFromApi<GetTopUsersResponse>($"rankings/{ruleset.Value.ShortName}/performance?cursor[page]={pageTextBox.Value.Value - 1}").ConfigureAwait(false);
 
                 var calculatedPlayers = new List<LeaderboardUser>();
-                var calculatedScores = new List<ExtendedProfileScore>();
+                var calculatedScores = new List<ExtendedScore>();
 
                 for (int i = 0; i < playerAmountTextBox.Value.Value; i++)
                 {
@@ -306,7 +305,7 @@ namespace PerformanceCalculatorGUI.Screens
             if (token.IsCancellationRequested)
                 return new UserLeaderboardData();
 
-            var plays = new List<ExtendedProfileScore>();
+            var plays = new List<ExtendedScore>();
 
             var apiScores = await apiManager.GetJsonFromApi<List<SoloScoreInfo>>($"users/{player.User.OnlineID}/scores/best?mode={ruleset.Value.ShortName}&limit=100").ConfigureAwait(false);
 
@@ -330,11 +329,11 @@ namespace PerformanceCalculatorGUI.Screens
                         var difficultyAttributes = difficultyCalculator.Calculate(mods);
                         var performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
 
+                        double? livePp = score.PP;
                         var perfAttributes = performanceCalculator?.Calculate(parsedScore.ScoreInfo, difficultyAttributes);
-                        //score.PP = perfAttributes?.Total ?? 0.0;
+                        score.PP = perfAttributes?.Total ?? 0.0;
 
-                        //var extendedScore = new ExtendedProfileScore(score, livePp, difficultyAttributes, perfAttributes);
-                        var extendedScore = new ExtendedScore(score, difficultyAttributes, perfAttributes);
+                        var extendedScore = new ExtendedScore(score, livePp, difficultyAttributes, perfAttributes);
                         plays.Add(extendedScore);
                     }
                     catch (Exception e)

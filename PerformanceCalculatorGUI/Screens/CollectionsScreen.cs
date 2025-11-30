@@ -291,7 +291,7 @@ namespace PerformanceCalculatorGUI.Screens
                     var perfAttributes = performanceCalculator.Calculate(parsedScore.ScoreInfo, difficultyAttributes);
                     Schedule(() =>
                     {
-                        var scoreContainer = new ScoreContainer(new ExtendedScore(score, difficultyAttributes, perfAttributes));
+                        var scoreContainer = new ScoreContainer(new ExtendedScore(parsedScore.ScoreInfo, difficultyAttributes, perfAttributes));
                         scoreContainer.OnDelete += onScoreRemove;
 
                         scoresList.Add(scoreContainer);
