@@ -488,6 +488,8 @@ namespace PerformanceCalculatorGUI.Components
                 }
             });
 
+            updateLabels();
+
             Score.PositionChange.BindValueChanged(v => { positionChangeText.Text = $"{v.NewValue:+0;-0;-}"; });
         }
 
@@ -520,12 +522,13 @@ namespace PerformanceCalculatorGUI.Components
             {
                 case DifferenceMode.Delta:
                     double? deltaDifference = Score.PerformanceAttributes.Total - Score.LivePP;
+                    double? percentageDifference = Score.PerformanceAttributes.Total / Score.LivePP - 1;
                     differenceDisplay.Text = $"{deltaDifference:+0.0;-0.0;-}";
-                    differenceDisplay.Colour = getColorForPpDifference(deltaDifference ?? 0);
+                    differenceDisplay.Colour = getColorForPercentageDifference(percentageDifference ?? 0);
                     break;
 
                 case DifferenceMode.Percent:
-                    double? percentageDifference = Score.PerformanceAttributes.Total / Score.LivePP - 1;
+                    percentageDifference = Score.PerformanceAttributes.Total / Score.LivePP - 1;
                     differenceDisplay.Text = $"{percentageDifference:+0.0%;-0.0%;-}";
                     differenceDisplay.Colour = getColorForPercentageDifference(percentageDifference ?? 0);
                     break;
@@ -606,7 +609,7 @@ namespace PerformanceCalculatorGUI.Components
 
         private Colour4 getColorForPercentageDifference(double percentageDifference)
         {
-            double t = Math.Clamp(percentageDifference / 0.25, -1.0, 1.0);
+            double t = Math.Clamp(percentageDifference / 0.15, -1.0, 1.0);
 
             if (t < 0)
                 return colourLerp(Colour4.Red, colourProvider.Light1, (float)(t + 1.0));
