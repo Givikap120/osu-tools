@@ -256,6 +256,15 @@ namespace PerformanceCalculatorGUI.Screens
             testParam("OD", d => d.OverallDifficulty, beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, hrVal);
         }
 
+        public static void TestAcc(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, double, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
+        {
+            for (double acc = 0.80; acc <= 0.981; acc += 0.01)
+            {
+                var result = calc(appliedMods, acc).performance;
+                Console.WriteLine($"{acc * 100:0}% - {result.SpeedDeviation * 10:0} UR: {result.Total:0}pp");
+            }
+        }
+
         private static void testParam(string name, Func<BeatmapDifficulty, double> getter, BeatmapDifficulty diff, BeatmapDifficulty diffAdj, OsuModDifficultyAdjust da, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes diffAttr, OsuPerformanceAttributes perfAttr)> calc, List<Mod> localMods, double baseVal, double adjVal)
         {
             double plus, minus;

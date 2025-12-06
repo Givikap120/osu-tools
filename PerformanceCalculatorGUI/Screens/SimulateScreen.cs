@@ -458,6 +458,14 @@ namespace PerformanceCalculatorGUI.Screens
                                                             BackgroundColour = colourProvider.Background1,
                                                             Text = "EZ"
                                                         },
+                                                        new RoundedButton
+                                                        {
+                                                            Width = 50,
+                                                            Margin = new MarginPadding { Top = 4.0f, Right = 5.0f },
+                                                            Action = testAcc,
+                                                            BackgroundColour = colourProvider.Background1,
+                                                            Text = "Acc"
+                                                        },
                                                         skillTextBox = new LimitedLabelledNumberBox
                                                         {
                                                             RelativeSizeAxes = Axes.None,
@@ -1296,6 +1304,15 @@ namespace PerformanceCalculatorGUI.Screens
             return ((OsuDifficultyAttributes)diffAttributes, (OsuPerformanceAttributes)ppAttributes);
         }
 
+        private (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance) calc(IReadOnlyList<Mod> mods, double accuracy)
+        {
+            double initialAccuracy = accuracyTextBox.Value.Value;
+            accuracyTextBox.Value.Value = accuracy * 100.0;
+            var result = calc(mods);
+            accuracyTextBox.Value.Value = initialAccuracy;
+            return result;
+        }
+
         private (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance) calc(IReadOnlyList<Mod> mods)
         {
             int? countGood = null, countMeh = null;
@@ -1338,6 +1355,7 @@ namespace PerformanceCalculatorGUI.Screens
         private void testCS() => AttributeTest.TestCS(working.BeatmapInfo.Difficulty, appliedMods.Value, calc);
         private void testHR() => AttributeTest.TestHR(working.BeatmapInfo.Difficulty, appliedMods.Value, calc);
         private void testEZ() => AttributeTest.TestEZ(working.BeatmapInfo.Difficulty, appliedMods.Value, calc);
+        private void testAcc() => AttributeTest.TestAcc(working.BeatmapInfo.Difficulty, appliedMods.Value, calc);
 
         private List<ObjectProbablityInfo> getHitDataInfo()
         {
