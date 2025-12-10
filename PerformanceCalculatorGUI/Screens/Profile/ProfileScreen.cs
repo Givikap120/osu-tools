@@ -650,6 +650,10 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     sortedScores = scores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total).ToArray();
                     break;
 
+                case ProfileSortCriteria.StarRating:
+                    sortedScores = scores.Children.OrderByDescending(x => x.Score.DifficultyAttributes.StarRating).ToArray();
+                    break;
+
                 case ProfileSortCriteria.Difference:
                     sortedScores = scores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total - (x.Score).LivePP).ToArray();
                     break;

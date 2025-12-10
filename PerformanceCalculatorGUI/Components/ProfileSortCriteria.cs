@@ -7,6 +7,7 @@ namespace PerformanceCalculatorGUI.Components
     {
         Live,
         Difference,
+        StarRating,
         Percentage,
         Local
     }
@@ -15,6 +16,7 @@ namespace PerformanceCalculatorGUI.Components
     {
         Live,
         Index,
+        StarRating,
         Difference,
         Percentage,
         Local

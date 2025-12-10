@@ -388,6 +388,10 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                     sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total).ToArray();
                     break;
 
+                case MyCollectionSortCriteria.StarRating:
+                    sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.DifficultyAttributes.StarRating).ToArray();
+                    break;
+
                 case MyCollectionSortCriteria.Difference:
                     sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total - (x.Score).LivePP).ToArray();
                     break;
