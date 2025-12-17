@@ -466,31 +466,31 @@ namespace PerformanceCalculatorGUI.Screens
                                                             BackgroundColour = colourProvider.Background1,
                                                             Text = "Acc"
                                                         },
-                                                        skillTextBox = new LimitedLabelledNumberBox
-                                                        {
-                                                            RelativeSizeAxes = Axes.None,
-                                                            Width = 120,
-                                                            Margin = new MarginPadding { Top = 4.0f, Right = 5.0f },
-                                                            Label = "Skill",
-                                                            PlaceholderText = "1000",
-                                                            MinValue = 0
-                                                        },
-                                                        new RoundedButton
-                                                        {
-                                                            Width = 50,
-                                                            Margin = new MarginPadding { Top = 4.0f, Right = 5.0f },
-                                                            Action = printFCProbability,
-                                                            BackgroundColour = colourProvider.Background1,
-                                                            Text = "Test"
-                                                        },
-                                                        new RoundedButton
-                                                        {
-                                                            Width = 60,
-                                                            Margin = new MarginPadding { Top = 4.0f, Right = 5.0f },
-                                                            Action = exportHitData,
-                                                            BackgroundColour = colourProvider.Background1,
-                                                            Text = "Export"
-                                                        },
+                                                        //skillTextBox = new LimitedLabelledNumberBox
+                                                        //{
+                                                        //    RelativeSizeAxes = Axes.None,
+                                                        //    Width = 120,
+                                                        //    Margin = new MarginPadding { Top = 4.0f, Right = 5.0f },
+                                                        //    Label = "Skill",
+                                                        //    PlaceholderText = "1000",
+                                                        //    MinValue = 0
+                                                        //},
+                                                        //new RoundedButton
+                                                        //{
+                                                        //    Width = 50,
+                                                        //    Margin = new MarginPadding { Top = 4.0f, Right = 5.0f },
+                                                        //    Action = printFCProbability,
+                                                        //    BackgroundColour = colourProvider.Background1,
+                                                        //    Text = "Test"
+                                                        //},
+                                                        //new RoundedButton
+                                                        //{
+                                                        //    Width = 60,
+                                                        //    Margin = new MarginPadding { Top = 4.0f, Right = 5.0f },
+                                                        //    Action = exportHitData,
+                                                        //    BackgroundColour = colourProvider.Background1,
+                                                        //    Text = "Export"
+                                                        //},
                                                         new RoundedButton
                                                         {
                                                             Width = 100,
