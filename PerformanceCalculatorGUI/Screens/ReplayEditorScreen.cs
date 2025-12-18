@@ -759,7 +759,6 @@ namespace PerformanceCalculatorGUI.Screens
             }
             filename += ".osr";
             var filepath = configManager.GetBindable<string>(Settings.ReplayPath).Value + "\\" + filename;
-            
 
             var encoder = new ExtendedScoreEncoder(editedScore, beatmap?.Beatmap);
             encoder.Export(filepath, useDefaulVersion: useDefaultVersionCheckbox.Current.Value, addNameMark: addMarkCheckbox.Current.Value);
@@ -1123,6 +1122,11 @@ namespace PerformanceCalculatorGUI.Screens
 
             public void ExportContainer(ref ScoreInfo scoreInfo)
             {
+#pragma warning disable CS0618
+                // This thing must be cleaned before exporting, as it would be automatically calculated during import in case combo values don't match
+                scoreInfo.MaximumStatistics[HitResult.LegacyComboIncrease] = 0;
+#pragma warning restore CS0618
+
                 foreach (var key in Score.Keys)
                 {
                     scoreInfo.Statistics[key] = safeParseInt(Score[key].Text);
