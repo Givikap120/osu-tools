@@ -23,19 +23,19 @@ namespace PerformanceCalculatorGUI.Components
 {
     public partial class SettingsPopover : OsuPopover
     {
-        private SettingsManager configManager;
+        private SettingsManager configManager = null!;
 
-        private LinkFlowContainer linkContainer;
+        private LinkFlowContainer linkContainer = null!;
 
-        private StatefulButton clearCacheButton;
+        private StatefulButton clearCacheButton = null!;
 
-        private Bindable<string> clientIdBindable;
-        private Bindable<string> clientSecretBindable;
-        private Bindable<string> pathBindable;
-        private Bindable<string> cacheBindable;
-        private Bindable<string> lazerPathBindable;
-        private Bindable<string> replaysBindable;
-        private Bindable<float> scaleBindable;
+        private Bindable<string> clientIdBindable = null!;
+        private Bindable<string> clientSecretBindable = null!;
+        private Bindable<string> pathBindable = null!;
+        private Bindable<string> cacheBindable = null!;
+        private Bindable<string> lazerPathBindable = null!;
+        private Bindable<string> replaysBindable = null!;
+        private Bindable<float> scaleBindable = null!;
 
         private const string api_key_link = "https://osu.ppy.sh/home/account/edit#new-oauth-application";
 
