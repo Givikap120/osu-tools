@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+// See the LICENCE file in the repository root for full licence text.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
@@ -11,10 +14,10 @@ namespace PerformanceCalculatorGUI.Configuration
     public class MyCollection
     {
         [JsonProperty("name")]
-        public Bindable<string> Name { get; protected set; }
+        public Bindable<string> Name { get; protected set; } = new Bindable<string>();
 
         [JsonProperty("cover_beatmapset_id")]
-        public Bindable<string> CoverBeatmapSetId { get; protected set; }
+        public Bindable<string> CoverBeatmapSetId { get; protected set; } = new Bindable<string>();
 
         [JsonProperty("ruleset_id")]
         public int RulesetId { get; set; }
@@ -31,8 +34,8 @@ namespace PerformanceCalculatorGUI.Configuration
 
         public MyCollection(string name, int coverBeatmapSetId, int rulesetId)
         {
-            Name = new Bindable<string>(name);
-            CoverBeatmapSetId = new Bindable<string>(coverBeatmapSetId.ToString());
+            Name.Value = name;
+            CoverBeatmapSetId.Value = coverBeatmapSetId.ToString();
             RulesetId = rulesetId;
         }
 
@@ -68,7 +71,7 @@ namespace PerformanceCalculatorGUI.Configuration
 
         private static ScoreInfo decodeScore(string data)
         {
-            var byteArray = Convert.FromBase64String(data); // Convert string back to bytes
+            byte[] byteArray = Convert.FromBase64String(data); // Convert string back to bytes
             using (var memoryStream = new MemoryStream(byteArray))
             using (var reader = new BinaryReader(memoryStream))
             {
@@ -87,8 +90,6 @@ namespace PerformanceCalculatorGUI.Configuration
 
         public ProfileCollection(RecalculationPlayer player, int rulesetId)
         {
-            if (player == null) return;
-
             Player = new Bindable<RecalculationPlayer>(player);
             Name = new Bindable<string>(player.Name);
             CoverBeatmapSetId = new Bindable<string>();
@@ -101,10 +102,10 @@ namespace PerformanceCalculatorGUI.Configuration
         private const string collections_file_path = "collections.json";
         private const string collection_profiles_file_path = "collection_profiles.json";
 
-        public BindableList<MyCollection> Collections { get; private set; }
-        public BindableList<ProfileCollection> CollectionProfiles { get; private set; }
+        public BindableList<MyCollection> Collections { get; private set; } = [];
+        public BindableList<ProfileCollection> CollectionProfiles { get; private set; } = [];
 
-        public MyCollection ActiveCollection = null;
+        public MyCollection? ActiveCollection = null;
 
         public CollectionManager()
         {
@@ -115,7 +116,8 @@ namespace PerformanceCalculatorGUI.Configuration
             if (!File.Exists(filePath))
                 File.WriteAllText(filePath, "[]");
 
-            var result = JsonConvert.DeserializeObject<List<T>>(File.ReadAllText(filePath));
+            var result = JsonConvert.DeserializeObject<List<T>>(File.ReadAllText(filePath)) ?? [];
+
             foreach (var collection in result)
             {
                 collection.DecodeScores();

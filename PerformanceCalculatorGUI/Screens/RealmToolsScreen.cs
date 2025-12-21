@@ -25,23 +25,23 @@ namespace PerformanceCalculatorGUI.Screens
 {
     public partial class RealmToolsScreen : PerformanceCalculatorScreen
     {
-        private VerboseLoadingLayer loadingLayer;
+        private VerboseLoadingLayer loadingLayer = null!;
 
-        private GridContainer layout;
+        private GridContainer layout = null!;
 
         // Export all scores
-        private StatefulButton exportAllScoresButton;
-        private LabelledSwitchButton clearExportFolderCheckbox;
-        private LabelledSwitchButton exportOnlyFromLazerCheckbox;
-        private LabelledTextBox exportDirectoryNameTextBox;
+        private StatefulButton exportAllScoresButton = null!;
+        private LabelledSwitchButton clearExportFolderCheckbox = null!;
+        //private LabelledSwitchButton exportOnlyFromLazerCheckbox = null!;
+        private LabelledTextBox exportDirectoryNameTextBox = null!;
 
-        private CancellationTokenSource calculationCancellatonToken;
+        private CancellationTokenSource? calculationCancellatonToken;
 
         [Cached]
         private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Red);
 
         [Resolved]
-        private NotificationDisplay notificationDisplay { get; set; }
+        private NotificationDisplay notificationDisplay { get; set; } = null!;
 
         //[Resolved]
         //private APIManager apiManager { get; set; }
@@ -53,10 +53,10 @@ namespace PerformanceCalculatorGUI.Screens
         //private RulesetStore rulesets { get; set; }
 
         [Resolved]
-        private SettingsManager configManager { get; set; }
+        private SettingsManager configManager { get; set; } = null!;
 
         [Resolved]
-        private GameHost gameHost { get; set; }
+        private GameHost gameHost { get; set; } = null!;
 
         public override bool ShouldShowConfirmationDialogOnSwitch => false;
 
@@ -145,7 +145,7 @@ namespace PerformanceCalculatorGUI.Screens
             calculationCancellatonToken = new CancellationTokenSource();
             var token = calculationCancellatonToken.Token;
 
-            var lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
+            string lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
 
             if (lazerPath == string.Empty)
             {
@@ -161,12 +161,12 @@ namespace PerformanceCalculatorGUI.Screens
 
             if (clearExportFolderCheckbox.Current.Value && Directory.Exists(exportDirectoryName))
             {
-                foreach (var file in Directory.GetFiles(exportDirectoryName))
+                foreach (string file in Directory.GetFiles(exportDirectoryName))
                 {
                     File.Delete(file);
                 }
 
-                foreach (var dir in Directory.GetDirectories(exportDirectoryName))
+                foreach (string dir in Directory.GetDirectories(exportDirectoryName))
                 {
                     Directory.Delete(dir, recursive: true);
                 }
@@ -176,7 +176,7 @@ namespace PerformanceCalculatorGUI.Screens
 
             var exportStorage = gameHost.GetStorage(exportDirectoryName);
 
-            Task.Run(async () =>
+            Task.Run(() =>
             {
                 Schedule(() => loadingLayer.Text.Value = "Getting all scores...");
                 var scores = realm.Run(r => r.All<ScoreInfo>().Detach());

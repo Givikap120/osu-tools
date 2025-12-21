@@ -43,75 +43,75 @@ using osuTK;
 using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
-using PerformanceCalculatorGUI.Screens.ObjectInspection;
+using PerformanceCalculatorGUI.Screens.Simulate;
 using PerformanceCalculatorGUI.Utils;
 
 namespace PerformanceCalculatorGUI.Screens
 {
     public partial class ReplayEditorScreen : PerformanceCalculatorScreen
     {
-        private ProcessorWorkingBeatmap beatmap;
-        private Score score;
+        private ProcessorWorkingBeatmap? beatmap;
+        private Score? score;
 
-        private ExtendedUserModSelectOverlay userModsSelectOverlay;
+        private ExtendedUserModSelectOverlay userModsSelectOverlay = null!;
 
-        private GridContainer replayImportContainer;
-        private LabelledTextBox replayFileTextBox;
-        private LabelledTextBox replayIdTextBox;
-        private SwitchButton replayImportTypeSwitch;
+        private GridContainer replayImportContainer = null!;
+        private LabelledTextBox replayFileTextBox = null!;
+        private LabelledTextBox replayIdTextBox = null!;
+        private SwitchButton replayImportTypeSwitch = null!;
 
-        private ReplayAttributeTextBox exportFilenameBox;
-        private OsuButton exportReplayButton;
+        private ReplayAttributeTextBox exportFilenameBox = null!;
+        private OsuButton exportReplayButton = null!;
 
-        private DifficultyAttributes difficultyAttributes;
-        private FillFlowContainer performanceAttributesContainer;
+        private DifficultyAttributes? difficultyAttributes;
+        //private FillFlowContainer performanceAttributesContainer = null!;
 
-        private PerformanceCalculator performanceCalculator;
+        private PerformanceCalculator? performanceCalculator = null!;
 
         [Cached]
         private Bindable<DifficultyCalculator> difficultyCalculator = new Bindable<DifficultyCalculator>();
 
-        private FillFlowContainer beatmapDataContainer;
-        private Container beatmapTitle;
+        private FillFlowContainer beatmapDataContainer = null!;
+        private Container beatmapTitle = null!;
 
-        private ModDisplay modDisplay;
+        private ModDisplay modDisplay = null!;
 
-        private ObjectInspector objectInspector;
+        //private ObjectInspector objectInspector = null!;
 
-        private BufferedContainer background;
+        private BufferedContainer background = null!;
 
-        private ScheduledDelegate debouncedPerformanceUpdate;
+        private ScheduledDelegate debouncedPerformanceUpdate = null!;
 
-        private BeatmapManager beatmapManager { get; set; }
-
-        [Resolved]
-        private GameHost gameHost { get; set; }
+        private BeatmapManager beatmapManager { get; set; } = null!;
 
         [Resolved]
-        private OsuGameBase game { get; set; }
+        private GameHost gameHost { get; set; } = null!;
 
         [Resolved]
-        private SettingsManager configManager { get; set; }
+        private OsuGameBase game { get; set; } = null!;
 
         [Resolved]
-        private RulesetStore rulesets { get; set; }
+        private SettingsManager configManager { get; set; } = null!;
 
         [Resolved]
-        private NotificationDisplay notificationDisplay { get; set; }
+        private RulesetStore rulesets { get; set; } = null!;
 
         [Resolved]
-        private AudioManager audio { get; set; }
+        private NotificationDisplay notificationDisplay { get; set; } = null!;
 
         [Resolved]
-        private Bindable<IReadOnlyList<Mod>> appliedMods { get; set; }
+        private AudioManager audio { get; set; } = null!;
 
         [Resolved]
-        private Bindable<RulesetInfo> ruleset { get; set; }
+        private Bindable<IReadOnlyList<Mod>> appliedMods { get; set; } = null!;
 
         [Resolved]
-        private LargeTextureStore textures { get; set; }
+        private Bindable<RulesetInfo> ruleset { get; set; } = null!;
 
-        [Cached] 
+        [Resolved]
+        private LargeTextureStore textures { get; set; } = null!;
+
+        [Cached]
         private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Purple);
 
         public override bool ShouldShowConfirmationDialogOnSwitch => beatmap != null;
@@ -122,43 +122,43 @@ namespace PerformanceCalculatorGUI.Screens
 
         // Replay attributes
 
-        private ReplayAttributeTextBox playerBox;
-        private ReplayAttributeCheckBox addMarkCheckbox;
+        private ReplayAttributeTextBox playerBox = null!;
+        private ReplayAttributeCheckBox addMarkCheckbox = null!;
 
-        private ReplayAttributeNumberBox versionBox;
-        private ReplayAttributeCheckBox useDefaultVersionCheckbox;
+        private ReplayAttributeNumberBox versionBox = null!;
+        private ReplayAttributeCheckBox useDefaultVersionCheckbox = null!;
 
-        private ReplayAttributeTextBox beatmapHashBox;
-        private OsuButton changeBeatmapHashButton;
+        private ReplayAttributeTextBox beatmapHashBox = null!;
+        private OsuButton changeBeatmapHashButton = null!;
 
-        private GridContainer greatGekiContainer;
-        private ReplayAttributeNumberBox greatBox;
-        private ReplayAttributeNumberBox gekiBox;
+        private GridContainer greatGekiContainer = null!;
+        private ReplayAttributeNumberBox greatBox = null!;
+        private ReplayAttributeNumberBox gekiBox = null!;
 
-        private GridContainer goodKatuContainer;
-        private ReplayAttributeNumberBox goodBox;
-        private ReplayAttributeNumberBox katuBox;
+        private GridContainer goodKatuContainer = null!;
+        private ReplayAttributeNumberBox goodBox = null!;
+        private ReplayAttributeNumberBox katuBox = null!;
 
-        private ReplayAttributeNumberBox mehBox;
-        private ReplayAttributeNumberBox missBox;
+        private ReplayAttributeNumberBox mehBox = null!;
+        private ReplayAttributeNumberBox missBox = null!;
 
-        private ReplayAttributeNumberBox scoreBox;
-        private ReplayAttributeNumberBox comboBox;
+        private ReplayAttributeNumberBox scoreBox = null!;
+        private ReplayAttributeNumberBox comboBox = null!;
 
-        private ReplayAttributeTextBox dateBox;
-        private ReplayAttributeNumberBox scoreIDBox;
+        private ReplayAttributeTextBox dateBox = null!;
+        private ReplayAttributeNumberBox scoreIDBox = null!;
 
-        private ReplayAttributeCheckBox isLegacyScoreBox;
-        private ReplayAttributeNumberBox legacyTotalScoreBox;
+        private ReplayAttributeCheckBox isLegacyScoreBox = null!;
+        private ReplayAttributeNumberBox legacyTotalScoreBox = null!;
 
         // Lazer-specific
 
-        private ReplayAttributeNumberBox lazerScoreIDBox;
-        private ReplayAttributeTextBox clientVersionBox;
+        private ReplayAttributeNumberBox lazerScoreIDBox = null!;
+        private ReplayAttributeTextBox clientVersionBox = null!;
 
-        private ReplayAttributeNumberBox scoreWithoutModsBox;
+        private ReplayAttributeNumberBox scoreWithoutModsBox = null!;
 
-        private StatisticsContainer statisticsContainer;
+        private StatisticsContainer statisticsContainer = null!;
 
         private static LabelledTextBox createTextDisplay(string name, string placeholder = "") => new LabelledTextBox
         {
@@ -204,7 +204,7 @@ namespace PerformanceCalculatorGUI.Screens
         [BackgroundDependencyLoader]
         private void load(OsuColour osuColour)
         {
-            var lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
+            string lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
             if (lazerPath != string.Empty)
             {
                 var realm = RulesetHelper.GetRealmAccess(gameHost, lazerPath);
@@ -538,8 +538,8 @@ namespace PerformanceCalculatorGUI.Screens
             base.Dispose(isDisposing);
         }
 
-        private ModSettingChangeTracker modSettingChangeTracker;
-        private ScheduledDelegate debouncedStatisticsUpdate;
+        private ModSettingChangeTracker? modSettingChangeTracker;
+        private ScheduledDelegate? debouncedStatisticsUpdate;
 
         private void modsChanged(ValueChangedEvent<IReadOnlyList<Mod>> mods)
         {
@@ -631,7 +631,7 @@ namespace PerformanceCalculatorGUI.Screens
             if (score is null)
                 return;
 
-            if (!score.ScoreInfo.Ruleset.Equals(ruleset.Value))
+            if (!score.ScoreInfo.Ruleset.Equals(ruleset.Value) && beatmap != null)
             {
                 ruleset.Value = beatmap.BeatmapInfo.Ruleset;
             }
@@ -652,8 +652,10 @@ namespace PerformanceCalculatorGUI.Screens
 
         private void updateInterfaceFromScore()
         {
+            if (score == null) return;
+
             playerBox.Text = score.ScoreInfo.User.Username;
-            if (playerBox.Text.EndsWith(" (edited)"))
+            if (playerBox.Text.EndsWith(" (edited)", StringComparison.InvariantCulture))
                 playerBox.Text = playerBox.Text[..^" (edited)".Length];
 
             versionBox.Text = score.ScoreInfo.TotalScoreVersion.ToString();
@@ -676,7 +678,7 @@ namespace PerformanceCalculatorGUI.Screens
             scoreIDBox.Text = score.ScoreInfo.LegacyOnlineID.ToString();
 
             isLegacyScoreBox.Current.Value = score.ScoreInfo.IsLegacyScore;
-            legacyTotalScoreBox.Text = score.ScoreInfo?.LegacyTotalScore.ToString() ?? "";
+            legacyTotalScoreBox.Text = score.ScoreInfo.LegacyTotalScore?.ToString() ?? "";
 
             appliedMods.Value = score.ScoreInfo.Mods;
 
@@ -688,11 +690,11 @@ namespace PerformanceCalculatorGUI.Screens
             statisticsContainer.ImportContainer(score.ScoreInfo);
         }
 
-        private static int safeParseInt(string s) => s == "" ? 0 :int.Parse(s);
+        private static int safeParseInt(string s) => s == "" ? 0 : int.Parse(s);
         private static long safeParseLong(string s) => s == "" ? 0 : long.Parse(s);
         private Score getCurrentScore()
         {
-            Score currentScore = score.DeepClone();
+            Score currentScore = score!.DeepClone();
 
             currentScore.ScoreInfo.User.Username = playerBox.Text;
 
@@ -758,7 +760,7 @@ namespace PerformanceCalculatorGUI.Screens
                 filename = exportFilenameBox.Current.Value;
             }
             filename += ".osr";
-            var filepath = configManager.GetBindable<string>(Settings.ReplayPath).Value + "\\" + filename;
+            string filepath = configManager.GetBindable<string>(Settings.ReplayPath).Value + "\\" + filename;
 
             var encoder = new ExtendedScoreEncoder(editedScore, beatmap?.Beatmap);
             encoder.Export(filepath, useDefaulVersion: useDefaultVersionCheckbox.Current.Value, addNameMark: addMarkCheckbox.Current.Value);
@@ -993,7 +995,7 @@ namespace PerformanceCalculatorGUI.Screens
         {
             Logger.Log(e.ToString(), level: LogLevel.Error);
 
-            var message = e is AggregateException aggregateException ? aggregateException.Flatten().Message : e.Message;
+            string message = e is AggregateException aggregateException ? aggregateException.Flatten().Message : e.Message;
             showError(message, false);
         }
 

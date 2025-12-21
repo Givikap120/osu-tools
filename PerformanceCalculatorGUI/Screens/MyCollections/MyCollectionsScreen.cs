@@ -1,5 +1,7 @@
-﻿using System;
-using System.Collections.Specialized;
+﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+// See the LICENCE file in the repository root for full licence text.
+
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -37,40 +39,40 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
         private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Aquamarine);
 
         [Resolved]
-        private OsuColour colours { get ; set; }
+        private OsuColour colours { get; set; } = null!;
 
         [Resolved]
-        private NotificationDisplay notificationDisplay { get; set; }
+        private NotificationDisplay notificationDisplay { get; set; } = null!;
 
         [Resolved]
-        private SettingsManager configManager { get; set; }
+        private SettingsManager configManager { get; set; } = null!;
 
         [Resolved]
-        private Bindable<RulesetInfo> ruleset { get; set; }
+        private Bindable<RulesetInfo> ruleset { get; set; } = null!;
 
         [Resolved]
-        private CollectionManager collections { get; set; }
+        private CollectionManager collections { get; set; } = null!;
 
         [Resolved]
-        private DialogOverlay dialogOverlay { get; set; }
+        private DialogOverlay dialogOverlay { get; set; } = null!;
 
-        public MyCollection CurrentCollection { get; private set; }
+        public MyCollection? CurrentCollection { get; private set; } = null!;
 
-        private VerboseLoadingLayer loadingLayer;
-        private FillFlowContainer collectionsViewContainer;
-        private GridContainer collectionContainer;
-        private SpriteText collectionNameText;
-        private FillFlowContainer<ExtendedProfileScore> drawableScores;
+        private VerboseLoadingLayer loadingLayer = null!;
+        private FillFlowContainer collectionsViewContainer = null!;
+        private GridContainer collectionContainer = null!;
+        private SpriteText collectionNameText = null!;
+        private FillFlowContainer<ExtendedProfileScore> drawableScores = null!;
 
-        private CancellationTokenSource calculationCancellatonToken;
-        private NotifyCollectionChangedEventHandler collectionChangedEventHandler;
+        private CancellationTokenSource calculationCancellatonToken = null!;
+        //private NotifyCollectionChangedEventHandler collectionChangedEventHandler = null!;
 
         private const float collection_controls_height = 40;
 
-        private RoundedButton activeCollectionButton;
-        private AddScoresButton addScoresButton;
+        private RoundedButton activeCollectionButton = null!;
+        private AddScoresButton addScoresButton = null!;
 
-        private OverlaySortTabControl<MyCollectionSortCriteria> sortingTabControl;
+        private OverlaySortTabControl<MyCollectionSortCriteria> sortingTabControl = null!;
         private readonly Bindable<MyCollectionSortCriteria> sorting = new Bindable<MyCollectionSortCriteria>(MyCollectionSortCriteria.Difference);
 
         private bool isCalculating = false;
@@ -162,8 +164,8 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                                                     foreach(var drawableScore in drawableScores.Children)
                                                     {
                                                         var profileScore = drawableScore.Score;
-                                                        var scoreInfo = profileScore.ScoreInfoSource;
-                                                        scoreInfo.PP = profileScore.PerformanceAttributes.Total;
+                                                        var scoreInfo = profileScore.ScoreInfoSource!;
+                                                        scoreInfo.PP = profileScore.PerformanceAttributes?.Total;
                                                         drawableScore.LivePP = profileScore.PerformanceAttributes?.Total ?? 0;
                                                     }
 
@@ -192,7 +194,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                                             {
                                                 dialogOverlay.Push(new ConfirmDialog("Do you really want to delete all scores in this collection?", () =>
                                                 {
-                                                    CurrentCollection.Scores.Clear();
+                                                    CurrentCollection?.Scores.Clear();
                                                     drawableScores.Clear();
                                                     collections.SaveCollections();
                                                 }));
@@ -283,7 +285,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
             if (collections.ActiveCollection == null) selectAsActiveCollection();
             else updateActiveCollectionButton();
 
-            collection.Scores.CollectionChanged += collectionChangedEventHandler;
+            //collection.Scores.CollectionChanged += collectionChangedEventHandler;
 
             ruleset.Value = RulesetHelper.GetRulesetFromLegacyID(collection.RulesetId).RulesetInfo;
             performCalculation();
@@ -317,13 +319,13 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                     if (calculationCancellatonToken.IsCancellationRequested)
                         return;
 
-                    var working = ProcessorWorkingBeatmap.FromFileOrId(score.BeatmapInfo.OnlineID.ToString(), cachePath: configManager.GetBindable<string>(Settings.CachePath).Value);
+                    var working = ProcessorWorkingBeatmap.FromFileOrId(score.BeatmapInfo!.OnlineID.ToString(), cachePath: configManager.GetBindable<string>(Settings.CachePath).Value);
 
                     Schedule(() => loadingLayer.Text.Value = $"Calculating {working.Metadata}");
 
                     var mods = score.Mods;
 
-                    var parsedScore = new ProcessorScoreDecoder(working).Parse(score);
+                    Score parsedScore = new ProcessorScoreDecoder(working).Parse(score);
 
                     var difficultyCalculator = rulesetInstance.CreateDifficultyCalculator(working);
                     var difficultyAttributes = difficultyCalculator.Calculate(mods);
@@ -333,7 +335,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                         return;
 
                     double livePP = score.PP ?? 0.0;
-                    var perfAttributes = await (performanceCalculator?.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, calculationCancellatonToken.Token)).ConfigureAwait(false)!;
+                    var perfAttributes = await (performanceCalculator?.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, calculationCancellatonToken.Token))!.ConfigureAwait(false);
 
                     addScoreToUI(new ExtendedScore(score, livePP, difficultyAttributes, perfAttributes));
                 }
@@ -368,7 +370,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
 
         public void DeleteScoreFromCollection(ExtendedProfileScore drawableScore)
         {
-            CurrentCollection.Scores.Remove(drawableScore.Score.ScoreInfoSource);
+            CurrentCollection?.Scores.Remove(drawableScore.Score.ScoreInfoSource!);
             collections.SaveCollections();
             drawableScores.Remove(drawableScore, true);
         }
@@ -383,7 +385,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
             switch (sortCriteria)
             {
                 case MyCollectionSortCriteria.Index:
-                    sortedScores = drawableScores.Children.OrderBy(x => CurrentCollection.Scores.IndexOf(x.Score.ScoreInfoSource)).ToArray();
+                    sortedScores = drawableScores.Children.OrderBy(x => CurrentCollection?.Scores.IndexOf(x.Score.ScoreInfoSource!)).ToArray();
                     break;
 
                 case MyCollectionSortCriteria.Live:
@@ -391,7 +393,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                     break;
 
                 case MyCollectionSortCriteria.Local:
-                    sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total).ToArray();
+                    sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes?.Total).ToArray();
                     break;
 
                 case MyCollectionSortCriteria.StarRating:
@@ -399,11 +401,11 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                     break;
 
                 case MyCollectionSortCriteria.Difference:
-                    sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total - (x.Score).LivePP).ToArray();
+                    sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes?.Total - (x.Score).LivePP).ToArray();
                     break;
 
                 case MyCollectionSortCriteria.Percentage:
-                    sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes.Total / (x.Score).LivePP).ToArray();
+                    sortedScores = drawableScores.Children.OrderByDescending(x => x.Score.PerformanceAttributes?.Total / (x.Score).LivePP).ToArray();
                     break;
 
                 default:

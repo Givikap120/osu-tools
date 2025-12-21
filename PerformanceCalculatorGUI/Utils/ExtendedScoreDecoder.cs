@@ -1,6 +1,8 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -58,7 +60,7 @@ namespace PerformanceCalculatorGUI.Utils
                 return null;
 
             // Try to get from lazer path
-            var lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
+            string lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
 
             if (lazerPath == string.Empty)
                 return workingBeatmap;
@@ -299,9 +301,11 @@ namespace PerformanceCalculatorGUI.Utils
                 var calculator = rulesetInstance.CreateDifficultyCalculator(workingBeatmap);
                 var attributes = calculator.Calculate(score.Mods);
 
+#pragma warning disable CS0618
                 int maxComboFromStatistics = score.MaximumStatistics.Where(kvp => kvp.Key.AffectsCombo()).Select(kvp => kvp.Value).DefaultIfEmpty(0).Sum();
                 if (attributes.MaxCombo > maxComboFromStatistics)
                     score.MaximumStatistics[HitResult.LegacyComboIncrease] = attributes.MaxCombo - maxComboFromStatistics;
+#pragma warning restore CS0618
             }
         }
 
@@ -351,10 +355,7 @@ namespace PerformanceCalculatorGUI.Utils
 
         private ReplayFrame convertFrame(LegacyReplayFrame currentFrame, ReplayFrame lastFrame)
         {
-            var convertible = currentRuleset.CreateConvertibleReplayFrame();
-            if (convertible == null)
-                throw new InvalidOperationException($"Legacy replay cannot be converted for the ruleset: {currentRuleset.Description}");
-
+            var convertible = currentRuleset.CreateConvertibleReplayFrame() ?? throw new InvalidOperationException($"Legacy replay cannot be converted for the ruleset: {currentRuleset.Description}");
             convertible.FromLegacy(currentFrame, currentBeatmap, lastFrame);
 
             var frame = (ReplayFrame)convertible;

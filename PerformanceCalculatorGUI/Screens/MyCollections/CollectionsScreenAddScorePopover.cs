@@ -18,26 +18,26 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
     public partial class CollectionsScreenAddScorePopover : OsuPopover
     {
         [Resolved]
-        private NotificationDisplay notificationDisplay { get; set; }
+        private NotificationDisplay notificationDisplay { get; set; } = null!;
 
         [Resolved]
-        private APIManager apiManager { get; set; }
+        private APIManager apiManager { get; set; } = null!;
 
         [Resolved]
-        private RulesetStore rulesets { get; set; }
+        private RulesetStore rulesets { get; set; } = null!;
 
         [Resolved]
-        private CollectionManager collections { get; set; }
+        private CollectionManager collections { get; set; } = null!;
 
         [Resolved]
-        private SettingsManager configManager { get; set; }
+        private SettingsManager configManager { get; set; } = null!;
 
-        private LabelledTextBox scoreIdTextBox;
-        private StatefulButton addScoreButton;
+        private LabelledTextBox scoreIdTextBox = null!;
+        private StatefulButton addScoreButton = null!;
 
-        private MyCollection currentCollection;
+        private MyCollection? currentCollection;
 
-        public CollectionsScreenAddScorePopover(MyCollection currentCollection)
+        public CollectionsScreenAddScorePopover(MyCollection? currentCollection)
         {
             this.currentCollection = currentCollection;
         }
@@ -54,7 +54,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                 var soloScoreInfo = await apiManager.GetJsonFromApi<SoloScoreInfo>($"scores/{scoreId}").ConfigureAwait(false);
                 var beatmap = ProcessorWorkingBeatmap.FromFileOrId(soloScoreInfo.BeatmapID.ToString(), null, configManager.GetBindable<string>(Settings.CachePath).Value);
                 var score = soloScoreInfo.ToScoreInfo(rulesets, beatmap?.BeatmapInfo);
-                currentCollection.Scores.Insert(0, score);
+                currentCollection?.Scores.Insert(0, score);
                 collections.SaveCollections();
             }).ContinueWith(t =>
             {
