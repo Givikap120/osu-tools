@@ -29,7 +29,6 @@ using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
 using osu.Framework.Platform;
-using PerformanceCalculatorGUI.Screens.Profile;
 using ButtonState = PerformanceCalculatorGUI.Components.ButtonState;
 using osu.Game.Graphics.UserInterface;
 using osu.Game.Overlays.Dialog;
@@ -54,20 +53,20 @@ namespace PerformanceCalculatorGUI.Screens.Profile
         private Container userPanelContainer = null!;
         private UserCard? userPanel;
 
-        private GridContainer setupContainer;
-        private Container profileImportTypeContainer;
-        private OsuEnumDropdown<ProfileCalculationType> profileImportTypeDropdown;
+        private GridContainer setupContainer = null!;
+        private Container profileImportTypeContainer = null!;
+        private OsuEnumDropdown<ProfileCalculationType> profileImportTypeDropdown = null!;
 
-        private StatefulButton overwriteValuesButton;
-        private StatefulButton resetFromServerButton;
-        private RealmSettingsMenu settingsMenu;
+        private StatefulButton overwriteValuesButton = null!;
+        private StatefulButton resetFromServerButton = null!;
+        private RealmSettingsMenu settingsMenu = null!;
 
         private CancellationTokenSource? calculationCancellatonToken;
 
         private OverlaySortTabControl<ProfileSortCriteria> sortingTabControl = null!;
         private readonly Bindable<ProfileSortCriteria> sorting = new Bindable<ProfileSortCriteria>(ProfileSortCriteria.Local);
 
-        private RecalculationPlayer currentPlayer;
+        private RecalculationPlayer? currentPlayer;
 
         [Resolved]
         private NotificationDisplay notificationDisplay { get; set; } = null!;
@@ -79,16 +78,16 @@ namespace PerformanceCalculatorGUI.Screens.Profile
         private Bindable<RulesetInfo> ruleset { get; set; } = null!;
 
         [Resolved]
-        private RulesetStore rulesets { get; set; }
+        private RulesetStore rulesets { get; set; } = null!;
 
         [Resolved]
-        private GameHost gameHost { get; set; }
+        private GameHost gameHost { get; set; } = null!;
 
         [Resolved]
-        private SettingsManager configManager { get; set; }
+        private SettingsManager configManager { get; set; } = null!;
 
         [Resolved]
-        private DialogOverlay dialogOverlay { get; set; }
+        private DialogOverlay dialogOverlay { get; set; } = null!;
 
         public override bool ShouldShowConfirmationDialogOnSwitch => false;
 
@@ -96,7 +95,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
         private const int max_api_scores = 200;
         private const int max_api_scores_in_one_query = 100;
 
-        public IEnumerable<ScoreInfo> GetProfileScores() => scores.Children.Select(s => s.Score.ScoreInfoSource);
+        public IEnumerable<ScoreInfo?> GetProfileScores() => scores.Children.Select(s => s.Score.ScoreInfoSource);
 
         public ProfileScreen()
         {
@@ -144,9 +143,9 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                         foreach (var drawableScore in scores.Children)
                         {
                             var profileScore = drawableScore.Score;
-                            var scoreInfo = profileScore.ScoreInfoSource;
-                            scoreInfo.PP = profileScore.PerformanceAttributes.Total;
-                            ((ExtendedProfileScore)drawableScore).LivePP = profileScore.PerformanceAttributes.Total;
+                            var scoreInfo = profileScore.ScoreInfoSource!;
+                            scoreInfo.PP = profileScore.PerformanceAttributes?.Total;
+                            drawableScore.LivePP = profileScore.PerformanceAttributes?.Total ?? 0;
                         }
 
                         collections.SaveCollectionProfiles();
@@ -382,10 +381,10 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     calculateProfilesFromServer(usernames);
                     break;
                 case ProfileCalculationType.Collection:
-                    calculateProfileFromCollection(usernames.FirstOrDefault());
+                    calculateProfileFromCollection(usernames.First());
                     break;
                 case ProfileCalculationType.Realm:
-                    calculateProfileFromRealm(usernames.FirstOrDefault());
+                    calculateProfileFromRealm(usernames.First());
                     break;
 
             }

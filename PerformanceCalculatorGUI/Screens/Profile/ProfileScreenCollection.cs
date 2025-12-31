@@ -21,9 +21,9 @@ namespace PerformanceCalculatorGUI.Screens.Profile
     public partial class ProfileScreen
     {
         [Resolved]
-        private CollectionManager collections { get; set; }
+        private CollectionManager collections { get; set; } = null!;
 
-        private ProfileCollection getCollection(string username)
+        private ProfileCollection? getCollection(string username)
         {
             var collection = collections.CollectionProfiles.FirstOrDefault(
                 c => (c.Player.Value?.IsThisUsername(username) ?? false) && (c.RulesetId == ruleset.Value.OnlineID));
@@ -54,10 +54,11 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 collection.BonusPp = playcountBonusPP;
 
                 collection.Scores.Clear();
-                var allScores = GetProfileScores();
+                var allScores = GetProfileScores().ToArray();
 
                 foreach (var score in allScores)
                 {
+                    if (score == null) continue;
                     collection.Scores.Add(score);
                 }
 
@@ -112,7 +113,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     if (calculationCancellatonToken == null || calculationCancellatonToken.IsCancellationRequested)
                         return;
 
-                    var working = ProcessorWorkingBeatmap.FromFileOrId(score.BeatmapInfo.OnlineID.ToString(), cachePath: configManager.GetBindable<string>(Settings.CachePath).Value);
+                    var working = ProcessorWorkingBeatmap.FromFileOrId(score.BeatmapInfo!.OnlineID.ToString(), cachePath: configManager.GetBindable<string>(Settings.CachePath).Value);
 
                     Schedule(() => loadingLayer.Text.Value = $"Calculating {working.Metadata}");
 
@@ -124,18 +125,18 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     var difficultyAttributes = difficultyCalculator.Calculate(mods);
                     var performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
 
-                    if (calculationCancellatonToken == null || calculationCancellatonToken.IsCancellationRequested)
+                    if (performanceCalculator == null || calculationCancellatonToken == null || calculationCancellatonToken.IsCancellationRequested)
                         return;
 
                     double livePP = score.PP ?? 0.0;
-                    var perfAttributes = await (performanceCalculator?.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, calculationCancellatonToken.Token)).ConfigureAwait(false)!;
+                    var perfAttributes = await (performanceCalculator.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, calculationCancellatonToken.Token)).ConfigureAwait(false)!;
 
                     var play = new ExtendedScore(score, livePP, difficultyAttributes, perfAttributes);
                     plays.Add(play);
                     addScoreToUI(play, true);
                 }
 
-                var localOrdered = plays.OrderByDescending(x => x.PerformanceAttributes.Total).ToList();
+                var localOrdered = plays.OrderByDescending(x => x.PerformanceAttributes?.Total ?? 0).ToList();
                 var liveOrdered = plays.OrderByDescending(x => x.LivePP ?? 0).ToList();
 
                 Schedule(() =>
