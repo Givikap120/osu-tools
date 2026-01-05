@@ -28,7 +28,7 @@ namespace PerformanceCalculatorGUI.Screens.ObjectInspection
         public OsuObjectInspectorRuleset(Ruleset ruleset, IBeatmap beatmap, IReadOnlyList<Mod> mods, ExtendedOsuDifficultyCalculator difficultyCalculator, double clockRate)
             : base(ruleset, beatmap, mods)
         {
-            difficultyHitObjects = difficultyCalculator.GetDifficultyHitObjects(beatmap, clockRate).Cast<OsuDifficultyHitObject>().ToArray();
+            difficultyHitObjects = difficultyCalculator.GetDifficultyHitObjects(beatmap, clockRate).OfType<OsuDifficultyHitObject>().ToArray();
         }
 
         protected override void Update()

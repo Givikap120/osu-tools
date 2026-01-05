@@ -131,7 +131,7 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
                     for (int i = 0; i < skills.Length; i++)
                     {
                         // graphs are visible by default, we want to hide ones that were disabled before
-                        if (!graphToggles[i].Value)
+                        if (graphToggles.Count > i && !graphToggles[i].Value)
                             graphsContainer[i].Hide();
                     }
                 }
