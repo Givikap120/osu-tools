@@ -3,6 +3,7 @@
 
 using System;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using osu.Framework.Allocation;
@@ -16,6 +17,7 @@ using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input.Events;
 using osu.Framework.Logging;
+using osu.Game.Beatmaps;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
@@ -333,6 +335,10 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
 
                     if (calculationCancellatonToken.IsCancellationRequested)
                         return;
+
+                    // Recalculate accuracy to make CL have correct values
+                    IBeatmap? beatmap = (IBeatmap?)difficultyCalculator?.GetType()?.GetProperty("Beatmap", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)?.GetValue(difficultyCalculator);
+                    if (beatmap != null) parsedScore.ScoreInfo.Accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, beatmap, parsedScore.ScoreInfo.Statistics, parsedScore.ScoreInfo.Mods);
 
                     double livePP = score.PP ?? 0.0;
                     var perfAttributes = await (performanceCalculator?.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, calculationCancellatonToken.Token))!.ConfigureAwait(false);

@@ -485,10 +485,10 @@ namespace PerformanceCalculatorGUI
         {
             bool usingClassicSliderAccuracy = mods.OfType<OsuModClassic>().Any(m => m.NoSliderHeadAccuracy.Value);
 
-            int countGreat = statistics[HitResult.Great];
-            int countGood = statistics[HitResult.Ok];
-            int countMeh = statistics[HitResult.Meh];
-            int countMiss = statistics[HitResult.Miss];
+            int countGreat = statistics.GetValueOrDefault(HitResult.Great);
+            int countGood = statistics.GetValueOrDefault(HitResult.Ok);
+            int countMeh = statistics.GetValueOrDefault(HitResult.Meh);
+            int countMiss = statistics.GetValueOrDefault(HitResult.Miss);
 
             double total = 6 * countGreat + 2 * countGood + countMeh;
             double max = 6 * (countGreat + countGood + countMeh + countMiss);
@@ -515,9 +515,9 @@ namespace PerformanceCalculatorGUI
 
         private static double getTaikoAccuracy(Dictionary<HitResult, int> statistics)
         {
-            int countGreat = statistics[HitResult.Great];
-            int countGood = statistics[HitResult.Ok];
-            int countMiss = statistics[HitResult.Miss];
+            int countGreat = statistics.GetValueOrDefault(HitResult.Great);
+            int countGood = statistics.GetValueOrDefault(HitResult.Ok);
+            int countMiss = statistics.GetValueOrDefault(HitResult.Miss);
             int total = countGreat + countGood + countMiss;
 
             return (double)((2 * countGreat) + countGood) / (2 * total);
@@ -533,12 +533,12 @@ namespace PerformanceCalculatorGUI
 
         private static double getManiaAccuracy(Dictionary<HitResult, int> statistics, Mod[] mods)
         {
-            int countPerfect = statistics[HitResult.Perfect];
-            int countGreat = statistics[HitResult.Great];
-            int countGood = statistics[HitResult.Good];
-            int countOk = statistics[HitResult.Ok];
-            int countMeh = statistics[HitResult.Meh];
-            int countMiss = statistics[HitResult.Miss];
+            int countPerfect = statistics.GetValueOrDefault(HitResult.Perfect);
+            int countGreat = statistics.GetValueOrDefault(HitResult.Great);
+            int countGood = statistics.GetValueOrDefault(HitResult.Good);
+            int countOk = statistics.GetValueOrDefault(HitResult.Ok);
+            int countMeh = statistics.GetValueOrDefault(HitResult.Meh);
+            int countMiss = statistics.GetValueOrDefault(HitResult.Miss);
 
             int perfectWeight = mods.Any(m => m is ModClassic) ? 300 : 305;
 
