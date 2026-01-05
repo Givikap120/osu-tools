@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using osu.Framework.Extensions.IEnumerableExtensions;
-using osu.Framework.Extensions.ObjectExtensions;
 using osu.Game.Beatmaps;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Osu.Difficulty;
 using osu.Game.Rulesets.Osu.Mods;
+using osu.Game.Rulesets.Osu.Objects;
+using osu.Game.Rulesets.Osu.Scoring;
+using osu.Game.Rulesets.Scoring;
 using osu.Game.Utils;
 
 namespace PerformanceCalculatorGUI.Screens
@@ -40,6 +42,23 @@ namespace PerformanceCalculatorGUI.Screens
             return clonedMods;
         }
 
+        // WARNING: copied from new version of pp so you don't have to depend on it
+        public static double CalculateRateAdjustedApproachRate(double approachRate, double clockRate)
+        {
+            double preempt = IBeatmapDifficultyInfo.DifficultyRange(approachRate, OsuHitObject.PREEMPT_MAX, OsuHitObject.PREEMPT_MID, OsuHitObject.PREEMPT_MIN) / clockRate;
+            return IBeatmapDifficultyInfo.InverseDifficultyRange(preempt, OsuHitObject.PREEMPT_MAX, OsuHitObject.PREEMPT_MID, OsuHitObject.PREEMPT_MIN);
+        }
+
+        public static double CalculateRateAdjustedOverallDifficulty(double overallDifficulty, double clockRate)
+        {
+            HitWindows hitWindows = new OsuHitWindows();
+            hitWindows.SetDifficulty(overallDifficulty);
+
+            double hitWindowGreat = hitWindows.WindowFor(HitResult.Great) / clockRate;
+
+            return (79.5 - hitWindowGreat) / 6;
+        }
+
         private static double getCognition(OsuPerformanceAttributes performance)
         {
             //return performance.Cognition;
@@ -51,7 +70,7 @@ namespace PerformanceCalculatorGUI.Screens
             var adjustedDifficulty = beatmapDifficulty.Clone();
             appliedMods.OfType<IApplicableToDifficulty>().ForEach(m => m.ApplyToDifficulty(adjustedDifficulty));
             double rate = ModUtils.CalculateRateWithMods(appliedMods);
-            return OsuDifficultyCalculator.CalculateRateAdjustedApproachRate(adjustedDifficulty.ApproachRate, rate);
+            return CalculateRateAdjustedApproachRate(adjustedDifficulty.ApproachRate, rate);
         }
 
         public static void TestAR(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
@@ -125,7 +144,7 @@ namespace PerformanceCalculatorGUI.Screens
             for (double rate = 0.5f; rate <= 0.99f; rate += 0.05f)
             {
                 HT.SpeedChange.Value = rate;
-                DA.ApproachRate.Value = (float?)OsuDifficultyCalculator.CalculateRateAdjustedApproachRate(desiredAR, 1.0 / rate);
+                DA.ApproachRate.Value = (float?)CalculateRateAdjustedApproachRate(desiredAR, 1.0 / rate);
                 double realAR = getARPostDT(beatmapDifficulty, appliedMods);
                 var (difficulty, performance) = calc(localMods);
                 Console.WriteLine($"{rate:0.0#}x (AR{DA.ApproachRate.Value:0.##}->{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
@@ -133,9 +152,7 @@ namespace PerformanceCalculatorGUI.Screens
 
             // NO MOD
             localMods = cloneMods(appliedMods);
-            if (savedAR.IsNotNull()) DA = getModOrAdd<OsuModDifficultyAdjust>(localMods);
             {
-                if (savedAR.IsNotNull()) DA.ApproachRate.Value = savedAR;
                 double realAR = getARPostDT(beatmapDifficulty, appliedMods);
                 var (difficulty, performance) = calc(localMods);
                 Console.WriteLine($"1.0x (AR{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
@@ -147,7 +164,7 @@ namespace PerformanceCalculatorGUI.Screens
             for (float rate = 1.05f; rate <= 2.01f; rate += 0.05f)
             {
                 DT.SpeedChange.Value = rate;
-                DA.ApproachRate.Value = (float?)OsuDifficultyCalculator.CalculateRateAdjustedApproachRate(desiredAR, 1.0 / rate);
+                DA.ApproachRate.Value = (float?)CalculateRateAdjustedApproachRate(desiredAR, 1.0 / rate);
                 double realAR = getARPostDT(beatmapDifficulty, appliedMods);
                 var (difficulty, performance) = calc(localMods);
                 Console.WriteLine($"{rate:0.0#}x (AR{DA.ApproachRate.Value:0.##}->{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
@@ -246,8 +263,8 @@ namespace PerformanceCalculatorGUI.Screens
             double clockRate = ModUtils.CalculateRateWithMods(localMods);
             localMods.OfType<IApplicableToDifficulty>().ForEach(m => m.ApplyToDifficulty(beatmapDifficulty));
 
-            float adjustedAR = (float)OsuDifficultyCalculator.CalculateRateAdjustedApproachRate(10, 1.0 / clockRate);
-            float adjustedOD = (float)OsuDifficultyCalculator.CalculateRateAdjustedOverallDifficulty(10, 1.0 / clockRate);
+            float adjustedAR = (float)CalculateRateAdjustedApproachRate(10, 1.0 / clockRate);
+            float adjustedOD = (float)CalculateRateAdjustedOverallDifficulty(10, 1.0 / clockRate);
 
             applyDifficultyToDA(beatmapDifficulty, da);
             double baseVal = calc(localMods).performance.Total;
