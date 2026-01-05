@@ -7,6 +7,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
     {
         Live,
         Index,
+        Name,
         StarRating,
         Difference,
         Percentage,

@@ -394,6 +394,10 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                     sortedScores = drawableScores.Children.OrderBy(x => CurrentCollection?.Scores.IndexOf(x.Score.ScoreInfoSource!)).ToArray();
                     break;
 
+                case MyCollectionSortCriteria.Name:
+                    sortedScores = drawableScores.Children.OrderBy(x => x.Score.ScoreInfoSource?.BeatmapInfo?.Metadata.Title).ToArray();
+                    break;
+
                 case MyCollectionSortCriteria.Live:
                     sortedScores = drawableScores.Children.OrderByDescending(x => (x.Score).LivePP).ToArray();
                     break;
