@@ -1,15 +1,13 @@
 ﻿using System;
-using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Linq;
-using osu.Framework.Audio.Track;
 using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Framework.Extensions.ObjectExtensions;
 using osu.Game.Beatmaps;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Osu.Difficulty;
-using osu.Game.Rulesets.Osu.Difficulty.Preprocessing;
 using osu.Game.Rulesets.Osu.Mods;
+using osu.Game.Utils;
 
 namespace PerformanceCalculatorGUI.Screens
 {
@@ -30,51 +28,37 @@ namespace PerformanceCalculatorGUI.Screens
             return desiredMod;
         }
 
+        private static List<Mod> cloneMods(IEnumerable<Mod> mods)
+        {
+            List<Mod> clonedMods = [];
+
+            foreach (var mod in mods)
+            {
+                clonedMods.Add(mod.DeepClone());
+            }
+
+            return clonedMods;
+        }
+
         private static double getCognition(OsuPerformanceAttributes performance)
         {
             //return performance.Cognition;
             return double.NaN;
         }
 
-        private static float getBaseAR(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods)
+        private static double getARPostDT(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods)
         {
             var adjustedDifficulty = beatmapDifficulty.Clone();
             appliedMods.OfType<IApplicableToDifficulty>().ForEach(m => m.ApplyToDifficulty(adjustedDifficulty));
-            return adjustedDifficulty.ApproachRate;
-        }
-
-        private static double getRate(IReadOnlyList<Mod> mods)
-        {
-            var track = new TrackVirtual(10000);
-            mods.OfType<IApplicableToTrack>().ForEach(m => m.ApplyToTrack(track));
-            return track.Rate;
-        }
-
-        private static double getARPostDTInverse(double desiredAR, double rate)
-        {
-            double preempt = IBeatmapDifficultyInfo.DifficultyRange(desiredAR, 1800, 1200, 450) * rate;
-            return IBeatmapDifficultyInfo.InverseDifficultyRange(preempt, 1800, 1200, 450);
-        }
-
-        private static double getARPostDT(double baseAR, double rate)
-        {
-            double preempt = IBeatmapDifficultyInfo.DifficultyRange(baseAR, 1800, 1200, 450) / rate;
-            return IBeatmapDifficultyInfo.InverseDifficultyRange(preempt, 1800, 1200, 450);
-        }
-
-        private static double getARPostDT(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods)
-        {
-            float baseAR = getBaseAR(beatmapDifficulty, appliedMods);
-            double rate = getRate(appliedMods);
-            return getARPostDT(baseAR, rate);
+            double rate = ModUtils.CalculateRateWithMods(appliedMods);
+            return OsuDifficultyCalculator.CalculateRateAdjustedApproachRate(adjustedDifficulty.ApproachRate, rate);
         }
 
         public static void TestAR(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
         {
-            List<Mod> localMods = new List<Mod>(appliedMods);
+            List<Mod> localMods = cloneMods(appliedMods);
 
             OsuModDifficultyAdjust DA = getModOrAdd<OsuModDifficultyAdjust>(localMods);
-            float? savedAR = DA.ApproachRate.Value;
 
             for (float baseAR = 0; baseAR <= 11.01f;)
             {
@@ -94,13 +78,11 @@ namespace PerformanceCalculatorGUI.Screens
                 else if (baseAR < 9.99f) baseAR += 0.1f;
                 else baseAR += 0.1f;
             }
-
-            if (savedAR != null) DA.ApproachRate.Value = savedAR;
         }
 
         public static void TestDT(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
         {
-            List<Mod> localMods = new List<Mod>(appliedMods);
+            List<Mod> localMods = cloneMods(appliedMods);
 
             // HALF TIME
             OsuModHalfTime HT = getModOrAdd<OsuModHalfTime>(localMods);
@@ -113,7 +95,7 @@ namespace PerformanceCalculatorGUI.Screens
             }
 
             // NO MOD
-            localMods = new List<Mod>(appliedMods);
+            localMods = cloneMods(appliedMods);
             {
                 double realAR = getARPostDT(beatmapDifficulty, appliedMods);
                 var (difficulty, performance) = calc(localMods);
@@ -133,25 +115,24 @@ namespace PerformanceCalculatorGUI.Screens
 
         public static void TestDTFixedAR(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
         {
-            List<Mod> localMods = new List<Mod>(appliedMods);
+            List<Mod> localMods = cloneMods(appliedMods);
 
             double desiredAR = getARPostDT(beatmapDifficulty, appliedMods);
 
             // HALF TIME
             OsuModHalfTime HT = getModOrAdd<OsuModHalfTime>(localMods);
             OsuModDifficultyAdjust DA = getModOrAdd<OsuModDifficultyAdjust>(localMods);
-            float? savedAR = DA.ApproachRate.Value;
             for (double rate = 0.5f; rate <= 0.99f; rate += 0.05f)
             {
                 HT.SpeedChange.Value = rate;
-                DA.ApproachRate.Value = (float?)getARPostDTInverse(desiredAR, rate);
+                DA.ApproachRate.Value = (float?)OsuDifficultyCalculator.CalculateRateAdjustedApproachRate(desiredAR, 1.0 / rate);
                 double realAR = getARPostDT(beatmapDifficulty, appliedMods);
                 var (difficulty, performance) = calc(localMods);
                 Console.WriteLine($"{rate:0.0#}x (AR{DA.ApproachRate.Value:0.##}->{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
             }
 
             // NO MOD
-            localMods = new List<Mod>(appliedMods);
+            localMods = cloneMods(appliedMods);
             if (savedAR.IsNotNull()) DA = getModOrAdd<OsuModDifficultyAdjust>(localMods);
             {
                 if (savedAR.IsNotNull()) DA.ApproachRate.Value = savedAR;
@@ -166,18 +147,16 @@ namespace PerformanceCalculatorGUI.Screens
             for (float rate = 1.05f; rate <= 2.01f; rate += 0.05f)
             {
                 DT.SpeedChange.Value = rate;
-                DA.ApproachRate.Value = (float?)getARPostDTInverse(desiredAR, rate);
+                DA.ApproachRate.Value = (float?)OsuDifficultyCalculator.CalculateRateAdjustedApproachRate(desiredAR, 1.0 / rate);
                 double realAR = getARPostDT(beatmapDifficulty, appliedMods);
                 var (difficulty, performance) = calc(localMods);
                 Console.WriteLine($"{rate:0.0#}x (AR{DA.ApproachRate.Value:0.##}->{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
             }
-
-            if (savedAR != null) DA.ApproachRate.Value = savedAR;
         }
 
         public static void TestCS_old(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
         {
-            List<Mod> localMods = new List<Mod>(appliedMods);
+            List<Mod> localMods = cloneMods(appliedMods);
             OsuModDifficultyAdjust DA = getModOrAdd<OsuModDifficultyAdjust>(localMods);
 
             for (float CS = 2f; CS <= 8.01f; CS += 0.1f)
@@ -192,7 +171,7 @@ namespace PerformanceCalculatorGUI.Screens
 
         public static void TestCS(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
         {
-            List<Mod> localMods = new List<Mod>(appliedMods);
+            List<Mod> localMods = cloneMods(appliedMods);
             OsuModDifficultyAdjust DA = getModOrAdd<OsuModDifficultyAdjust>(localMods);
 
             const double base_cs = 0;
@@ -216,7 +195,7 @@ namespace PerformanceCalculatorGUI.Screens
 
         public static void TestHR(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
         {
-            var localMods = new List<Mod>(appliedMods);
+            var localMods = cloneMods(appliedMods);
             var da = getModOrAdd<OsuModDifficultyAdjust>(localMods);
 
             var beatmapDifficultyHR = beatmapDifficulty.Clone();
@@ -237,7 +216,7 @@ namespace PerformanceCalculatorGUI.Screens
 
         public static void TestEZ(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
         {
-            var localMods = new List<Mod>(appliedMods);
+            var localMods = cloneMods(appliedMods);
             var da = getModOrAdd<OsuModDifficultyAdjust>(localMods);
 
             var beatmapDifficultyEZ = beatmapDifficulty.Clone();
