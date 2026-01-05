@@ -462,10 +462,18 @@ namespace PerformanceCalculatorGUI.Screens
                                                         {
                                                             Width = 50,
                                                             Margin = new MarginPadding { Top = 4.0f, Right = 5.0f },
-                                                            Action = testAcc,
+                                                            Action = testAROD,
                                                             BackgroundColour = colourProvider.Background1,
-                                                            Text = "Acc"
+                                                            Text = "AROD"
                                                         },
+                                                        //new RoundedButton
+                                                        //{
+                                                        //    Width = 50,
+                                                        //    Margin = new MarginPadding { Top = 4.0f, Right = 5.0f },
+                                                        //    Action = testAcc,
+                                                        //    BackgroundColour = colourProvider.Background1,
+                                                        //    Text = "Acc"
+                                                        //},
                                                         //skillTextBox = new LimitedLabelledNumberBox
                                                         //{
                                                         //    RelativeSizeAxes = Axes.None,
@@ -1358,6 +1366,7 @@ namespace PerformanceCalculatorGUI.Screens
         private void testCS() => AttributeTest.TestCS(working!.BeatmapInfo.Difficulty, appliedMods.Value, calc);
         private void testHR() => AttributeTest.TestHR(working!.BeatmapInfo.Difficulty, appliedMods.Value, calc);
         private void testEZ() => AttributeTest.TestEZ(working!.BeatmapInfo.Difficulty, appliedMods.Value, calc);
+        private void testAROD() => AttributeTest.TestAROD10(working!.BeatmapInfo.Difficulty, appliedMods.Value, calc);
         private void testAcc() => AttributeTest.TestAcc(working!.BeatmapInfo.Difficulty, appliedMods.Value, calc);
 
         private List<ObjectProbablityInfo> getHitDataInfo()

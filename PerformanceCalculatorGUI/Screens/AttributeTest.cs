@@ -235,25 +235,72 @@ namespace PerformanceCalculatorGUI.Screens
             testParam("OD", d => d.OverallDifficulty, beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, hrVal);
         }
 
+        public static void TestAROD10(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
+        {
+            var localMods = cloneMods(appliedMods);
+            beatmapDifficulty = beatmapDifficulty.Clone();
+
+            var da = getModOrAdd<OsuModDifficultyAdjust>(localMods);
+            localMods.RemoveAll(m => m is OsuModHidden);
+
+            double clockRate = ModUtils.CalculateRateWithMods(localMods);
+            localMods.OfType<IApplicableToDifficulty>().ForEach(m => m.ApplyToDifficulty(beatmapDifficulty));
+
+            float adjustedAR = (float)OsuDifficultyCalculator.CalculateRateAdjustedApproachRate(10, 1.0 / clockRate);
+            float adjustedOD = (float)OsuDifficultyCalculator.CalculateRateAdjustedOverallDifficulty(10, 1.0 / clockRate);
+
+            applyDifficultyToDA(beatmapDifficulty, da);
+            double baseVal = calc(localMods).performance.Total;
+
+            var beatmapDifficultyAR = beatmapDifficulty.Clone();
+            beatmapDifficultyAR.ApproachRate = adjustedAR;
+            applyDifficultyToDA(beatmapDifficultyAR, da);
+            double arVal = calc(localMods).performance.Total;
+
+            var beatmapDifficultyOD = beatmapDifficulty.Clone();
+            beatmapDifficultyOD.OverallDifficulty = adjustedOD;
+            applyDifficultyToDA(beatmapDifficultyOD, da);
+            double odVal = calc(localMods).performance.Total;
+
+            var beatmapDifficultyAROD = beatmapDifficulty.Clone();
+            beatmapDifficultyAROD.ApproachRate = adjustedAR;
+            beatmapDifficultyAROD.OverallDifficulty = adjustedOD;
+            applyDifficultyToDA(beatmapDifficultyAROD, da);
+            double arodVal = calc(localMods).performance.Total;
+
+            localMods.Add(new OsuModHidden());
+            applyDifficultyToDA(beatmapDifficulty, da);
+            double baseValHD = calc(localMods).performance.Total;
+
+            Console.WriteLine($"{arodVal:0}pp -> {baseValHD:0}pp ({baseValHD - arodVal:+0;-0;0}pp)");
+
+            testParam("ARHD", d => d.ApproachRate, beatmapDifficultyAR, beatmapDifficulty, da, calc, localMods, arVal, baseValHD, "AR", () => localMods.RemoveAll(m => m is OsuModHidden));
+            testParam("AR", d => d.ApproachRate, beatmapDifficultyAR, beatmapDifficulty, da, calc, localMods, arVal, baseVal);
+            testParam("OD", d => d.OverallDifficulty, beatmapDifficultyOD, beatmapDifficulty, da, calc, localMods, odVal, baseVal);
+        }
+
         public static void TestAcc(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, double, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
         {
             for (double acc = 0.80; acc <= 0.981; acc += 0.01)
             {
                 var result = calc(appliedMods, acc).performance;
-                Console.WriteLine($"{acc * 100:0}% - {result.SpeedDeviation * 10:0} UR: {result.Total:0}pp");
+                // Console.WriteLine($"{acc * 100:0}% - {result.SpeedDeviation * 10:0} UR: {result.Total:0}pp");
             }
         }
 
-        private static void testParam(string name, Func<BeatmapDifficulty, double> getter, BeatmapDifficulty diff, BeatmapDifficulty diffAdj, OsuModDifficultyAdjust da, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes diffAttr, OsuPerformanceAttributes perfAttr)> calc, List<Mod> localMods, double baseVal, double adjVal)
+        private static void testParam(string name, Func<BeatmapDifficulty, double> getter, BeatmapDifficulty diff, BeatmapDifficulty diffAdj, OsuModDifficultyAdjust da, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes diffAttr, OsuPerformanceAttributes perfAttr)> calc, List<Mod> localMods, double baseVal, double adjVal, string? paramName = null, Action? stageAdjust = null)
         {
             double plus, minus;
+            paramName ??= name;
 
             applyDifficultyToDA(diff, da);
-            setParamInDA(da, name, getter(diffAdj));
+            setParamInDA(da, paramName, getter(diffAdj));
             plus = calc(localMods).perfAttr.Total;
 
+            stageAdjust?.Invoke();
+
             applyDifficultyToDA(diffAdj, da);
-            setParamInDA(da, name, getter(diff));
+            setParamInDA(da, paramName, getter(diff));
             minus = calc(localMods).perfAttr.Total;
 
             int result = (int)Math.Round(((plus - baseVal) + (adjVal - minus)) / 2);
