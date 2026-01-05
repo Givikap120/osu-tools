@@ -224,7 +224,7 @@ namespace PerformanceCalculatorGUI.Screens
             applyDifficultyToDA(beatmapDifficultyHR, da);
             double hrVal = calc(localMods).performance.Total;
 
-            Console.WriteLine($"{baseVal:0}pp -> {hrVal:0}pp");
+            Console.WriteLine($"{baseVal:0}pp -> {hrVal:0}pp ({hrVal - baseVal:+0;-0;0}pp)");
 
             testParam("CS", d => d.CircleSize, beatmapDifficulty, beatmapDifficultyHR, da, calc, localMods, baseVal, hrVal);
             testParam("AR", d => d.ApproachRate, beatmapDifficulty, beatmapDifficultyHR, da, calc, localMods, baseVal, hrVal);
@@ -243,13 +243,13 @@ namespace PerformanceCalculatorGUI.Screens
             double baseVal = calc(localMods).performance.Total;
 
             applyDifficultyToDA(beatmapDifficultyEZ, da);
-            double hrVal = calc(localMods).performance.Total;
+            double ezVal = calc(localMods).performance.Total;
 
-            Console.WriteLine($"{baseVal:0}pp -> {hrVal:0}pp");
+            Console.WriteLine($"{baseVal:0}pp -> {ezVal:0}pp ({ezVal - baseVal:+0;-0;0}pp)");
 
-            testParam("CS", d => d.CircleSize, beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, hrVal);
-            testParam("AR", d => d.ApproachRate, beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, hrVal);
-            testParam("OD", d => d.OverallDifficulty, beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, hrVal);
+            testParam("CS", d => d.CircleSize, beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, ezVal);
+            testParam("AR", d => d.ApproachRate, beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, ezVal);
+            testParam("OD", d => d.OverallDifficulty, beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, ezVal);
         }
 
         public static void TestAROD10(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
@@ -293,6 +293,7 @@ namespace PerformanceCalculatorGUI.Screens
 
             testParam("ARHD", d => d.ApproachRate, beatmapDifficultyAR, beatmapDifficulty, da, calc, localMods, arVal, baseValHD, "AR", () => localMods.RemoveAll(m => m is OsuModHidden));
             testParam("AR", d => d.ApproachRate, beatmapDifficultyAR, beatmapDifficulty, da, calc, localMods, arVal, baseVal);
+            Console.WriteLine($"HD: {baseValHD - baseVal:+0;-0;0}pp");
             testParam("OD", d => d.OverallDifficulty, beatmapDifficultyOD, beatmapDifficulty, da, calc, localMods, odVal, baseVal);
         }
 
