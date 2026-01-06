@@ -82,7 +82,7 @@ namespace PerformanceCalculatorGUI.Screens
             for (float baseAR = 0; baseAR <= 11.01f;)
             {
                 DA.ApproachRate.Value = baseAR;
-                double realAR = getARPostDT(beatmapDifficulty, appliedMods);
+                double realAR = getARPostDT(beatmapDifficulty, localMods);
 
                 var (difficulty, performance) = calc(localMods);
 
