@@ -59,10 +59,10 @@ namespace PerformanceCalculatorGUI.Screens
             return (79.5 - hitWindowGreat) / 6;
         }
 
-        private static double getCognition(OsuPerformanceAttributes performance)
+        private static string getCognition(OsuPerformanceAttributes performance)
         {
             //return performance.Cognition;
-            return double.NaN;
+            return "";
         }
 
         private static double getARPostDT(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods)
@@ -87,9 +87,9 @@ namespace PerformanceCalculatorGUI.Screens
                 var (difficulty, performance) = calc(localMods);
 
                 if (Math.Abs(baseAR - realAR) > 0.01)
-                    Console.WriteLine($"AR{baseAR:0.##}->{realAR:0.##}: {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+                    Console.WriteLine($"AR{baseAR:0.##}->{realAR:0.##}: {difficulty.StarRating:0.##}* {performance.Total:0}pp {getCognition(performance)}");
                 else
-                    Console.WriteLine($"AR{baseAR:0.##}: {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+                    Console.WriteLine($"AR{baseAR:0.##}: {difficulty.StarRating:0.##}* {performance.Total:0}pp {getCognition(performance)}");
 
                 if (baseAR < 3.99f) baseAR += 0.1f; //1
                 else if (baseAR < 3.99f) baseAR += 0.1f; //0.5
@@ -110,7 +110,7 @@ namespace PerformanceCalculatorGUI.Screens
                 HT.SpeedChange.Value = rate;
                 double realAR = getARPostDT(beatmapDifficulty, appliedMods);
                 var (difficulty, performance) = calc(localMods);
-                Console.WriteLine($"{rate:0.0#}x (AR{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+                Console.WriteLine($"{rate:0.0#}x (AR{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp {getCognition(performance)}");
             }
 
             // NO MOD
@@ -118,7 +118,7 @@ namespace PerformanceCalculatorGUI.Screens
             {
                 double realAR = getARPostDT(beatmapDifficulty, appliedMods);
                 var (difficulty, performance) = calc(localMods);
-                Console.WriteLine($"1.0x (AR{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+                Console.WriteLine($"1.0x (AR{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp {getCognition(performance)}");
             }
 
             // DOUBLE TIME
@@ -128,7 +128,7 @@ namespace PerformanceCalculatorGUI.Screens
                 DT.SpeedChange.Value = rate;
                 double realAR = getARPostDT(beatmapDifficulty, appliedMods);
                 var (difficulty, performance) = calc(localMods);
-                Console.WriteLine($"{rate:0.0#}x (AR{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+                Console.WriteLine($"{rate:0.0#}x (AR{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp {getCognition(performance)}");
             }
         }
 
@@ -147,7 +147,7 @@ namespace PerformanceCalculatorGUI.Screens
                 DA.ApproachRate.Value = (float?)CalculateRateAdjustedApproachRate(desiredAR, 1.0 / rate);
                 double realAR = getARPostDT(beatmapDifficulty, appliedMods);
                 var (difficulty, performance) = calc(localMods);
-                Console.WriteLine($"{rate:0.0#}x (AR{DA.ApproachRate.Value:0.##}->{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+                Console.WriteLine($"{rate:0.0#}x (AR{DA.ApproachRate.Value:0.##}->{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp {getCognition(performance)}");
             }
 
             // NO MOD
@@ -155,7 +155,7 @@ namespace PerformanceCalculatorGUI.Screens
             {
                 double realAR = getARPostDT(beatmapDifficulty, appliedMods);
                 var (difficulty, performance) = calc(localMods);
-                Console.WriteLine($"1.0x (AR{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+                Console.WriteLine($"1.0x (AR{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp {getCognition(performance)}");
             }
 
             // DOUBLE TIME
@@ -167,7 +167,7 @@ namespace PerformanceCalculatorGUI.Screens
                 DA.ApproachRate.Value = (float?)CalculateRateAdjustedApproachRate(desiredAR, 1.0 / rate);
                 double realAR = getARPostDT(beatmapDifficulty, appliedMods);
                 var (difficulty, performance) = calc(localMods);
-                Console.WriteLine($"{rate:0.0#}x (AR{DA.ApproachRate.Value:0.##}->{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
+                Console.WriteLine($"{rate:0.0#}x (AR{DA.ApproachRate.Value:0.##}->{realAR:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp {getCognition(performance)}");
             }
         }
 
