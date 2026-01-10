@@ -71,10 +71,11 @@ namespace PerformanceCalculatorGUI
             foreach (var mod in mods.OfType<IApplicableToDifficulty>())
                 mod.ApplyToDifficulty(d);
 
-            if (ruleset.OnlineID == 0) // For osu we have many different things
-            {
-                int relevantModsHash = 0;
+            // Start from random for all rulesets
+            int relevantModsHash = hashMod<ModRandom>(0, mods);
 
+            if (ruleset.OnlineID == 0) // For osu
+            {
                 // Affects skills
                 relevantModsHash = hashMod<OsuModHidden>(relevantModsHash, mods);
                 relevantModsHash = hashMod<OsuModFlashlight>(relevantModsHash, mods);
@@ -83,7 +84,6 @@ namespace PerformanceCalculatorGUI
                 relevantModsHash = hashMod<OsuModHardRock>(relevantModsHash, mods);
                 relevantModsHash = hashMod<OsuModClassic>(relevantModsHash, mods); // not yet but I'm doing it preemptively
                 relevantModsHash = hashMod<OsuModMirror>(relevantModsHash, mods);
-                relevantModsHash = hashMod<OsuModRandom>(relevantModsHash, mods);
                 relevantModsHash = hashMod<OsuModTargetPractice>(relevantModsHash, mods);
 
                 // Affects difficulty rating multipliers
@@ -95,19 +95,25 @@ namespace PerformanceCalculatorGUI
 
                 hash = HashCode.Combine(hash, d.CircleSize, d.OverallDifficulty, d.ApproachRate, relevantModsHash);
             }
-            else if (ruleset.OnlineID == 1) // For taiko we only have rate
+            else if (ruleset.OnlineID == 1) // For taiko
             {
-            }
-            else if (ruleset.OnlineID == 2) // For catch we have rate and CS
-            {
-                hash = HashCode.Combine(hash, d.CircleSize);
-            }
-            else if (ruleset.OnlineID == 3) // Mania is using rate, and keys data for converts
-            {
-                int relevantModsHash = 0;
+                relevantModsHash = hashMod<TaikoModSimplifiedRhythm>(relevantModsHash, mods);
 
+                hash = HashCode.Combine(hash, d.SliderMultiplier, relevantModsHash);
+            }
+            else if (ruleset.OnlineID == 2) // For catch
+            {
+                // Handle this separately
+                bool spicyPatterns = mods.OfType<CatchModDifficultyAdjust>().Any(m => m.HardRockOffsets.Value);
+
+                hash = HashCode.Combine(hash, d.CircleSize, relevantModsHash, spicyPatterns);
+            }
+            else if (ruleset.OnlineID == 3) // For mania
+            {
                 relevantModsHash = hashMod<ManiaKeyMod>(relevantModsHash, mods);
                 relevantModsHash = hashMod<ManiaModDualStages>(relevantModsHash, mods);
+                relevantModsHash = hashMod<ManiaModInvert>(relevantModsHash, mods);
+                relevantModsHash = hashMod<ManiaModHoldOff>(relevantModsHash, mods);
 
                 hash = HashCode.Combine(hash, relevantModsHash);
             }
