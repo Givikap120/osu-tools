@@ -22,6 +22,7 @@ using osu.Game.Rulesets.Osu.Mods;
 using osu.Game.Rulesets.Osu.Objects;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Rulesets.Taiko;
+using osu.Game.Rulesets.Taiko.Mods;
 using osu.Game.Rulesets.Taiko.Objects;
 using osu.Game.Scoring;
 using osu.Game.Utils;
@@ -63,13 +64,14 @@ namespace PerformanceCalculatorGUI
             // Rate changing mods
             int hash = ModUtils.CalculateRateWithMods(mods).GetHashCode();
 
+            // Diffuculty attributes changing mods
+            var d = new BeatmapDifficulty(difficulty);
+
+            foreach (var mod in mods.OfType<IApplicableToDifficulty>())
+                mod.ApplyToDifficulty(d);
+
             if (ruleset.OnlineID == 0) // For osu we have many different things
             {
-                var d = new BeatmapDifficulty(difficulty);
-
-                foreach (var mod in mods.OfType<IApplicableToDifficulty>())
-                    mod.ApplyToDifficulty(d);
-
                 int relevantModsHash = 0;
 
                 // Affects skills
@@ -97,11 +99,6 @@ namespace PerformanceCalculatorGUI
             }
             else if (ruleset.OnlineID == 2) // For catch we have rate and CS
             {
-                var d = new BeatmapDifficulty(difficulty);
-
-                foreach (var mod in mods.OfType<IApplicableToDifficulty>())
-                    mod.ApplyToDifficulty(d);
-
                 hash = HashCode.Combine(hash, d.CircleSize);
             }
             else if (ruleset.OnlineID == 3) // Mania is using rate, and keys data for converts
