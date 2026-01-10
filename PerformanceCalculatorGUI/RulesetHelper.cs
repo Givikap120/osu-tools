@@ -81,6 +81,7 @@ namespace PerformanceCalculatorGUI
                 relevantModsHash = hashMod<OsuModClassic>(relevantModsHash, mods); // not yet but I'm doing it preemptively
                 relevantModsHash = hashMod<OsuModMirror>(relevantModsHash, mods);
                 relevantModsHash = hashMod<OsuModRandom>(relevantModsHash, mods);
+                relevantModsHash = hashMod<OsuModTargetPractice>(relevantModsHash, mods);
 
                 // Affects difficulty rating multipliers
                 relevantModsHash = hashMod<OsuModTouchDevice>(relevantModsHash, mods);
