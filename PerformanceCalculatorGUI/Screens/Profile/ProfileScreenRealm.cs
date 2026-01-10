@@ -11,11 +11,13 @@ using osu.Framework.Graphics;
 using osu.Game.Beatmaps;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Rulesets.Difficulty;
+using osu.Game.Rulesets.Osu.Difficulty;
 using osu.Game.Scoring;
 using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Configuration;
 using osu.Game.Scoring.Legacy;
 using System.IO;
+using osu.Game.Utils;
 using osuTK.Graphics;
 using osu.Framework.Logging;
 using PerformanceCalculatorGUI.Utils;
@@ -137,7 +139,10 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                         Schedule(() => loadingLayer.Text.Value = $"Calculating {player.Username}'s scores... {currentScoresCount} / {totalScoresCount}");
                         currentScoresCount++;
 
-                        // if (getAdjustedDifficulty(score.Mods, working.BeatmapInfo, rulesetInstance).ApproachRate < 11) continue;
+                        double AR = OsuDifficultyCalculator.CalculateRateAdjustedApproachRate(working.Beatmap.Difficulty.ApproachRate, ModUtils.CalculateRateWithMods(score.Mods));
+                        double OD = OsuDifficultyCalculator.CalculateRateAdjustedOverallDifficulty(working.Beatmap.Difficulty.OverallDifficulty, ModUtils.CalculateRateWithMods(score.Mods));
+
+                        //if (AR <= 10) continue;
 
                         DifficultyAttributes difficultyAttributes;
                         int modsHash = RulesetHelper.GenerateModsHash(score.Mods, working.BeatmapInfo.Difficulty, ruleset.Value);
@@ -153,8 +158,10 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                         }
 
                         var perfAttributes = performanceCalculator?.Calculate(score, difficultyAttributes);
+                        if (perfAttributes == null)
+                            continue;
 
-                        score.PP = perfAttributes?.Total ?? 0.0;
+                        score.PP = perfAttributes.Total;
 
                         // Check if passed
                         int totalHitsMap = working.Beatmap.HitObjects.Count;
@@ -163,7 +170,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                             continue;
 
                         // Sanity check for aspire maps till my slider fix won't get merged
-                        if (difficultyAttributes.StarRating > 14 && score.BeatmapInfo.Status != BeatmapOnlineStatus.Ranked)
+                        if (difficultyAttributes.StarRating > 14 && score.BeatmapInfo?.Status != BeatmapOnlineStatus.Ranked)
                             continue;
 
                         if (settingsMenu.ExportInCSV)
@@ -215,6 +222,8 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
                 Schedule(() =>
                 {
+                    if (userPanel == null) return;
+
                     userPanel.Data.Value = new UserCardData
                     {
                         LivePP = totalLivePP,
@@ -244,7 +253,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
             Schedule(() => loadingLayer.Text.Value = "Filtering scores...");
 
-            realmScores.RemoveAll(x => !currentPlayer.IsThisUsername(x.User.Username) // Wrong username
+            realmScores.RemoveAll(x => (currentPlayer != null && !currentPlayer.IsThisUsername(x.User.Username)) // Wrong username
                                     || x.BeatmapInfo == null // No map for score
                                     || x.Passed == false || x.Rank == ScoreRank.F // Failed score
                                     || x.Ruleset.OnlineID != ruleset.Value.OnlineID // Incorrect ruleset
@@ -265,7 +274,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 {
                     List<ScoreInfo> filteredMapScores = mapScores.Where(s => s.IsLegacyScore)
                                                             .GroupBy(x => rulesetInstance.ConvertToLegacyMods(x.Mods))
-                                                            .Select(x => x.MaxBy(x => x.LegacyTotalScore))
+                                                            .Select(x => x.MaxBy(x => x.LegacyTotalScore)!)
                                                             .ToList();
                     filteredMapScores.AddRange(mapScores.Where(s => !s.IsLegacyScore));
                     filteredScores.Add(filteredMapScores);
