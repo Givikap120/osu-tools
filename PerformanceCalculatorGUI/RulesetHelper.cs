@@ -11,6 +11,7 @@ using osu.Game.Configuration;
 using osu.Game.Database;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Catch;
+using osu.Game.Rulesets.Catch.Mods;
 using osu.Game.Rulesets.Catch.Objects;
 using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Mania;
