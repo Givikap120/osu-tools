@@ -5,10 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using osu.Framework.Audio.Track;
-using osu.Framework.Graphics.Textures;
 using osu.Framework.Platform;
 using osu.Game.Beatmaps;
+using osu.Game.Configuration;
 using osu.Game.Database;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Catch;
@@ -25,7 +24,6 @@ using osu.Game.Rulesets.Scoring;
 using osu.Game.Rulesets.Taiko;
 using osu.Game.Rulesets.Taiko.Objects;
 using osu.Game.Scoring;
-using osu.Game.Skinning;
 using osu.Game.Utils;
 
 namespace PerformanceCalculatorGUI
@@ -63,65 +61,89 @@ namespace PerformanceCalculatorGUI
         public static int GenerateModsHash(Mod[] mods, BeatmapDifficulty difficulty, RulesetInfo ruleset)
         {
             // Rate changing mods
-            double rate = ModUtils.CalculateRateWithMods(mods);
-
-            int hash = 0;
+            int hash = ModUtils.CalculateRateWithMods(mods).GetHashCode();
 
             if (ruleset.OnlineID == 0) // For osu we have many different things
             {
-                BeatmapDifficulty d = new BeatmapDifficulty(difficulty);
+                var d = new BeatmapDifficulty(difficulty);
 
                 foreach (var mod in mods.OfType<IApplicableToDifficulty>())
                     mod.ApplyToDifficulty(d);
 
-                bool isSliderAccuracy = mods.OfType<OsuModClassic>().All(m => !m.NoSliderHeadAccuracy.Value);
+                int relevantModsHash = 0;
 
-                byte flashlightHash = 0;
-                if (mods.Any(h => h is OsuModFlashlight))
-                {
-                    if (!mods.Any(h => h is OsuModHidden)) flashlightHash = 1;
-                    else flashlightHash = 2;
-                }
+                relevantModsHash = hashMod<OsuModHardRock>(relevantModsHash, mods);
+                relevantModsHash = hashMod<OsuModHidden>(relevantModsHash, mods);
+                relevantModsHash = hashMod<OsuModFlashlight>(relevantModsHash, mods);
+                relevantModsHash = hashMod<OsuModClassic>(relevantModsHash, mods);
+                relevantModsHash = hashMod<OsuModMirror>(relevantModsHash, mods);
 
-                byte mirrorHash = 0;
-
-                if (mods.Any(m => m is OsuModHardRock))
-                {
-                    mirrorHash = 1 + (int)OsuModMirror.MirrorType.Vertical;
-                }
-                else if (mods.FirstOrDefault(m => m is OsuModMirror) is OsuModMirror mirror)
-                {
-                    mirrorHash = (byte)(1 + (int)mirror.Reflection.Value);
-                }
-
-                hash = HashCode.Combine(rate, d.CircleSize, d.OverallDifficulty, d.ApproachRate, isSliderAccuracy, flashlightHash, mirrorHash);
+                hash = HashCode.Combine(hash, d.CircleSize, d.OverallDifficulty, d.ApproachRate, relevantModsHash);
             }
             else if (ruleset.OnlineID == 1) // For taiko we only have rate
             {
-                hash = rate.GetHashCode();
             }
             else if (ruleset.OnlineID == 2) // For catch we have rate and CS
             {
-                BeatmapDifficulty d = new BeatmapDifficulty(difficulty);
+                var d = new BeatmapDifficulty(difficulty);
 
                 foreach (var mod in mods.OfType<IApplicableToDifficulty>())
                     mod.ApplyToDifficulty(d);
 
-                hash = HashCode.Combine(rate, d.CircleSize);
+                hash = HashCode.Combine(hash, d.CircleSize);
             }
             else if (ruleset.OnlineID == 3) // Mania is using rate, and keys data for converts
             {
-                int keyCount = 0;
+                int relevantModsHash = 0;
 
-                if (mods.FirstOrDefault(h => h is ManiaKeyMod) is ManiaKeyMod mod)
-                    keyCount = mod.KeyCount;
+                relevantModsHash = hashMod<ManiaKeyMod>(relevantModsHash, mods);
+                relevantModsHash = hashMod<ManiaModDualStages>(relevantModsHash, mods);
 
-                bool isDualStages = mods.Any(h => h is ManiaModDualStages);
-
-                hash = HashCode.Combine(rate, keyCount, isDualStages);
+                hash = HashCode.Combine(hash, relevantModsHash);
             }
 
             return hash;
+        }
+
+        private static int hashMod<TMod>(int currentHash, IEnumerable<Mod> allMods) where TMod : Mod
+        {
+            var mod = allMods.FirstOrDefault(m => m is TMod);
+            if (mod == null)
+                return currentHash;
+
+            return hashMod(currentHash, mod);
+        }
+
+        private static int hashMod(int currentHash, Mod mod)
+        {
+            currentHash = HashCode.Combine(currentHash, mod.Acronym);
+
+            var settings = mod.GetOrderedSettingsSourceProperties();
+
+            foreach (var (_, property) in settings)
+            {
+                object? bindable = property.GetValue(mod);
+                if (bindable == null)
+                    continue;
+
+                var valueProp = bindable.GetType().GetProperty("Value");
+                if (valueProp == null)
+                    continue;
+
+                object? value = valueProp.GetValue(bindable);
+
+                currentHash = value switch
+                {
+                    bool b => HashCode.Combine(currentHash, b ? 1 : 0),
+                    int i => HashCode.Combine(currentHash, i),
+                    float f => HashCode.Combine(currentHash, BitConverter.SingleToInt32Bits(f)),
+                    double f => HashCode.Combine(currentHash, BitConverter.DoubleToInt64Bits(f)),
+                    Enum e => HashCode.Combine(currentHash, Convert.ToInt32(e)),
+                    _ => throw new InvalidOperationException($"Unsupported bindable property type: {value?.GetType()}"),
+                };
+            }
+
+            return currentHash;
         }
 
         public static int AdjustManiaScore(int score, IReadOnlyList<Mod> mods)
@@ -350,7 +372,7 @@ namespace PerformanceCalculatorGUI
             // Start by assuming every non miss is a meh
             // This is how much increase is needed by the rest
             int remainingHits = totalHits - countMiss;
-            int delta = Math.Max(targetTotal - (10 * remainingHits), 0);
+            int delta = Math.Max(targetTotal - 10 * remainingHits, 0);
 
             // Each perfect increases total by 50 (CL) or 51 (no CL) (perfect - meh = 50 or 51)
             int perfects = Math.Min(delta / (perfectValue - 10), remainingHits);
@@ -412,7 +434,7 @@ namespace PerformanceCalculatorGUI
                 if (previousScoreInfo != null && isDuplicate(scoreInfo, previousScoreInfo))
                 {
                     // If previous is flawed while this is good - delete previous
-                    if ((scoreInfo.LegacyOnlineID > 0 && previousScoreInfo.LegacyOnlineID <= 0) || (scoreInfo.OnlineID > 0 && previousScoreInfo.OnlineID <= 0))
+                    if (scoreInfo.LegacyOnlineID > 0 && previousScoreInfo.LegacyOnlineID <= 0 || scoreInfo.OnlineID > 0 && previousScoreInfo.OnlineID <= 0)
                     {
                         newScores.RemoveAt(newScores.Count - 1);
                         newScores.Add(score);
@@ -442,7 +464,7 @@ namespace PerformanceCalculatorGUI
             {
                 try
                 {
-                    using (FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None))
+                    using (var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None))
                     {
                         stream.Close();
                     }
@@ -520,7 +542,7 @@ namespace PerformanceCalculatorGUI
             int countMiss = statistics.GetValueOrDefault(HitResult.Miss);
             int total = countGreat + countGood + countMiss;
 
-            return (double)((2 * countGreat) + countGood) / (2 * total);
+            return (double)(2 * countGreat + countGood) / (2 * total);
         }
 
         private static double getCatchAccuracy(Dictionary<HitResult, int> statistics)
@@ -542,7 +564,7 @@ namespace PerformanceCalculatorGUI
 
             int perfectWeight = mods.Any(m => m is ModClassic) ? 300 : 305;
 
-            double total = (perfectWeight * countPerfect) + (300 * countGreat) + (200 * countGood) + (100 * countOk) + (50 * countMeh);
+            double total = perfectWeight * countPerfect + 300 * countGreat + 200 * countGood + 100 * countOk + 50 * countMeh;
             double max = perfectWeight * (countPerfect + countGreat + countGood + countOk + countMeh + countMiss);
 
             return total / max;
