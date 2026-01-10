@@ -72,11 +72,21 @@ namespace PerformanceCalculatorGUI
 
                 int relevantModsHash = 0;
 
-                relevantModsHash = hashMod<OsuModHardRock>(relevantModsHash, mods);
+                // Affects skills
                 relevantModsHash = hashMod<OsuModHidden>(relevantModsHash, mods);
                 relevantModsHash = hashMod<OsuModFlashlight>(relevantModsHash, mods);
-                relevantModsHash = hashMod<OsuModClassic>(relevantModsHash, mods);
+
+                // Affects objects
+                relevantModsHash = hashMod<OsuModHardRock>(relevantModsHash, mods);
+                relevantModsHash = hashMod<OsuModClassic>(relevantModsHash, mods); // not yet but I'm doing it preemptively
                 relevantModsHash = hashMod<OsuModMirror>(relevantModsHash, mods);
+
+                // Affects difficulty rating multipliers
+                relevantModsHash = hashMod<OsuModTouchDevice>(relevantModsHash, mods);
+                relevantModsHash = hashMod<OsuModRelax>(relevantModsHash, mods);
+                relevantModsHash = hashMod<OsuModAutopilot>(relevantModsHash, mods);
+                relevantModsHash = hashMod<OsuModMagnetised>(relevantModsHash, mods);
+                relevantModsHash = hashMod<OsuModDeflate>(relevantModsHash, mods);
 
                 hash = HashCode.Combine(hash, d.CircleSize, d.OverallDifficulty, d.ApproachRate, relevantModsHash);
             }
