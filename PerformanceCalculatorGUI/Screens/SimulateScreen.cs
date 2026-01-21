@@ -23,6 +23,7 @@ using osu.Game.Configuration;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
+using osu.Game.Graphics.UserInterface;
 using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Overlays;
@@ -73,6 +74,7 @@ namespace PerformanceCalculatorGUI.Screens
         private LimitedLabelledNumberBox goodsTextBox = null!;
         private LimitedLabelledNumberBox mehsTextBox = null!;
         private SwitchButton fullScoreDataSwitch = null!;
+        private OsuCheckbox isLegacyScoreCheckBox = null!;
         private StatefulButton addToActiveCollectionButton = null!;
 
         private DifficultyAttributes? difficultyAttributes;
@@ -135,6 +137,8 @@ namespace PerformanceCalculatorGUI.Screens
 
         [GeneratedRegex(@"osu\.ppy\.sh/(?:b|beatmapsets/\d+#\w+|beatmaps)/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
         private partial Regex beatmapLinkRegex();
+
+        private bool suppressDifficultyCalculation = false;
 
         private const int file_selection_container_height = 40;
         private const int map_title_container_height = 40;
@@ -323,13 +327,49 @@ namespace PerformanceCalculatorGUI.Screens
                                                         }
                                                     }
                                                 },
-                                                comboTextBox = new LimitedLabelledNumberBox
+                                                new FillFlowContainer
                                                 {
                                                     RelativeSizeAxes = Axes.X,
-                                                    Anchor = Anchor.TopLeft,
-                                                    Label = "Combo",
-                                                    PlaceholderText = "0",
-                                                    MinValue = 0
+                                                    AutoSizeAxes = Axes.Y,
+                                                    Direction = FillDirection.Horizontal,
+                                                    Children = new Drawable[]
+                                                    {
+                                                        comboTextBox = new LimitedLabelledNumberBox
+                                                        {
+                                                            Anchor = Anchor.CentreLeft,
+                                                            Origin = Anchor.CentreLeft,
+                                                            RelativeSizeAxes = Axes.X,
+                                                            Width = 0.6f,
+                                                            Label = "Combo",
+                                                            PlaceholderText = "0",
+                                                            MinValue = 0
+                                                        },
+                                                        new Container
+                                                        {
+                                                            Anchor = Anchor.CentreLeft,
+                                                            Origin = Anchor.CentreLeft,
+                                                            Width = 0.4f,
+                                                            Masking = true,
+                                                            CornerRadius = ExtendedLabelledTextBox.CORNER_RADIUS,
+                                                            RelativeSizeAxes = Axes.Both,
+                                                            Children = new Drawable[]
+                                                            {
+                                                                new Box
+                                                                {
+                                                                    RelativeSizeAxes = Axes.Both,
+                                                                    Colour = colourProvider.Background4
+                                                                },
+                                                                isLegacyScoreCheckBox = new OsuCheckbox()
+                                                                {
+                                                                    Padding = new MarginPadding(10),
+                                                                    RelativeSizeAxes = Axes.X,
+                                                                    Origin = Anchor.Centre,
+                                                                    Anchor = Anchor.Centre,
+                                                                    LabelText = "Is Legacy Score",
+                                                                }
+                                                            }
+                                                        }
+                                                    }
                                                 },
                                                 missesContainer = new GridContainer
                                                 {
@@ -654,6 +694,7 @@ namespace PerformanceCalculatorGUI.Screens
             fullScoreDataSwitch.Current.BindValueChanged(val => updateAccuracyParams(val.NewValue));
 
             appliedMods.BindValueChanged(modsChanged);
+            isLegacyScoreCheckBox.Current.BindValueChanged(isLegacyScoreChanged);
             modDisplay.Current.BindTo(appliedMods);
 
             ruleset.BindValueChanged(_ =>
@@ -697,7 +738,7 @@ namespace PerformanceCalculatorGUI.Screens
             if (working is null)
                 return;
 
-            updateMissesTextboxes();
+            handleModsChangedForUI(mods);
 
             // recreate calculators to update DHOs
             createCalculators();
@@ -718,6 +759,49 @@ namespace PerformanceCalculatorGUI.Screens
             Schedule(() => updateCombo(false));
 
             calculateDifficultyAsync().ContinueWith(_ => calculatePerformance());
+        }
+
+        private void isLegacyScoreChanged(ValueChangedEvent<bool> isLegacyScore)
+        {
+            if (isLegacyScore.OldValue == isLegacyScore.NewValue)
+                return;
+
+            updateMissesTextboxes();
+
+            if (isLegacyScore.NewValue == true && !hasClassicModConfiguration(appliedMods.Value))
+            {
+                var rulesetInstance = ruleset.Value.CreateInstance();
+
+                var newMods = appliedMods.Value.ToList();
+                newMods.RemoveAll(m => m is ModClassic);
+
+                var modClassic = rulesetInstance.CreateMod<ModClassic>();
+                if (modClassic != null) newMods.Add(modClassic);
+
+                appliedMods.Value = newMods;
+            }
+
+            calculateDifficultyAsync().ContinueWith(_ => calculatePerformance());
+        }
+
+        private void handleModsChangedForUI(ValueChangedEvent<IReadOnlyList<Mod>> mods)
+        {
+            suppressDifficultyCalculation = true;
+
+            // If we changed from non classic to classic - automatically assume that we want to calculate legacy score
+            if (!hasClassicModConfiguration(mods.OldValue) && hasClassicModConfiguration(mods.NewValue))
+            {
+                isLegacyScoreCheckBox.Current.Value = true;
+            }
+            // We can't have legacy scores without classic mod
+            else if (!hasClassicModConfiguration(mods.NewValue))
+            {
+                isLegacyScoreCheckBox.Current.Value = false;
+            }
+
+            suppressDifficultyCalculation = false;
+
+            updateMissesTextboxes();
         }
 
         private void resetBeatmap()
@@ -816,7 +900,7 @@ namespace PerformanceCalculatorGUI.Screens
 
         private Task calculateDifficultyAsync()
         {
-            if (working == null || difficultyCalculator.Value == null)
+            if (working == null || difficultyCalculator.Value == null || suppressDifficultyCalculation)
                 return Task.CompletedTask;
 
             cancellationTokenSource?.Cancel();
@@ -921,6 +1005,7 @@ namespace PerformanceCalculatorGUI.Screens
                     User = user,
                     TotalScore = score,
                     LegacyTotalScore = score > 0 ? score : null,
+                    IsLegacyScore = isLegacyScoreCheckBox.Current.Value,
                     PP = performanceAttributes?.Total ?? 0,
                     Ruleset = ruleset.Value,
                     OnlineID = scoreId,
@@ -943,7 +1028,7 @@ namespace PerformanceCalculatorGUI.Screens
             if (working == null || difficultyAttributes == null)
                 return;
 
-            if (token.IsCancellationRequested) return;
+            if (token.IsCancellationRequested || suppressDifficultyCalculation) return;
 
             try
             {
@@ -1197,6 +1282,8 @@ namespace PerformanceCalculatorGUI.Screens
 
                 Schedule(() =>
                 {
+                    suppressDifficultyCalculation = true;
+
                     if (scoreInfo.BeatmapID != working?.BeatmapInfo.OnlineID)
                     {
                         beatmapIdTextBox.Text = string.Empty;
@@ -1206,6 +1293,7 @@ namespace PerformanceCalculatorGUI.Screens
                     ruleset.Value = rulesets.GetRuleset(scoreInfo.RulesetID)!;
                     appliedMods.Value = scoreInfo.Mods.Select(x => x.ToMod(ruleset.Value.CreateInstance())).ToList();
 
+                    isLegacyScoreCheckBox.Current.Value = scoreInfo.IsLegacyScore;
                     scoreTextBox.Text = scoreInfo.LegacyTotalScore.ToString();
 
                     fullScoreDataSwitch.Current.Value = true;
@@ -1263,10 +1351,13 @@ namespace PerformanceCalculatorGUI.Screens
                         sliderTailMissesTextBox.Text = sliderTailMisses.ToString();
                     }
 
+                    // After changing everything - recalculate once
+                    suppressDifficultyCalculation = false;
                     calculateDifficultyAsync().ContinueWith(_ => calculatePerformance());
                 });
             }).ContinueWith(t =>
             {
+                suppressDifficultyCalculation = false;
                 showError(t.Exception);
             }, TaskContinuationOptions.OnlyOnFaulted).ContinueWith(t =>
             {
@@ -1294,7 +1385,7 @@ namespace PerformanceCalculatorGUI.Screens
             if (ruleset.Value.ShortName == "osu")
             {
                 // Large tick misses and slider tail misses are only relevant in PP if slider head accuracy exists
-                if (appliedMods.Value.OfType<OsuModClassic>().Any(m => m.NoSliderHeadAccuracy.Value))
+                if (isLegacyScoreCheckBox.Current.Value) // appliedMods.Value.OfType<OsuModClassic>().Any(m => m.NoSliderHeadAccuracy.Value)
                 {
                     missesContainer.Content = new[] { new[] { missesTextBox } };
                     missesContainer.ColumnDimensions = [new Dimension()];
@@ -1412,5 +1503,7 @@ namespace PerformanceCalculatorGUI.Screens
 
             CSVExporter.ExportToCSV(generatedScores, $"{working.BeatmapInfo.Metadata.Title} Score Data.csv");
         }
+
+        private bool hasClassicModConfiguration(IReadOnlyList<Mod> mods) => mods.Any(m => m is ModClassic && m.UsesDefaultConfiguration);
     }
 }
