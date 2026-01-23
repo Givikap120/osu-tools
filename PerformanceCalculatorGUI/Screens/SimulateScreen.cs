@@ -657,8 +657,8 @@ namespace PerformanceCalculatorGUI.Screens
             beatmapDataContainer.Hide();
             userModsSelectOverlay.Hide();
 
-            beatmapFileTextBox.Current.BindValueChanged(filePath => { changeBeatmap(filePath.NewValue); });
-            beatmapIdTextBox.OnCommit += (_, _) => { changeBeatmap(beatmapIdTextBox.Current.Value); };
+            beatmapFileTextBox.Current.BindValueChanged(filePath => { changeBeatmap(filePath.NewValue, true); });
+            beatmapIdTextBox.OnCommit += (_, _) => { changeBeatmap(beatmapIdTextBox.Current.Value, true); };
 
             beatmapImportTypeSwitch.Current.BindValueChanged(val =>
             {
@@ -691,7 +691,7 @@ namespace PerformanceCalculatorGUI.Screens
             comboTextBox.Value.BindValueChanged(_ => debouncedCalculatePerformance());
             scoreTextBox.Value.BindValueChanged(_ => debouncedCalculatePerformance());
 
-            fullScoreDataSwitch.Current.BindValueChanged(val => updateAccuracyParams(val.NewValue));
+            fullScoreDataSwitch.Current.BindValueChanged(val => updateAccuracyParams(val.NewValue, true));
 
             appliedMods.BindValueChanged(modsChanged);
             isLegacyScoreCheckBox.Current.BindValueChanged(isLegacyScoreChanged);
@@ -699,7 +699,7 @@ namespace PerformanceCalculatorGUI.Screens
 
             ruleset.BindValueChanged(_ =>
             {
-                resetCalculations();
+                resetCalculations(true);
             });
 
             if (RuntimeInfo.IsDesktop)
@@ -818,7 +818,7 @@ namespace PerformanceCalculatorGUI.Screens
             }
         }
 
-        private void changeBeatmap(string beatmap, bool overwriteCache = false)
+        private void changeBeatmap(string beatmap, bool resetScoreInfo, bool overwriteCache = false)
         {
             beatmapDataContainer.Hide();
 
@@ -856,7 +856,7 @@ namespace PerformanceCalculatorGUI.Screens
             }
             else
             {
-                resetCalculations();
+                resetCalculations(resetScoreInfo);
             }
 
             beatmapTitle.Clear();
@@ -876,7 +876,7 @@ namespace PerformanceCalculatorGUI.Screens
                             Text = "Reset Cache",
                             Action = () =>
                             {
-                                changeBeatmap(beatmap, true);
+                                changeBeatmap(beatmap, false, overwriteCache: true);
                             }
                         }
                     }
@@ -1045,7 +1045,7 @@ namespace PerformanceCalculatorGUI.Screens
             }
         }
 
-        private void populateScoreParams()
+        private void populateScoreParams(bool resetScoreInfo)
         {
             accuracyContainer.Hide();
             comboTextBox.Hide();
@@ -1054,17 +1054,22 @@ namespace PerformanceCalculatorGUI.Screens
             sliderTailMissesTextBox.Hide();
             scoreTextBox.Hide();
 
+            void showScore()
+            {
+                if (resetScoreInfo) scoreTextBox.Text = string.Empty;
+                scoreTextBox.Show();
+            }
+
             if (ruleset.Value.ShortName == "osu")
             {
-                scoreTextBox.Text = string.Empty;
-                scoreTextBox.Show();
+                showScore();
             }
             if (ruleset.Value.ShortName == "osu" || ruleset.Value.ShortName == "taiko" || ruleset.Value.ShortName == "fruits")
             {
-                updateAccuracyParams(fullScoreDataSwitch.Current.Value);
+                updateAccuracyParams(fullScoreDataSwitch.Current.Value, resetScoreInfo);
                 accuracyContainer.Show();
 
-                updateCombo(true);
+                updateCombo(resetScoreInfo);
                 comboTextBox.Show();
                 missesTextBox.Show();
 
@@ -1076,41 +1081,42 @@ namespace PerformanceCalculatorGUI.Screens
             }
             else if (ruleset.Value.ShortName == "mania")
             {
-                updateAccuracyParams(fullScoreDataSwitch.Current.Value);
+                updateAccuracyParams(fullScoreDataSwitch.Current.Value, resetScoreInfo);
                 accuracyContainer.Show();
 
                 missesTextBox.Show();
 
-                scoreTextBox.Text = string.Empty;
-                scoreTextBox.Show();
+                showScore();
             }
             else
             {
                 // show everything if it's something non-official
-                updateAccuracyParams(false);
+                updateAccuracyParams(false, resetScoreInfo);
                 accuracyContainer.Show();
 
-                updateCombo(true);
+                updateCombo(resetScoreInfo);
                 comboTextBox.Show();
                 missesTextBox.Show();
                 largeTickMissesTextBox.Show();
                 sliderTailMissesTextBox.Show();
 
-                scoreTextBox.Text = string.Empty;
-                scoreTextBox.Show();
+                showScore();
             }
         }
 
-        private void updateAccuracyParams(bool useFullScoreData)
+        private void updateAccuracyParams(bool useFullScoreData, bool reset)
         {
-            goodsTextBox.Text = string.Empty;
-            goodsTextBox.Value.Value = 0;
+            if (reset)
+            {
+                goodsTextBox.Text = string.Empty;
+                goodsTextBox.Value.Value = 0;
 
-            mehsTextBox.Text = string.Empty;
-            mehsTextBox.Value.Value = 0;
+                mehsTextBox.Text = string.Empty;
+                mehsTextBox.Value.Value = 0;
 
-            accuracyTextBox.Text = string.Empty;
-            accuracyTextBox.Value.Value = 100;
+                accuracyTextBox.Text = string.Empty;
+                accuracyTextBox.Value.Value = 100;
+            }
 
             if (useFullScoreData)
             {
@@ -1183,14 +1189,14 @@ namespace PerformanceCalculatorGUI.Screens
             appliedMods.Value = Array.Empty<Mod>();
         }
 
-        private void resetCalculations()
+        private void resetCalculations(bool resetScoreInfo)
         {
             createCalculators();
             resetMods();
 
             calculateDifficultyAsync().ContinueWith(_ =>
             {
-                Schedule(() => populateScoreParams());
+                Schedule(() => populateScoreParams(resetScoreInfo));
                 calculatePerformance();
             });
         }
@@ -1287,13 +1293,18 @@ namespace PerformanceCalculatorGUI.Screens
                     if (scoreInfo.BeatmapID != working?.BeatmapInfo.OnlineID)
                     {
                         beatmapIdTextBox.Text = string.Empty;
-                        changeBeatmap(scoreInfo.BeatmapID.ToString());
+                        changeBeatmap(scoreInfo.BeatmapID.ToString(), false);
                     }
 
                     ruleset.Value = rulesets.GetRuleset(scoreInfo.RulesetID)!;
                     appliedMods.Value = scoreInfo.Mods.Select(x => x.ToMod(ruleset.Value.CreateInstance())).ToList();
 
+                    resetMisses();
+                    updateMissesTextboxes();
+
                     isLegacyScoreCheckBox.Current.Value = scoreInfo.IsLegacyScore;
+
+                    scoreTextBox.Value.Value = scoreInfo.LegacyTotalScore ?? 0;
                     scoreTextBox.Text = scoreInfo.LegacyTotalScore.ToString();
 
                     fullScoreDataSwitch.Current.Value = true;
@@ -1301,9 +1312,6 @@ namespace PerformanceCalculatorGUI.Screens
                     // TODO: this shouldn't be done in 2 lines
                     comboTextBox.Value.Value = scoreInfo.MaxCombo;
                     comboTextBox.Text = scoreInfo.MaxCombo.ToString();
-
-                    resetMisses();
-                    updateMissesTextboxes();
 
                     if (scoreInfo.Statistics.TryGetValue(HitResult.Miss, out int misses))
                     {
