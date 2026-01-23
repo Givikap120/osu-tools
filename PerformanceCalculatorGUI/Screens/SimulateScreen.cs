@@ -1176,23 +1176,13 @@ namespace PerformanceCalculatorGUI.Screens
 
         private void resetMods()
         {
-            // This is temporary solution to the UX problem that people would usually want to calculate classic scores, but classic and lazer scores have different max combo
-            // We append classic mod automatically so that it is immediately obvious what's going on and makes max combo same as live
-            /*var classicMod = ruleset.Value.CreateInstance().CreateAllMods().SingleOrDefault(m => m is ModClassic);
-
-            if (classicMod != null)
-            {
-                appliedMods.Value = new[] { classicMod };
-                return;
-            }*/
-
             appliedMods.Value = Array.Empty<Mod>();
         }
 
         private void resetCalculations(bool resetScoreInfo)
         {
             createCalculators();
-            resetMods();
+            if (resetScoreInfo) resetMods();
 
             calculateDifficultyAsync().ContinueWith(_ =>
             {
