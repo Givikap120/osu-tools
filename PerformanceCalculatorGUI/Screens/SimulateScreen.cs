@@ -138,7 +138,7 @@ namespace PerformanceCalculatorGUI.Screens
         [GeneratedRegex(@"osu\.ppy\.sh/(?:b|beatmapsets/\d+#\w+|beatmaps)/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
         private partial Regex beatmapLinkRegex();
 
-        private bool suppressDifficultyCalculation = false;
+        private int suppressDifficultyCalculation = 0;
         private int? queuedBeatmap;
         private ulong? queuedScore;
 
@@ -814,7 +814,7 @@ namespace PerformanceCalculatorGUI.Screens
 
         private void handleModsChangedForUI(ValueChangedEvent<IReadOnlyList<Mod>> mods)
         {
-            suppressDifficultyCalculation = true;
+            suppressDifficultyCalculation += 1;
 
             // If we changed from non classic to classic - automatically assume that we want to calculate legacy score
             if (!hasClassicModConfiguration(mods.OldValue) && hasClassicModConfiguration(mods.NewValue))
@@ -827,7 +827,7 @@ namespace PerformanceCalculatorGUI.Screens
                 isLegacyScoreCheckBox.Current.Value = false;
             }
 
-            suppressDifficultyCalculation = false;
+            suppressDifficultyCalculation -= 1;
 
             updateMissesTextboxes();
         }
@@ -928,7 +928,7 @@ namespace PerformanceCalculatorGUI.Screens
 
         private Task calculateDifficultyAsync()
         {
-            if (working == null || difficultyCalculator.Value == null || suppressDifficultyCalculation)
+            if (working == null || difficultyCalculator.Value == null || suppressDifficultyCalculation > 0)
                 return Task.CompletedTask;
 
             cancellationTokenSource?.Cancel();
@@ -1056,7 +1056,7 @@ namespace PerformanceCalculatorGUI.Screens
             if (working == null || difficultyAttributes == null)
                 return;
 
-            if (token.IsCancellationRequested || suppressDifficultyCalculation) return;
+            if (token.IsCancellationRequested || suppressDifficultyCalculation > 0) return;
 
             try
             {
@@ -1306,7 +1306,7 @@ namespace PerformanceCalculatorGUI.Screens
 
                 Schedule(() =>
                 {
-                    suppressDifficultyCalculation = true;
+                    suppressDifficultyCalculation += 1;
 
                     if (scoreInfo.BeatmapID != working?.BeatmapInfo.OnlineID)
                     {
@@ -1376,16 +1376,21 @@ namespace PerformanceCalculatorGUI.Screens
                         sliderTailMissesTextBox.Value.Value = sliderTailMisses;
                         sliderTailMissesTextBox.Text = sliderTailMisses.ToString();
                     }
-
-                    // After changing everything - recalculate once
-                    suppressDifficultyCalculation = false;
-                    calculateDifficultyAsync().ContinueWith(_ => calculatePerformance());
                 });
             }).ContinueWith(t =>
             {
-                suppressDifficultyCalculation = false;
-                showError(t.Exception);
-            }, TaskContinuationOptions.OnlyOnFaulted).ContinueWith(t =>
+                // Release suppression exactly once
+                suppressDifficultyCalculation--;
+
+                if (t.IsFaulted)
+                {
+                    showError(t.Exception);
+                    return Task.CompletedTask;
+                }
+
+                // If not failed - calculate difficulty and performance
+                return calculateDifficultyAsync().ContinueWith(_ => calculatePerformance());
+            }).ContinueWith(t =>
             {
                 Schedule(() =>
                 {
