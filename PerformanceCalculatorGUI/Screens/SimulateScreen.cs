@@ -139,6 +139,8 @@ namespace PerformanceCalculatorGUI.Screens
         private partial Regex beatmapLinkRegex();
 
         private bool suppressDifficultyCalculation = false;
+        private int? queuedBeatmap;
+        private ulong? queuedScore;
 
         private const int file_selection_container_height = 40;
         private const int map_title_container_height = 40;
@@ -147,6 +149,13 @@ namespace PerformanceCalculatorGUI.Screens
         public SimulateScreen()
         {
             RelativeSizeAxes = Axes.Both;
+        }
+
+        public SimulateScreen(int beatmapId, ulong? scoreId = null)
+        {
+            RelativeSizeAxes = Axes.Both;
+            queuedBeatmap = beatmapId;
+            queuedScore = scoreId;
         }
 
         [BackgroundDependencyLoader]
@@ -709,6 +718,25 @@ namespace PerformanceCalculatorGUI.Screens
                     calculateDifficultyAsync().ContinueWith(_ => calculatePerformance());
                 });
             }
+        }
+
+        protected override void LoadComplete()
+        {
+            base.LoadComplete();
+
+            if (queuedScore != null)
+            {
+                populateSettingsFromScore(queuedScore.Value.ToString());
+                scoreIdTextBox.Text = queuedScore.Value.ToString();
+            }
+            else if (queuedBeatmap != null)
+            {
+                changeBeatmap(queuedBeatmap.Value.ToString(), true);
+                beatmapIdTextBox.Text = queuedBeatmap.Value.ToString();
+            }
+
+            queuedScore = null;
+            queuedBeatmap = null;
         }
 
         protected override void Dispose(bool isDisposing)
