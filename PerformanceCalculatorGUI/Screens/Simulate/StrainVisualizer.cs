@@ -18,7 +18,9 @@ using osu.Game.Graphics;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Graphics.UserInterface;
 using osu.Game.Overlays;
+using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Difficulty.Skills;
+using osu.Game.Rulesets.Objects.Types;
 using osu.Game.Screens.Edit.Compose.Components.Timeline;
 using osuTK;
 using osuTK.Graphics;
@@ -29,8 +31,6 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
 {
     public partial class StrainVisualizer : Container
     {
-        public readonly Bindable<Skill[]> Skills = new Bindable<Skill[]>([]);
-
         private readonly List<Bindable<bool>> graphToggles = new List<Bindable<bool>>();
 
         public readonly Bindable<int> TimeUntilFirstStrain = new Bindable<int>();
@@ -43,6 +43,11 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
         [Resolved]
         private OverlayColourProvider? colourProvider { get; set; }
 
+        [Resolved]
+        private Bindable<DifficultyCalculator?> difficultyCalculator { get; set; } = null!;
+
+        private const int strain_length = 400;
+
         public StrainVisualizer()
         {
             RelativeSizeAxes = Axes.X;
@@ -51,13 +56,15 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
 
         private float graphAlpha;
 
-        private void updateGraphs(ValueChangedEvent<Skill[]> val)
+        private void updateGraphs(ValueChangedEvent<DifficultyCalculator?> val)
         {
             if (val.NewValue == null) return;
 
-            var skills = val.NewValue.Where(x => x is StrainSkill).ToArray();
+            if (val.NewValue is not IExtendedDifficultyCalculator extendedDifficultyCalculator)
+                return;
 
-            // dont bother if there are no strain skills to draw
+            var skills = extendedDifficultyCalculator.GetSkills();
+
             if (skills.Length == 0)
             {
                 graphsContainer.Clear();
@@ -69,13 +76,16 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
             graphAlpha = 0.5f;
             var strainLists = getStrainLists(skills);
 
-            createStrainBars(skills, strainLists).ContinueWith(t => Schedule(() =>
+            //createStrainBars(skills, strainLists).ContinueWith(t => Schedule(() =>
             {
                 graphsContainer.Clear();
-                addStrainBars(t.GetResultSafely(), skills, strainLists);
+                addStrainBars(skills, strainLists);
+                //addStrainBars(t.GetResultSafely(), skills, strainLists);
                 addTooltipBars(strainLists);
 
-                if (val.OldValue == null || !val.NewValue.All(x => val.OldValue.Any(y => y.GetType().Name == x.GetType().Name)))
+                var oldSkills = (val.OldValue as IExtendedDifficultyCalculator)?.GetSkills();
+
+                if (oldSkills == null || oldSkills.Length == 0 || !skills.All(x => oldSkills.Any(y => y.GetType().Name == x.GetType().Name)))
                 {
                     // skill list changed - recreate toggles
                     legendContainer.Clear();
@@ -135,7 +145,7 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
                             graphsContainer[i].Hide();
                     }
                 }
-            }));
+            }
         }
 
         [BackgroundDependencyLoader]
@@ -195,7 +205,7 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
                 }
             });
 
-            Skills.BindValueChanged(updateGraphs);
+            difficultyCalculator.BindValueChanged(updateGraphs);
         }
 
         private Task<List<StrainBarGraph>> createStrainBars(Skill[] skills, List<float[]> strainLists)
@@ -217,12 +227,20 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
             return LoadComponentsAsync(graphs).ContinueWith(_ => graphs);
         }
 
-        private void addStrainBars(List<StrainBarGraph> graphs, Skill[] skills, List<float[]> strainLists)
+        //private void addStrainBars(List<StrainBarGraph> graphs, Skill[] skills, List<float[]> strainLists)
+        private void addStrainBars(Skill[] skills, List<Strain[]> strainLists)
         {
-            float strainMaxValue = strainLists.Max(list => list.Max());
+            double strainMaxValue = strainLists.SelectMany(x => x).MaxBy(x => x.Difficulty)!.Difficulty;
 
             for (int i = 0; i < skills.Length; i++)
             {
+                var strainGraph = new StrainBarGraph
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    MaxValue = (float)strainMaxValue
+                };
+                strainGraph.CreateBars(strainLists[i]);
+
                 graphsContainer.AddRange(new Drawable[]
                 {
                     new BufferedContainer(cachedFrameBuffer: true)
@@ -230,7 +248,8 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
                         RelativeSizeAxes = Axes.Both,
                         Alpha = graphAlpha,
                         Colour = skillColours[i % skillColours.Length],
-                        Child = graphs[i]
+                        //Child = graphs[i]
+                        Child = strainGraph
                     }
                 });
             }
@@ -242,9 +261,9 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
             });
         }
 
-        private void addTooltipBars(List<float[]> strainLists, int nBars = 1000)
+        private void addTooltipBars(List<Strain[]> strainLists, int nBars = 1000)
         {
-            double lastStrainTime = strainLists.Max(l => l.Length) * 400;
+            double lastStrainTime = strainLists.SelectMany(x => x).MaxBy(x => x.StartTime)!.StartTime;
 
             var tooltipList = new List<string>();
 
@@ -270,26 +289,101 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
             });
         }
 
-        private static List<float[]> getStrainLists(Skill[] skills)
+        private List<Strain[]> getStrainLists(Skill[] skills)
         {
-            var strainLists = new List<float[]>();
+            var strainLists = new List<Strain[]>();
 
             foreach (var skill in skills)
             {
-                double[] strains = ((StrainSkill)skill).GetCurrentStrainPeaks().ToArray();
-
-                var skillStrainList = new List<float>();
-
-                for (int i = 0; i < strains.Length; i++)
+                switch (skill)
                 {
-                    double strain = strains[i];
-                    skillStrainList.Add((float)strain);
-                }
+                    case StrainSkill strainSkill:
+                        strainLists.Add(getStrainSkillStrainList(strainSkill));
+                        break;
 
-                strainLists.Add(skillStrainList.ToArray());
+                    default:
+                        strainLists.Add(getStrainList(skill));
+                        break;
+                }
             }
 
             return strainLists;
+        }
+
+        private Strain[] getStrainSkillStrainList(StrainSkill strainSkill)
+        {
+            double[] strains = strainSkill.GetCurrentStrainPeaks().ToArray();
+
+            var skillStrainList = new List<Strain>();
+
+            for (int i = 0; i < strains.Length; i++)
+            {
+                double strain = strains[i];
+                skillStrainList.Add(new Strain
+                {
+                    Difficulty = strain,
+                    StartTime = strain_length * i, // todo: use actual strain length
+                    EndTime = (strain_length * i) + strain_length
+                });
+            }
+
+            return skillStrainList.ToArray();
+        }
+
+        private Strain[] getStrainList(Skill skill)
+        {
+            var difficultyObjects = (difficultyCalculator.Value as IExtendedDifficultyCalculator)!.GetDifficultyHitObjects();
+
+            var difficulties = skill.GetObjectDifficulties();
+
+            var skillStrainList = new List<Strain>();
+
+            for (int i = 0; i < difficulties.Count - 1; i++)
+            {
+                double strain = difficulties[i];
+                var difficultyObject = difficultyObjects[i];
+                var nextDifficultyObject = i < difficulties.Count - 1 ? difficultyObjects[i + 1] : null;
+
+                double startTime = difficultyObject.StartTime;
+                double endTime = difficultyObject.EndTime;
+
+                if (nextDifficultyObject != null)
+                {
+                    // cap length to object_length + strain_length to make map breaks display 0 difficulty instead of the last-object-before-break difficulty
+                    endTime = Math.Min(endTime + strain_length, nextDifficultyObject.StartTime);
+                }
+
+                skillStrainList.Add(new Strain
+                {
+                    Difficulty = strain,
+                    StartTime = startTime,
+                    EndTime = endTime
+                });
+
+                // add blank bars between objects to make the graph consistent timescale-wise
+                if (nextDifficultyObject != null && nextDifficultyObject.StartTime - endTime > 0)
+                {
+                    skillStrainList.Add(new Strain
+                    {
+                        Difficulty = 0,
+                        StartTime = endTime,
+                        EndTime = nextDifficultyObject.StartTime
+                    });
+                }
+
+                // add blank strain_length bar in the end to make the object difficulties graph consistent with strain-based graphs
+                if (nextDifficultyObject == null)
+                {
+                    skillStrainList.Add(new Strain
+                    {
+                        Difficulty = 0,
+                        StartTime = endTime,
+                        EndTime = endTime + strain_length
+                    });
+                }
+            }
+
+            return skillStrainList.ToArray();
         }
     }
 
@@ -324,6 +418,31 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
         /// Manually sets the max value, if null <see cref="Enumerable.Max(IEnumerable{float})"/> is instead used
         /// </summary>
         public float? MaxValue { get; set; }
+
+        public void CreateBars(Strain[] values)
+        {
+            Clear();
+
+            double maxLength = MaxValue ?? values.MaxBy(x => x.Difficulty)!.Difficulty;
+            double totalWidth = values.Sum(x => x.Length);
+
+            foreach (Strain val in values)
+            {
+                double length = 0;
+                if (maxLength != 0)
+                    length = val.Difficulty / maxLength;
+
+                float size = (float)(val.Length / totalWidth);
+
+                Add(new Bar
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Size = new Vector2(size, 1),
+                    Length = (float)length,
+                    Direction = BarDirection.BottomToTop
+                });
+            }
+        }
     }
 
     public partial class TooltipBar : Bar, IHasTooltip
@@ -362,5 +481,13 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
                 }
             }
         }
+    }
+
+    public class Strain
+    {
+        public double Difficulty { get; set; }
+        public double StartTime { get; set; }
+        public double EndTime { get; set; }
+        public double Length => EndTime - StartTime;
     }
 }

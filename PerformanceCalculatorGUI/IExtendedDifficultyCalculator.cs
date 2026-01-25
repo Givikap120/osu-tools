@@ -15,15 +15,15 @@ namespace PerformanceCalculatorGUI
     public interface IExtendedDifficultyCalculator
     {
         Skill[] GetSkills();
-
-        DifficultyHitObject[] GetDifficultyHitObjects(IBeatmap beatmap, double clockRate);
+        DifficultyHitObject[] GetDifficultyHitObjects();
 
         static DifficultyHitObject[] GetDifficultyHitObjects(DifficultyCalculator difficultyCalculator, IBeatmap beatmap, double clockRate)
         {
-            MethodInfo methodInfo = difficultyCalculator.GetType().GetMethod("CreateDifficultyHitObjects", BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo? methodInfo = difficultyCalculator.GetType().GetMethod("CreateDifficultyHitObjects", BindingFlags.Instance | BindingFlags.NonPublic);
             if (methodInfo != null)
             {
-                return ((IEnumerable<DifficultyHitObject>)methodInfo.Invoke(difficultyCalculator, new object[] { beatmap, clockRate })).ToArray();
+                var result = (IEnumerable<DifficultyHitObject>?)methodInfo.Invoke(difficultyCalculator, new object[] { beatmap, clockRate });
+                return result?.ToArray() ?? Array.Empty<DifficultyHitObject>();
             }
 
             throw new InvalidOperationException("Method not found");

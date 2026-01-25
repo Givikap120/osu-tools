@@ -29,7 +29,6 @@ using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Overlays;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Difficulty;
-using osu.Game.Rulesets.Difficulty.Skills;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Osu.Difficulty;
 using osu.Game.Rulesets.Osu.Difficulty.Skills;
@@ -768,9 +767,6 @@ namespace PerformanceCalculatorGUI.Screens
 
             handleModsChangedForUI(mods);
 
-            // recreate calculators to update DHOs
-            createCalculators();
-
             modSettingChangeTracker?.Dispose();
             modSettingChangeTracker = new ModSettingChangeTracker(mods.NewValue);
             modSettingChangeTracker.SettingChanged += m =>
@@ -778,7 +774,6 @@ namespace PerformanceCalculatorGUI.Screens
                 debouncedStatisticsUpdate?.Cancel();
                 debouncedStatisticsUpdate = Scheduler.AddDelayed(() =>
                 {
-                    createCalculators();
                     updateMissesTextboxes();
                     calculateDifficultyAsync().ContinueWith(_ => calculatePerformance());
                 }, 100);
@@ -916,19 +911,9 @@ namespace PerformanceCalculatorGUI.Screens
             beatmapDataContainer.Show();
         }
 
-        private void createCalculators()
-        {
-            if (working is null)
-                return;
-
-            var rulesetInstance = ruleset.Value.CreateInstance();
-            difficultyCalculator.Value = RulesetHelper.GetExtendedDifficultyCalculator(ruleset.Value, working);
-            performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
-        }
-
         private Task calculateDifficultyAsync()
         {
-            if (working == null || difficultyCalculator.Value == null || suppressDifficultyCalculation > 0)
+            if (working == null || suppressDifficultyCalculation > 0)
                 return Task.CompletedTask;
 
             cancellationTokenSource?.Cancel();
@@ -938,7 +923,12 @@ namespace PerformanceCalculatorGUI.Screens
             {
                 try
                 {
-                    difficultyAttributes = difficultyCalculator.Value.Calculate(appliedMods.Value, cancellationTokenSource.Token);
+                    var rulesetInstance = ruleset.Value.CreateInstance();
+                    var extendedDifficultyCalculator = RulesetHelper.GetExtendedDifficultyCalculator(ruleset.Value, working);
+                    performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
+
+                    difficultyAttributes = extendedDifficultyCalculator.Calculate(appliedMods.Value);
+                    difficultyCalculator.Value = extendedDifficultyCalculator;
                 }
                 catch (Exception e)
                 {
@@ -953,16 +943,8 @@ namespace PerformanceCalculatorGUI.Screens
                 {
                     difficultyAttributesContainer.Attributes.Value = AttributeConversion.ToDictionary(difficultyAttributes);
 
-                    if (difficultyCalculator.Value is IExtendedDifficultyCalculator extendedDifficultyCalculator)
-                    {
-                        // StrainSkill always skips the first object
-                        if (working.Beatmap?.HitObjects.Count > 1)
-                            strainVisualizer.TimeUntilFirstStrain.Value = (int)working.Beatmap.HitObjects[1].StartTime;
-
-                        strainVisualizer.Skills.Value = extendedDifficultyCalculator.GetSkills();
-                    }
-                    else
-                        strainVisualizer.Skills.Value = Array.Empty<Skill>();
+                    if (working.Beatmap?.HitObjects.Count > 1)
+                        strainVisualizer.TimeUntilFirstStrain.Value = (int)working.Beatmap.HitObjects[1].StartTime;
                 });
             }).ContinueWith(t =>
             {
@@ -1209,7 +1191,6 @@ namespace PerformanceCalculatorGUI.Screens
 
         private void resetCalculations(bool resetScoreInfo)
         {
-            createCalculators();
             if (resetScoreInfo) resetMods();
 
             calculateDifficultyAsync().ContinueWith(_ =>
@@ -1499,7 +1480,7 @@ namespace PerformanceCalculatorGUI.Screens
             ExtendedOsuDifficultyCalculator extendedCalculator = (ExtendedOsuDifficultyCalculator)difficultyCalculator.Value;
             double clockRate = ModUtils.CalculateRateWithMods(appliedMods.Value);
 
-            var hitObjects = extendedCalculator.GetDifficultyHitObjects(beatmap, clockRate);
+            var hitObjects = extendedCalculator.GetDifficultyHitObjects();
 
             Aim aim = extendedCalculator.GetSkills().OfType<Aim>().LastOrDefault()!;
             FieldInfo? objectStrainsProperty = typeof(Aim).GetField("ObjectStrains", BindingFlags.Instance | BindingFlags.NonPublic);
