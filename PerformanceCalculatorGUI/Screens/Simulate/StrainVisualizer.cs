@@ -20,6 +20,7 @@ using osu.Game.Graphics.UserInterface;
 using osu.Game.Overlays;
 using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Difficulty.Skills;
+using osu.Game.Rulesets.Osu.Difficulty.Skills;
 using osu.Game.Screens.Edit.Compose.Components.Timeline;
 using osuTK;
 using osuTK.Graphics;
@@ -304,10 +305,11 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
             double[] strains = strainSkill.GetCurrentStrainPeaks().ToArray();
 
             var skillStrainList = new List<Strain>();
+            double skillGraphMultiplier = getSkillGraphMultiplier(strainSkill);
 
             for (int i = 0; i < strains.Length; i++)
             {
-                double strain = strains[i];
+                double strain = strains[i] * skillGraphMultiplier;
                 skillStrainList.Add(new Strain
                 {
                     Difficulty = strain,
@@ -324,12 +326,13 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
             var difficultyObjects = (difficultyCalculator.Value as IExtendedDifficultyCalculator)!.GetDifficultyHitObjects();
 
             var difficulties = skill.GetObjectDifficulties();
+            double skillGraphMultiplier = getSkillGraphMultiplier(skill);
 
             var skillStrainList = new List<Strain>();
 
             for (int i = 0; i < difficulties.Count - 1; i++)
             {
-                double strain = difficulties[i];
+                double strain = difficulties[i] * skillGraphMultiplier;
                 var difficultyObject = difficultyObjects[i];
                 var nextDifficultyObject = i < difficulties.Count - 1 ? difficultyObjects[i + 1] : null;
 
@@ -373,6 +376,14 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
             }
 
             return skillStrainList.ToArray();
+        }
+
+        private static double getSkillGraphMultiplier(Skill skill)
+        {
+            if (skill is Speed) return 1.5;
+            if (skill is Flashlight) return 20;
+
+            return 1.0;
         }
     }
 
