@@ -921,14 +921,15 @@ namespace PerformanceCalculatorGUI.Screens
 
             return Task.Run(() =>
             {
+                DifficultyCalculator extendedDifficultyCalculator;
+
                 try
                 {
                     var rulesetInstance = ruleset.Value.CreateInstance();
-                    var extendedDifficultyCalculator = RulesetHelper.GetExtendedDifficultyCalculator(ruleset.Value, working);
+                    extendedDifficultyCalculator = RulesetHelper.GetExtendedDifficultyCalculator(ruleset.Value, working);
                     performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
 
                     difficultyAttributes = extendedDifficultyCalculator.Calculate(appliedMods.Value);
-                    difficultyCalculator.Value = extendedDifficultyCalculator;
                 }
                 catch (Exception e)
                 {
@@ -941,6 +942,7 @@ namespace PerformanceCalculatorGUI.Screens
 
                 Schedule(() =>
                 {
+                    difficultyCalculator.Value = extendedDifficultyCalculator;
                     difficultyAttributesContainer.Attributes.Value = AttributeConversion.ToDictionary(difficultyAttributes);
 
                     if (working.Beatmap?.HitObjects.Count > 1)

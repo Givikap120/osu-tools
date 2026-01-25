@@ -20,7 +20,6 @@ using osu.Game.Graphics.UserInterface;
 using osu.Game.Overlays;
 using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Difficulty.Skills;
-using osu.Game.Rulesets.Objects.Types;
 using osu.Game.Screens.Edit.Compose.Components.Timeline;
 using osuTK;
 using osuTK.Graphics;
@@ -76,11 +75,10 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
             graphAlpha = 0.5f;
             var strainLists = getStrainLists(skills);
 
-            //createStrainBars(skills, strainLists).ContinueWith(t => Schedule(() =>
+            createStrainBars(skills, strainLists).ContinueWith(t => Schedule(() =>
             {
                 graphsContainer.Clear();
-                addStrainBars(skills, strainLists);
-                //addStrainBars(t.GetResultSafely(), skills, strainLists);
+                addStrainBars(t.GetResultSafely(), skills, strainLists);
                 addTooltipBars(strainLists);
 
                 var oldSkills = (val.OldValue as IExtendedDifficultyCalculator)?.GetSkills();
@@ -145,7 +143,7 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
                             graphsContainer[i].Hide();
                     }
                 }
-            }
+            }));
         }
 
         [BackgroundDependencyLoader]
@@ -208,18 +206,18 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
             difficultyCalculator.BindValueChanged(updateGraphs);
         }
 
-        private Task<List<StrainBarGraph>> createStrainBars(Skill[] skills, List<float[]> strainLists)
+        private Task<List<StrainBarGraph>> createStrainBars(Skill[] skills, List<Strain[]> strainLists)
         {
             List<StrainBarGraph> graphs = [];
 
-            float strainMaxValue = strainLists.Max(list => list.Max());
+            double strainMaxValue = strainLists.SelectMany(x => x).MaxBy(x => x.Difficulty)!.Difficulty;
 
             for (int i = 0; i < skills.Length; i++)
             {
                 graphs.Add(new StrainBarGraph
                 {
                     RelativeSizeAxes = Axes.Both,
-                    MaxValue = strainMaxValue,
+                    MaxValue = (float)strainMaxValue,
                     Values = strainLists[i]
                 });
             }
@@ -227,20 +225,12 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
             return LoadComponentsAsync(graphs).ContinueWith(_ => graphs);
         }
 
-        //private void addStrainBars(List<StrainBarGraph> graphs, Skill[] skills, List<float[]> strainLists)
-        private void addStrainBars(Skill[] skills, List<Strain[]> strainLists)
+        private void addStrainBars(List<StrainBarGraph> graphs, Skill[] skills, List<Strain[]> strainLists)
         {
             double strainMaxValue = strainLists.SelectMany(x => x).MaxBy(x => x.Difficulty)!.Difficulty;
 
             for (int i = 0; i < skills.Length; i++)
             {
-                var strainGraph = new StrainBarGraph
-                {
-                    RelativeSizeAxes = Axes.Both,
-                    MaxValue = (float)strainMaxValue
-                };
-                strainGraph.CreateBars(strainLists[i]);
-
                 graphsContainer.AddRange(new Drawable[]
                 {
                     new BufferedContainer(cachedFrameBuffer: true)
@@ -248,8 +238,7 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
                         RelativeSizeAxes = Axes.Both,
                         Alpha = graphAlpha,
                         Colour = skillColours[i % skillColours.Length],
-                        //Child = graphs[i]
-                        Child = strainGraph
+                        Child = graphs[i]
                     }
                 });
             }
@@ -392,41 +381,12 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
         [BackgroundDependencyLoader]
         private void load()
         {
-            foreach (var val in Values)
-            {
-                float length = MaxValue ?? Values.Max();
-                if (length != 0)
-                    length = val / length;
+            if (Values == null) return;
 
-                float size = Values.Count();
-                if (size != 0)
-                    size = 1.0f / size;
+            double maxLength = MaxValue ?? Values.MaxBy(x => x.Difficulty)!.Difficulty;
+            double totalWidth = Values.Sum(x => x.Length);
 
-                Add(new Bar
-                {
-                    RelativeSizeAxes = Axes.Both,
-                    Size = new Vector2(size, 1),
-                    Length = length,
-                    Direction = BarDirection.BottomToTop
-                });
-            }
-        }
-
-        public IEnumerable<float> Values { get; set; }
-
-        /// <summary>
-        /// Manually sets the max value, if null <see cref="Enumerable.Max(IEnumerable{float})"/> is instead used
-        /// </summary>
-        public float? MaxValue { get; set; }
-
-        public void CreateBars(Strain[] values)
-        {
-            Clear();
-
-            double maxLength = MaxValue ?? values.MaxBy(x => x.Difficulty)!.Difficulty;
-            double totalWidth = values.Sum(x => x.Length);
-
-            foreach (Strain val in values)
+            foreach (Strain val in Values)
             {
                 double length = 0;
                 if (maxLength != 0)
@@ -443,6 +403,13 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
                 });
             }
         }
+
+        public IEnumerable<Strain>? Values { get; set; }
+
+        /// <summary>
+        /// Manually sets the max value, if null <see cref="Enumerable.Max(IEnumerable{float})"/> is instead used
+        /// </summary>
+        public float? MaxValue { get; set; }
     }
 
     public partial class TooltipBar : Bar, IHasTooltip
