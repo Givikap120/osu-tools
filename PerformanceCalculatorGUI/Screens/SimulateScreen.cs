@@ -929,7 +929,7 @@ namespace PerformanceCalculatorGUI.Screens
                     extendedDifficultyCalculator = RulesetHelper.GetExtendedDifficultyCalculator(ruleset.Value, working);
                     performanceCalculator = rulesetInstance.CreatePerformanceCalculator();
 
-                    difficultyAttributes = extendedDifficultyCalculator.Calculate(appliedMods.Value);
+                    difficultyAttributes = extendedDifficultyCalculator.Calculate(appliedMods.Value, cancellationTokenSource.Token);
                 }
                 catch (Exception e)
                 {
