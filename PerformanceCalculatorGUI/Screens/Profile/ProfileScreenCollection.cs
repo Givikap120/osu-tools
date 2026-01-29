@@ -66,7 +66,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
             });
         }
 
-        private void calculateProfileFromCollection(string username)
+        private Task calculateProfileFromCollection(string username)
         {
             calculationCancellatonToken?.Cancel();
             calculationCancellatonToken?.Dispose();
@@ -80,14 +80,14 @@ namespace PerformanceCalculatorGUI.Screens.Profile
             if (!collectionScores.Any())
             {
                 resetPlayerCollectionFromServer(username);
-                return;
+                return Task.CompletedTask;
             }
 
             loadingLayer.Show();
 
             var plays = new List<ExtendedScore>();
 
-            Task.Run(async () =>
+            return Task.Run(async () =>
             {
                 Schedule(() =>
                 {
@@ -189,7 +189,6 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     loadingLayer.Hide();
                     calculationButton.State.Value = ButtonState.Done;
                     updateSorting(ProfileSortCriteria.Local);
-                    isCalculating = false;
                 });
             }, TaskContinuationOptions.None);
         }

@@ -28,12 +28,12 @@ namespace PerformanceCalculatorGUI.Screens.Profile
     {
 
         // For now it supports only one user, maybe in future I will change this
-        private void calculateProfileFromRealm(string username)
+        private Task calculateProfileFromRealm(string username)
         {
             if (string.IsNullOrEmpty(username))
             {
                 usernameTextBox.FlashColour(Color4.Red, 1);
-                return;
+                return Task.CompletedTask;
             }
 
             calculationCancellatonToken?.Cancel();
@@ -52,12 +52,12 @@ namespace PerformanceCalculatorGUI.Screens.Profile
             if (lazerPath == string.Empty)
             {
                 notificationDisplay.Display(new Notification("Please set-up path to lazer database folder in GUI settings"));
-                return;
+                return Task.CompletedTask;
             }
 
             var scoreManager = new ScoreInfoCacheManager(gameHost, lazerPath);
 
-            Task.Run(async () =>
+            return Task.Run(async () =>
             {
                 Schedule(() => loadingLayer.Text.Value = "Getting user data...");
 
@@ -241,7 +241,6 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 {
                     loadingLayer.Hide();
                     calculationButton.State.Value = ButtonState.Done;
-                    isCalculating = false;
                 });
             }, token);
         }

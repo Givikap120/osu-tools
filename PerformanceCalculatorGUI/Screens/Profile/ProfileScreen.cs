@@ -371,23 +371,27 @@ namespace PerformanceCalculatorGUI.Screens.Profile
         {
             if (isCalculating) return;
 
-            isCalculating = true;
             string[] usernames = usernameString.Split(", ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             usernames = usernames.Distinct().ToArray();
 
-            switch (profileImportTypeDropdown.Current.Value)
-            {
-                case ProfileCalculationType.Server:
-                    calculateProfilesFromServer(usernames);
-                    break;
-                case ProfileCalculationType.Collection:
-                    calculateProfileFromCollection(usernames.First());
-                    break;
-                case ProfileCalculationType.Realm:
-                    calculateProfileFromRealm(usernames.First());
-                    break;
+            isCalculating = true;
 
-            }
+            Task? calculateProfileTask = profileImportTypeDropdown.Current.Value switch
+            {
+                ProfileCalculationType.Server =>
+                    calculateProfilesFromServer(usernames),
+
+                ProfileCalculationType.Collection =>
+                    calculateProfileFromCollection(usernames.First()),
+
+                ProfileCalculationType.Realm =>
+                    calculateProfileFromRealm(usernames.First()),
+
+                _ => throw new InvalidOperationException(
+                    $"Unknown ProfileCalculationType: {profileImportTypeDropdown.Current.Value}")
+            };
+
+            calculateProfileTask.ContinueWith(_ => isCalculating = false, TaskContinuationOptions.None);
         }
 
         private decimal playcountBonusPP = 0;
@@ -609,7 +613,6 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     loadingLayer.Hide();
                     calculationButton.State.Value = ButtonState.Done;
                     updateSorting(ProfileSortCriteria.Local);
-                    isCalculating = false;
                 });
             }, TaskContinuationOptions.None);
         }
