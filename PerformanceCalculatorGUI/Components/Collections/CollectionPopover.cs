@@ -16,7 +16,7 @@ namespace PerformanceCalculatorGUI.Components.Collections
     public partial class CollectionPopover : OsuPopover
     {
         [Resolved]
-        private CollectionManager collections { get; set; }
+        private ScreenCollectionManager collections { get; set; }
 
         [Resolved]
         private DialogOverlay dialogOverlay { get; set; }
@@ -104,7 +104,7 @@ namespace PerformanceCalculatorGUI.Components.Collections
 
             nameTextBox.OnCommit += (sender, e) =>
             {
-                collections.SaveCollection(collection);
+                collections.SaveAllCollections();
             };
 
             coverBeatmapSetIdTextBox.OnCommit += (sender, e) =>

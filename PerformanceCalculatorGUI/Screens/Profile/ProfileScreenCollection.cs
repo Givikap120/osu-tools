@@ -21,11 +21,11 @@ namespace PerformanceCalculatorGUI.Screens.Profile
     public partial class ProfileScreen
     {
         [Resolved]
-        private CollectionManager collections { get; set; } = null!;
+        private ProfileCollectionManager collections { get; set; } = null!;
 
         private ProfileCollection? getCollection(string username)
         {
-            var collection = collections.CollectionProfiles.FirstOrDefault(
+            var collection = collections.Collections.FirstOrDefault(
                 c => (c.Player.Value?.IsThisUsername(username) ?? false) && (c.RulesetId == ruleset.Value.OnlineID));
             if (collection == null) return null;
 
@@ -46,7 +46,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 if (collection == null)
                 {
                     collection = new ProfileCollection(currentPlayer, ruleset.Value.OnlineID);
-                    collections.CollectionProfiles.Add(collection);
+                    collections.Collections.Add(collection);
                 }
 
                 collection.RulesetId = ruleset.Value.OnlineID;
@@ -62,7 +62,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     collection.Scores.Add(new CollectionScore(score, PpTarget.Master));
                 }
 
-                collections.SaveCollectionProfile(collection);
+                collections.SaveCollection(collection);
             });
         }
 

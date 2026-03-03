@@ -148,8 +148,8 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                             drawableScore.LivePP = profileScore.PerformanceAttributes?.Total ?? 0;
                         }
 
-                        var collection = collections.CollectionProfiles.FirstOrDefault(c => c.Player.Value == currentPlayer);
-                        if (collection != null) collections.SaveCollectionProfile(collection);
+                        var collection = collections.Collections.FirstOrDefault(c => c.Player.Value == currentPlayer);
+                        if (collection != null) collections.SaveCollection(collection);
                     }));
                 }
             };

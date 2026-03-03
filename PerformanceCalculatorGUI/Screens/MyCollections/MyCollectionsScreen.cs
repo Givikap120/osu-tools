@@ -53,7 +53,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
         private Bindable<RulesetInfo> ruleset { get; set; } = null!;
 
         [Resolved]
-        private CollectionManager collections { get; set; } = null!;
+        private ScreenCollectionManager collections { get; set; } = null!;
 
         [Resolved]
         private DialogOverlay dialogOverlay { get; set; } = null!;

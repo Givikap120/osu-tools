@@ -125,7 +125,7 @@ namespace PerformanceCalculatorGUI.Screens
         private APIManager apiManager { get; set; } = null!;
 
         [Resolved]
-        private CollectionManager collections { get; set; } = null!;
+        private ScreenCollectionManager collections { get; set; } = null!;
 
         [Cached]
         private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Blue);

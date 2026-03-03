@@ -49,9 +49,10 @@ namespace PerformanceCalculatorGUI
             dependencies.CacheAs(apiConfig);
             dependencies.CacheAs(new APIManager(apiConfig));
 
-            CollectionManager collections = new CollectionManager();
-            collections.Load();
-            dependencies.CacheAs(collections);
+            var screenCollections = new ScreenCollectionManager();
+            var profileCollections = new ProfileCollectionManager();
+            dependencies.CacheAs(screenCollections);
+            dependencies.CacheAs(profileCollections);
 
             Ruleset.Value = new OsuRuleset().RulesetInfo;
 

@@ -27,7 +27,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
         private RulesetStore rulesets { get; set; } = null!;
 
         [Resolved]
-        private CollectionManager collections { get; set; } = null!;
+        private ScreenCollectionManager collections { get; set; } = null!;
 
         [Resolved]
         private SettingsManager configManager { get; set; } = null!;

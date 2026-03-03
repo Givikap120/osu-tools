@@ -17,7 +17,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
         private DialogOverlay dialogOverlay { get; set; }
 
         [Resolved]
-        private CollectionManager collections { get; set; }
+        private ScreenCollectionManager collections { get; set; }
 
         private readonly MyCollectionsScreen parent;
         private readonly ExtendedProfileScore drawableScore;

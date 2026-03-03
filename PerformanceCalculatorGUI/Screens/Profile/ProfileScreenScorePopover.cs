@@ -14,7 +14,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
     public partial class ProfileScreenScorePopover : ScorePopover
     {
         [Resolved]
-        private CollectionManager collections { get; set; }
+        private ScreenCollectionManager collections { get; set; }
 
         [Resolved]
         private DialogOverlay dialogOverlay { get; set; }
