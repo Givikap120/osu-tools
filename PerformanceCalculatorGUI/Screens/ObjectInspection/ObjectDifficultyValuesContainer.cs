@@ -141,7 +141,7 @@ namespace PerformanceCalculatorGUI.Screens.ObjectInspection
 
                 new ObjectInspectorDifficultyValue("Aim Difficulty", AimEvaluator.EvaluateDifficultyOf(hitObject, true)),
                 new ObjectInspectorDifficultyValue("Aim Difficulty (w/o sliders)", AimEvaluator.EvaluateDifficultyOf(hitObject, false)),
-                new ObjectInspectorDifficultyValue("Speed Difficulty", SpeedEvaluator.EvaluateDifficultyOf(hitObject, appliedMods.Value)),
+                //new ObjectInspectorDifficultyValue("Speed Difficulty", SpeedEvaluator.EvaluateDifficultyOf(hitObject, appliedMods.Value)),
                 new ObjectInspectorDifficultyValue("Rhythm Diff", osu.Game.Rulesets.Osu.Difficulty.Evaluators.RhythmEvaluator.EvaluateDifficultyOf(hitObject)),
                 new ObjectInspectorDifficultyValue(hidden ? "FLHD Difficulty" : "Flashlight Diff", FlashlightEvaluator.EvaluateDifficultyOf(hitObject, appliedMods.Value)),
             });
@@ -173,8 +173,8 @@ namespace PerformanceCalculatorGUI.Screens.ObjectInspection
 
         private void drawTaikoValues(TaikoDifficultyHitObject hitObject)
         {
-            double rhythmDifficulty =
-                osu.Game.Rulesets.Taiko.Difficulty.Evaluators.RhythmEvaluator.EvaluateDifficultyOf(hitObject, 2 * hitObject.BaseObject.HitWindows.WindowFor(HitResult.Great) / track.Rate);
+            double rhythmDifficulty = 0;
+                //osu.Game.Rulesets.Taiko.Difficulty.Evaluators.RhythmEvaluator.EvaluateDifficultyOf(hitObject, 2 * hitObject.BaseObject.HitWindows.WindowFor(HitResult.Great) / track.Rate);
 
             flowContainer.AddRange(new[]
             {
@@ -208,7 +208,7 @@ namespace PerformanceCalculatorGUI.Screens.ObjectInspection
                 new ObjectInspectorDifficultyValue("Exact Distance Moved", hitObject.ExactDistanceMoved),
 
                 // see https://github.com/ppy/osu/blob/a08f7327b11977f1de57b8a177bf26918ebfacda/osu.Game.Rulesets.Catch/Difficulty/Skills/Movement.cs#L36
-                new ObjectInspectorDifficultyValue("Movement Difficulty", MovementEvaluator.EvaluateDifficultyOf(hitObject, track.Rate)),
+                // new ObjectInspectorDifficultyValue("Movement Difficulty", MovementEvaluator.EvaluateDifficultyOf(hitObject, track.Rate)),
             });
         }
     }
