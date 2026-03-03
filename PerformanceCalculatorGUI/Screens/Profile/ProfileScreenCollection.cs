@@ -59,10 +59,10 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 foreach (var score in allScores)
                 {
                     if (score == null) continue;
-                    collection.Scores.Add(score);
+                    collection.Scores.Add(new CollectionScore(score, PpTarget.Master));
                 }
 
-                collections.SaveCollectionProfiles();
+                collections.SaveCollectionProfile(collection);
             });
         }
 
@@ -75,7 +75,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
             scores.Clear();
 
             var collection = getCollection(username);
-            var collectionScores = collection?.Scores ?? Enumerable.Empty<ScoreInfo>();
+            var collectionScores = collection?.Scores ?? Enumerable.Empty<CollectionScore>();
 
             if (!collectionScores.Any())
             {
@@ -108,18 +108,19 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
                 var rulesetInstance = ruleset.Value.CreateInstance();
 
-                foreach (ScoreInfo score in collectionScores)
+                foreach (CollectionScore score in collectionScores)
                 {
                     if (calculationCancellatonToken == null || calculationCancellatonToken.IsCancellationRequested)
                         return;
 
-                    var working = ProcessorWorkingBeatmap.FromFileOrId(score.BeatmapInfo!.OnlineID.ToString(), cachePath: configManager.GetBindable<string>(Settings.CachePath).Value);
+                    var working = ProcessorWorkingBeatmap.FromFileOrId(score.ScoreInfo.BeatmapInfo!.OnlineID.ToString(), cachePath: configManager.GetBindable<string>(Settings.CachePath).Value);
+                    score.ScoreInfo.BeatmapInfo = working.BeatmapInfo;
 
                     Schedule(() => loadingLayer.Text.Value = $"Calculating {working.Metadata}");
 
-                    Mod[] mods = score.Mods;
+                    Mod[] mods = score.ScoreInfo.Mods;
 
-                    var parsedScore = new ProcessorScoreDecoder(working).Parse(score);
+                    var parsedScore = new ProcessorScoreDecoder(working).Parse(score.ScoreInfo);
 
                     var difficultyCalculator = rulesetInstance.CreateDifficultyCalculator(working);
                     var difficultyAttributes = difficultyCalculator.Calculate(mods);
@@ -128,10 +129,10 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     if (performanceCalculator == null || calculationCancellatonToken == null || calculationCancellatonToken.IsCancellationRequested)
                         return;
 
-                    double livePP = score.PP ?? 0.0;
+                    double livePP = score.ScoreInfo.PP ?? 0.0;
                     var perfAttributes = await (performanceCalculator.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, calculationCancellatonToken.Token)).ConfigureAwait(false)!;
 
-                    var play = new ExtendedScore(score, livePP, difficultyAttributes, perfAttributes);
+                    var play = new ExtendedScore(score.ScoreInfo, livePP, difficultyAttributes, perfAttributes);
                     plays.Add(play);
                     addScoreToUI(play, true);
                 }

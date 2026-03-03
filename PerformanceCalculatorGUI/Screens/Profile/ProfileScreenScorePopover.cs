@@ -38,8 +38,8 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     Text = "Add score to active collection",
                     Action = () =>
                     {
-                        collections.ActiveCollection.Scores.Insert(0, Score.ScoreInfoSource);;
-                        collections.SaveCollections();
+                        collections.ActiveCollection.Scores.Insert(0, new CollectionScore(Score.ScoreInfoSource, PpTarget.Master));
+                        collections.SaveCollection(collections.ActiveCollection);
                         PopOut();
                     }
                 },
@@ -55,10 +55,10 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
                             foreach (var score in allScores)
                             {
-                                collections.ActiveCollection.Scores.Add(score);
+                                collections.ActiveCollection.Scores.Add(new CollectionScore(score, PpTarget.Master));
                             }
 
-                            collections.SaveCollections();
+                            collections.SaveCollection(collections.ActiveCollection);
                             PopOut();
                         }));
                     }

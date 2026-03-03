@@ -51,11 +51,14 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
 
             Task.Run(async () =>
             {
+                if (currentCollection == null) return;
+
                 var soloScoreInfo = await apiManager.GetJsonFromApi<SoloScoreInfo>($"scores/{scoreId}").ConfigureAwait(false);
                 var beatmap = ProcessorWorkingBeatmap.FromFileOrId(soloScoreInfo.BeatmapID.ToString(), null, configManager.GetBindable<string>(Settings.CachePath).Value);
                 var score = soloScoreInfo.ToScoreInfo(rulesets, beatmap?.BeatmapInfo);
-                currentCollection?.Scores.Insert(0, score);
-                collections.SaveCollections();
+
+                currentCollection.Scores.Insert(0, new CollectionScore(score, PpTarget.Master));
+                collections.SaveCollection(currentCollection);
             }).ContinueWith(t =>
             {
                 Logger.Log(t.Exception?.ToString(), level: LogLevel.Error);

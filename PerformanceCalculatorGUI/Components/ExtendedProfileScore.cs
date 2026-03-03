@@ -609,7 +609,7 @@ namespace PerformanceCalculatorGUI.Components
             {
                 Action = () =>
                 {
-                    sceneManager.SwitchToSimulate(score.SoloScore.BeatmapID, score.SoloScore.ID);
+                    sceneManager.SwitchToSimulate(score.SoloScore.BeatmapID, score.SoloScore.ID == 0 ? null : score.SoloScore.ID);
                 };
 
                 Child = new FillFlowContainer

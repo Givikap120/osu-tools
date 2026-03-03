@@ -14,21 +14,15 @@ namespace PerformanceCalculatorGUI.Configuration
 {
     public class ScoreInfoCacheManager
     {
-        private const int version = 20241106;
+        public const int VERSION = 1;
 
         public static string CacheFileName => @"scores.cache";
 
-        private GameHost gameHost;
-        private string lazerPath;
-
-        private RealmAccess realm = null;
+        private RealmAccess realm;
         private bool isCacheRelevant;
 
         public ScoreInfoCacheManager(GameHost gameHost, string lazerPath)
         {
-            this.gameHost = gameHost;
-            this.lazerPath = lazerPath;
-
             string realmPath = Path.Combine(lazerPath, @"client.realm");
             realm = RulesetHelper.GetRealmAccess(gameHost, lazerPath);
 
@@ -67,7 +61,7 @@ namespace PerformanceCalculatorGUI.Configuration
             using (var reader = new BinaryReader(stream))
             {
                 int cacheVersion = reader.ReadInt32();
-                if (cacheVersion != version)
+                if (cacheVersion != VERSION)
                 {
                     Logger.Log("Cache has wrong version");
                     return writeToCache();
@@ -77,7 +71,7 @@ namespace PerformanceCalculatorGUI.Configuration
 
                 for (int i = 0; i < scoreCount; i++)
                 {
-                    var score = ReadScore(reader);
+                    var score = ReadScore(reader, VERSION);
                     scores.Add(score);
                 }
             }
@@ -93,7 +87,7 @@ namespace PerformanceCalculatorGUI.Configuration
             using (var stream = new FileStream(CacheFileName, FileMode.Create, FileAccess.Write))
             using (var writer = new BinaryWriter(stream))
             {
-                writer.Write(version);
+                writer.Write(VERSION);
                 writer.Write(scores.Count);
 
                 foreach (var score in scores)
@@ -105,12 +99,12 @@ namespace PerformanceCalculatorGUI.Configuration
             return scores;
         }
 
-        public static ScoreInfo ReadScore(BinaryReader reader)
+        public static ScoreInfo ReadScore(BinaryReader reader, int version)
         {
             var score = new ScoreInfo();
 
             score.ID = new Guid(reader.ReadBytes(16));
-            score.ClientVersion = nullOnDefault(reader.ReadString());
+            score.ClientVersion = reader.ReadString();
             score.BeatmapHash = reader.ReadString();
             score.Ruleset = RulesetHelper.GetRulesetFromLegacyID(reader.ReadInt32()).RulesetInfo;
             score.Hash = reader.ReadString();
@@ -140,7 +134,16 @@ namespace PerformanceCalculatorGUI.Configuration
             score.Combo = reader.ReadInt32();
             score.IsLegacyScore = reader.ReadBoolean();
 
-            score.BeatmapInfo = readBeatmap(reader);
+            if (version < 1)
+            {
+                score.BeatmapInfo = readBeatmapLegacy(reader);
+                return score;
+            }
+
+            score.BeatmapInfo = new BeatmapInfo
+            {
+                OnlineID = reader.ReadInt32()
+            };
 
             return score;
         }
@@ -177,95 +180,35 @@ namespace PerformanceCalculatorGUI.Configuration
             writer.Write(score.RankInt);
             writer.Write(score.Combo);
             writer.Write(score.IsLegacyScore);
-
-            writeBeatmap(writer, score.BeatmapInfo);
+            writer.Write(score.BeatmapInfo?.OnlineID ?? -1);
         }
 
-        private static BeatmapInfo readBeatmap(BinaryReader reader)
+        private static BeatmapInfo? readBeatmapLegacy(BinaryReader reader)
         {
-            bool hasBeatmap = reader.ReadBoolean();
-            if (!hasBeatmap) return null;
+            if (!reader.ReadBoolean()) return null;
 
             var beatmap = new BeatmapInfo();
 
-            beatmap.ID = new Guid(reader.ReadBytes(16));
-            beatmap.DifficultyName = reader.ReadString();
-            beatmap.Ruleset = RulesetHelper.GetRulesetFromLegacyID(reader.ReadInt32()).RulesetInfo;
+            reader.BaseStream.Seek(16, SeekOrigin.Current);
+            reader.ReadString();
+            reader.BaseStream.Seek(36, SeekOrigin.Current);
+            for (int i = 0; i < 6; i++) reader.ReadString();
+            reader.BaseStream.Seek(4, SeekOrigin.Current);
+            for (int i = 0; i < 2; i++) reader.ReadString();
+            reader.BaseStream.Seek(12, SeekOrigin.Current);
 
-            beatmap.Difficulty.ApproachRate = reader.ReadSingle();
-            beatmap.Difficulty.DrainRate = reader.ReadSingle();
-            beatmap.Difficulty.CircleSize = reader.ReadSingle();
-            beatmap.Difficulty.OverallDifficulty = reader.ReadSingle();
-            beatmap.Difficulty.SliderMultiplier = reader.ReadDouble();
-            beatmap.Difficulty.SliderTickRate = reader.ReadDouble();
-
-            beatmap.Metadata.Title = reader.ReadString();
-            beatmap.Metadata.TitleUnicode = nullOnDefault(reader.ReadString());
-            beatmap.Metadata.Artist = reader.ReadString();
-            beatmap.Metadata.ArtistUnicode = nullOnDefault(reader.ReadString());
-            beatmap.Metadata.Source = reader.ReadString();
-            beatmap.Metadata.Tags = reader.ReadString();
-            beatmap.Metadata.PreviewTime = reader.ReadInt32();
-            beatmap.Metadata.AudioFile = nullOnDefault(reader.ReadString());
-            beatmap.Metadata.BackgroundFile = nullOnDefault(reader.ReadString());
-
-            beatmap.UserSettings.Offset = reader.ReadDouble();
-
-            beatmap.StatusInt = reader.ReadInt32();
             beatmap.OnlineID = reader.ReadInt32();
-            beatmap.Length = reader.ReadDouble();
-            beatmap.BPM = reader.ReadDouble();
-            beatmap.Hash = reader.ReadString();
-            beatmap.StarRating = reader.ReadDouble();
-            beatmap.MD5Hash = reader.ReadString();
-            beatmap.OnlineMD5Hash = reader.ReadString();
-            beatmap.EndTimeObjectCount = reader.ReadInt32();
-            beatmap.TotalObjectCount = reader.ReadInt32();
+
+            reader.BaseStream.Seek(16, SeekOrigin.Current);
+            reader.ReadString();
+            reader.BaseStream.Seek(8, SeekOrigin.Current);
+            for (int i = 0; i < 2; i++) reader.ReadString();
+            reader.BaseStream.Seek(8, SeekOrigin.Current);
 
             return beatmap;
         }
 
-        private static void writeBeatmap(BinaryWriter writer, BeatmapInfo beatmap)
-        {
-            writer.Write(beatmap != null);
-            if (beatmap == null) return;
-
-            writer.Write(beatmap.ID.ToByteArray());
-            writer.Write(beatmap.DifficultyName);
-            writer.Write(beatmap.Ruleset.OnlineID);
-
-            writer.Write(beatmap.Difficulty.ApproachRate);
-            writer.Write(beatmap.Difficulty.DrainRate);
-            writer.Write(beatmap.Difficulty.CircleSize);
-            writer.Write(beatmap.Difficulty.OverallDifficulty);
-            writer.Write(beatmap.Difficulty.SliderMultiplier);
-            writer.Write(beatmap.Difficulty.SliderTickRate);
-
-            writer.Write(beatmap.Metadata.Title);
-            writer.Write(beatmap.Metadata.TitleUnicode ?? "");
-            writer.Write(beatmap.Metadata.Artist);
-            writer.Write(beatmap.Metadata.ArtistUnicode ?? "");
-            writer.Write(beatmap.Metadata.Source);
-            writer.Write(beatmap.Metadata.Tags);
-            writer.Write(beatmap.Metadata.PreviewTime);
-            writer.Write(beatmap.Metadata.AudioFile ?? "");
-            writer.Write(beatmap.Metadata.BackgroundFile ?? "");
-
-            writer.Write(beatmap.UserSettings.Offset);
-
-            writer.Write(beatmap.StatusInt);
-            writer.Write(beatmap.OnlineID);
-            writer.Write(beatmap.Length);
-            writer.Write(beatmap.BPM);
-            writer.Write(beatmap.Hash);
-            writer.Write(beatmap.StarRating);
-            writer.Write(beatmap.MD5Hash);
-            writer.Write(beatmap.OnlineMD5Hash);
-            writer.Write(beatmap.EndTimeObjectCount);
-            writer.Write(beatmap.TotalObjectCount);
-        }
-
-        private static string nullOnDefault(string s) => s == "" ? null : s;
+        private static string? nullOnDefault(string s) => s == "" ? null : s;
     }
 }
 

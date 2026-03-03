@@ -608,8 +608,8 @@ namespace PerformanceCalculatorGUI.Screens
                                                     Action = () =>
                                                     {
                                                         var score = getCurrentScore();
-                                                        collections.ActiveCollection.Scores.Insert(0,score);
-                                                        collections.SaveCollections();
+                                                        collections.ActiveCollection.Scores.Insert(0, new CollectionScore(score));
+                                                        collections.SaveCollection(collections.ActiveCollection);
                                                         addToActiveCollectionButton.State.Value = ButtonState.Done;
                                                     }
                                                 },

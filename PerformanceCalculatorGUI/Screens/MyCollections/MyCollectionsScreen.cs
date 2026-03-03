@@ -171,7 +171,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                                                         drawableScore.LivePP = profileScore.PerformanceAttributes?.Total ?? 0;
                                                     }
 
-                                                    collections.SaveCollections();
+                                                    collections.SaveCollection(CurrentCollection!);
                                                 }));
                                             }
                                         },
@@ -198,7 +198,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                                                 {
                                                     CurrentCollection?.Scores.Clear();
                                                     drawableScores.Clear();
-                                                    collections.SaveCollections();
+                                                    collections.SaveCollection(CurrentCollection!);
                                                 }));
                                             }
                                         }
@@ -269,8 +269,9 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                 {
                     Action = () =>
                     {
-                        collections.Collections.Add(new MyCollection("New Collection", 0, ruleset.Value.OnlineID));
-                        collections.SaveCollections();
+                        var newCollection = new MyCollection("New Collection", 0, ruleset.Value.OnlineID);
+                        collections.Collections.Add(newCollection);
+                        collections.SaveCollection(newCollection);
                     }
                 });
             });
@@ -316,18 +317,19 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
 
                 var rulesetInstance = ruleset.Value.CreateInstance();
 
-                foreach (ScoreInfo score in CurrentCollection.Scores)
+                foreach (CollectionScore score in CurrentCollection.Scores)
                 {
                     if (calculationCancellatonToken.IsCancellationRequested)
                         return;
 
-                    var working = ProcessorWorkingBeatmap.FromFileOrId(score.BeatmapInfo!.OnlineID.ToString(), cachePath: configManager.GetBindable<string>(Settings.CachePath).Value);
+                    var working = ProcessorWorkingBeatmap.FromFileOrId(score.ScoreInfo.BeatmapInfo!.OnlineID.ToString(), cachePath: configManager.GetBindable<string>(Settings.CachePath).Value);
+                    score.ScoreInfo.BeatmapInfo = working.BeatmapInfo;
 
                     Schedule(() => loadingLayer.Text.Value = $"Calculating {working.Metadata}");
 
-                    var mods = score.Mods;
+                    var mods = score.ScoreInfo.Mods;
 
-                    Score parsedScore = new ProcessorScoreDecoder(working).Parse(score);
+                    Score parsedScore = new ProcessorScoreDecoder(working).Parse(score.ScoreInfo);
 
                     var difficultyCalculator = rulesetInstance.CreateDifficultyCalculator(working);
                     var difficultyAttributes = difficultyCalculator.Calculate(mods);
@@ -340,10 +342,10 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                     IBeatmap? beatmap = (IBeatmap?)difficultyCalculator?.GetType()?.GetProperty("Beatmap", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)?.GetValue(difficultyCalculator);
                     if (beatmap != null) parsedScore.ScoreInfo.Accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, beatmap, parsedScore.ScoreInfo.Statistics, parsedScore.ScoreInfo.Mods);
 
-                    double livePP = score.PP ?? 0.0;
+                    double livePP = score.ScoreInfo.PP ?? 0.0;
                     var perfAttributes = await (performanceCalculator?.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, calculationCancellatonToken.Token))!.ConfigureAwait(false);
 
-                    addScoreToUI(new ExtendedScore(score, livePP, difficultyAttributes, perfAttributes));
+                    addScoreToUI(new ExtendedScore(score.ScoreInfo, livePP, difficultyAttributes, perfAttributes), score);
                 }
 
                 Schedule(() =>
@@ -363,12 +365,12 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
             });
         }
 
-        private void addScoreToUI(ExtendedScore score)
+        private void addScoreToUI(ExtendedScore score, CollectionScore collectionScore)
         {
             Schedule(() =>
             {
                 var drawable = new ExtendedProfileScore(score) { DifferenceMode = sorting.Value.GetDifferenceMode() };
-                drawable.PopoverMaker = () => new CollectionsScreenScorePopover(this, drawable);
+                drawable.PopoverMaker = () => new CollectionsScreenScorePopover(this, drawable, collectionScore);
 
                 drawableScores.Add(drawable);
             });
@@ -376,8 +378,8 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
 
         public void DeleteScoreFromCollection(ExtendedProfileScore drawableScore)
         {
-            CurrentCollection?.Scores.Remove(drawableScore.Score.ScoreInfoSource!);
-            collections.SaveCollections();
+            CurrentCollection!.Scores.RemoveAll(s => s.ScoreInfo == drawableScore.Score.ScoreInfoSource);
+            collections.SaveCollection(CurrentCollection);
             drawableScores.Remove(drawableScore, true);
         }
 
@@ -391,7 +393,8 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
             switch (sortCriteria)
             {
                 case MyCollectionSortCriteria.Index:
-                    sortedScores = drawableScores.Children.OrderBy(x => CurrentCollection?.Scores.IndexOf(x.Score.ScoreInfoSource!)).ToArray();
+                    var scoreInfos = CurrentCollection?.Scores.Select(s => s.ScoreInfo).ToList();
+                    sortedScores = drawableScores.Children.OrderBy(x => scoreInfos?.IndexOf(x.Score.ScoreInfoSource!)).ToArray();
                     break;
 
                 case MyCollectionSortCriteria.Name:
@@ -453,7 +456,6 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
             base.Dispose(isDisposing);
 
             calculationCancellatonToken?.Cancel();
-            //calculationCancellatonToken?.Dispose();
         }
 
         private partial class EmptyDrawable : Drawable

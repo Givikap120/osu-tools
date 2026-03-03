@@ -21,11 +21,13 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
 
         private readonly MyCollectionsScreen parent;
         private readonly ExtendedProfileScore drawableScore;
+        private readonly CollectionScore collectionScore;
 
-        public CollectionsScreenScorePopover(MyCollectionsScreen parent, ExtendedProfileScore drawableScore) : base(drawableScore.Score)
+        public CollectionsScreenScorePopover(MyCollectionsScreen parent, ExtendedProfileScore drawableScore, CollectionScore collectionScore) : base(drawableScore.Score)
         {
             this.parent = parent;
             this.drawableScore = drawableScore;
+            this.collectionScore = collectionScore;
         }
 
         [BackgroundDependencyLoader]
@@ -37,8 +39,8 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                 Text = "Add score to active collection",
                 Action = () =>
                 {
-                    collections.ActiveCollection.Scores.Insert(0, Score.ScoreInfoSource); ;
-                    collections.SaveCollections();
+                    collections.ActiveCollection.Scores.Insert(0, collectionScore);
+                    collections.SaveCollection(collections.ActiveCollection);
                     PopOut();
                 }
             });

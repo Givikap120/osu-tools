@@ -91,7 +91,7 @@ namespace PerformanceCalculatorGUI.Components.Collections
                                     dialogOverlay.Push(new ConfirmDialog("Are you sure?", () =>
                                     {
                                         collections.Collections.Remove(collection);
-                                        collections.SaveCollections();
+                                        collections.SaveAllCollections();
                                     }));
                                 }
                             }
@@ -104,12 +104,12 @@ namespace PerformanceCalculatorGUI.Components.Collections
 
             nameTextBox.OnCommit += (sender, e) =>
             {
-                collections.SaveCollections();
+                collections.SaveCollection(collection);
             };
 
             coverBeatmapSetIdTextBox.OnCommit += (sender, e) =>
             {
-                collections.SaveCollections();
+                collections.SaveCollection(collection);
             };
 
             rulesetIdTextBox.OnCommit += (sender, e) =>
@@ -117,7 +117,7 @@ namespace PerformanceCalculatorGUI.Components.Collections
                 if (int.TryParse(rulesetIdTextBox.Current.Value, out int newId))
                 {
                     collection.RulesetId = newId;
-                    collections.SaveCollections();
+                    collections.SaveCollection(collection);
                 }
             };
         }
