@@ -1,20 +1,21 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using osu.Framework.Allocation;
+using osu.Framework.Bindables;
+using osu.Framework.Graphics;
+using osu.Framework.Graphics.Containers;
+using osu.Framework.Logging;
+using osu.Game.Online.API.Requests.Responses;
+using osu.Game.Overlays.Dialog;
 using osu.Game.Rulesets.Mods;
-using osu.Game.Scoring;
 using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Configuration;
-using osu.Framework.Allocation;
-using System.Linq;
-using osu.Framework.Logging;
-using System;
-using osu.Framework.Graphics;
-using osu.Game.Online.API.Requests.Responses;
-using osu.Framework.Graphics.Containers;
 using PerformanceCalculatorGUI.Screens.MyCollections;
 
 namespace PerformanceCalculatorGUI.Screens.Profile
@@ -114,14 +115,14 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     if (calculationCancellatonToken == null || calculationCancellatonToken.IsCancellationRequested)
                         return;
 
-                    var working = ProcessorWorkingBeatmap.FromFileOrId(score.ScoreInfo.BeatmapInfo!.OnlineID.ToString(), cachePath: configManager.GetBindable<string>(Settings.CachePath).Value);
-                    score.ScoreInfo.BeatmapInfo = working.BeatmapInfo;
+                    var working = ProcessorWorkingBeatmap.FromFileOrId(score.BeatmapInfo!.OnlineID.ToString(), cachePath: configManager.GetBindable<string>(Settings.CachePath).Value);
+                    score.BeatmapInfo = working.BeatmapInfo;
 
                     Schedule(() => loadingLayer.Text.Value = $"Calculating {working.Metadata}");
 
-                    Mod[] mods = score.ScoreInfo.Mods;
+                    Mod[] mods = score.Mods;
 
-                    var parsedScore = new ProcessorScoreDecoder(working).Parse(score.ScoreInfo);
+                    var parsedScore = new ProcessorScoreDecoder(working).Parse(score);
 
                     var difficultyCalculator = rulesetInstance.CreateDifficultyCalculator(working);
                     var difficultyAttributes = difficultyCalculator.Calculate(mods);
@@ -130,10 +131,10 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     if (performanceCalculator == null || calculationCancellatonToken == null || calculationCancellatonToken.IsCancellationRequested)
                         return;
 
-                    double livePP = score.ScoreInfo.PP ?? 0.0;
+                    double livePP = score.PP ?? 0.0;
                     var perfAttributes = await (performanceCalculator.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, calculationCancellatonToken.Token)).ConfigureAwait(false)!;
 
-                    var play = new ExtendedScore(score.ScoreInfo, livePP, difficultyAttributes, perfAttributes);
+                    var play = new ExtendedScore(score, livePP, difficultyAttributes, perfAttributes);
                     plays.Add(play);
                     addScoreToUI(play, true);
                 }

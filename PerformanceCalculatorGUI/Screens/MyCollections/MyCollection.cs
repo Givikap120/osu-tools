@@ -70,7 +70,7 @@ namespace PerformanceCalculatorGUI.Configuration
             using (var memoryStream = new MemoryStream())
             using (var writer = new BinaryWriter(memoryStream))
             {
-                ScoreInfoCacheManager.WriteScore(writer, score.ScoreInfo);
+                ScoreInfoCacheManager.WriteScore(writer, score);
 
                 writer.Write(score.MasterPp);
                 writer.Write(score.BranchPp);

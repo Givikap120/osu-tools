@@ -321,14 +321,14 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                     if (calculationCancellatonToken.IsCancellationRequested)
                         return;
 
-                    var working = ProcessorWorkingBeatmap.FromFileOrId(score.ScoreInfo.BeatmapInfo!.OnlineID.ToString(), cachePath: configManager.GetBindable<string>(Settings.CachePath).Value);
-                    score.ScoreInfo.BeatmapInfo = working.BeatmapInfo;
+                    var working = ProcessorWorkingBeatmap.FromFileOrId(score.BeatmapInfo!.OnlineID.ToString(), cachePath: configManager.GetBindable<string>(Settings.CachePath).Value);
+                    score.BeatmapInfo = working.BeatmapInfo;
 
                     Schedule(() => loadingLayer.Text.Value = $"Calculating {working.Metadata}");
 
-                    var mods = score.ScoreInfo.Mods;
+                    var mods = score.Mods;
 
-                    Score parsedScore = new ProcessorScoreDecoder(working).Parse(score.ScoreInfo);
+                    Score parsedScore = new ProcessorScoreDecoder(working).Parse(score);
 
                     var difficultyCalculator = rulesetInstance.CreateDifficultyCalculator(working);
                     var difficultyAttributes = difficultyCalculator.Calculate(mods);
@@ -341,10 +341,10 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                     IBeatmap? beatmap = (IBeatmap?)difficultyCalculator?.GetType()?.GetProperty("Beatmap", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)?.GetValue(difficultyCalculator);
                     if (beatmap != null) parsedScore.ScoreInfo.Accuracy = RulesetHelper.GetAccuracyForRuleset(ruleset.Value, beatmap, parsedScore.ScoreInfo.Statistics, parsedScore.ScoreInfo.Mods);
 
-                    double livePP = score.ScoreInfo.PP ?? 0.0;
+                    double livePP = score.PP ?? 0.0;
                     var perfAttributes = await (performanceCalculator?.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, calculationCancellatonToken.Token))!.ConfigureAwait(false);
 
-                    addScoreToUI(new ExtendedScore(score.ScoreInfo, livePP, difficultyAttributes, perfAttributes), score);
+                    addScoreToUI(new ExtendedScore(score, livePP, difficultyAttributes, perfAttributes));
                 }
 
                 Schedule(() =>
@@ -364,12 +364,12 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
             });
         }
 
-        private void addScoreToUI(ExtendedScore score, CollectionScore collectionScore)
+        private void addScoreToUI(ExtendedScore score)
         {
             Schedule(() =>
             {
                 var drawable = new ExtendedProfileScore(score) { DifferenceMode = sorting.Value.GetDifferenceMode() };
-                drawable.PopoverMaker = () => new CollectionsScreenScorePopover(this, drawable, collectionScore);
+                drawable.PopoverMaker = () => new CollectionsScreenScorePopover(this, drawable);
 
                 drawableScores.Add(drawable);
             });
@@ -377,7 +377,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
 
         public void DeleteScoreFromCollection(ExtendedProfileScore drawableScore)
         {
-            CurrentCollection!.Scores.RemoveAll(s => s.ScoreInfo == drawableScore.Score.ScoreInfoSource);
+            CurrentCollection!.Scores.Remove((CollectionScore)drawableScore.Score.ScoreInfoSource!);
             collections.SaveCollection(CurrentCollection);
             drawableScores.Remove(drawableScore, true);
         }
@@ -392,8 +392,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
             switch (sortCriteria)
             {
                 case MyCollectionSortCriteria.Index:
-                    var scoreInfos = CurrentCollection?.Scores.Select(s => s.ScoreInfo).ToList();
-                    sortedScores = drawableScores.Children.OrderBy(x => scoreInfos?.IndexOf(x.Score.ScoreInfoSource!)).ToArray();
+                    sortedScores = drawableScores.Children.OrderBy(x => CurrentCollection?.Scores.IndexOf((CollectionScore)x.Score.ScoreInfoSource!)).ToArray();
                     break;
 
                 case MyCollectionSortCriteria.Name:
