@@ -11,15 +11,17 @@ using PerformanceCalculatorGUI.Configuration;
 
 namespace PerformanceCalculatorGUI.Screens.MyCollections
 {
-    public abstract class CollectionManager<T> where T : MyCollection
+    public abstract class CollectionManager
     {
         protected abstract string CollectionsDirectory { get; }
 
-        public BindableList<T> Collections { get; private set; } = [];
+        public BindableList<MyCollection> Collections { get; protected set; } = [];
 
         public CollectionManager() => Load();
 
-        public void SaveCollection(T collection)
+        protected abstract void Load();
+
+        public void SaveCollection(MyCollection collection)
         {
             if (!Directory.Exists(CollectionsDirectory))
                 Directory.CreateDirectory(CollectionsDirectory);
@@ -46,7 +48,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
             if (!Directory.Exists(CollectionsDirectory))
                 Directory.CreateDirectory(CollectionsDirectory);
 
-            filterSameColletions(Collections);
+            filterSameColletions();
 
             foreach (string file in Directory.EnumerateFiles(CollectionsDirectory, "*.json"))
                 File.Delete(file);
@@ -55,33 +57,36 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                 SaveCollection(collection);
         }
 
-        public virtual void Load()
+        private void filterSameColletions()
         {
-            Collections = [.. loadCollectionList(CollectionsDirectory)];
-            if (migrateOldCollections(Collections)) SaveAllCollections();
-        }
-
-        private void filterSameColletions(BindableList<T> collections)
-        {
-            var filtered = collections
+            var filtered = Collections
                             .GroupBy(c => c.Name)
                             .Select(group => group
                                 .OrderByDescending(c => c.Scores.Count)
                                 .First())
                             .ToList();
 
-            collections.Clear();
+            Collections.Clear();
 
             foreach (var item in filtered)
-                collections.Add(item);
+                Collections.Add(item);
+        }
+    }
+
+    public abstract class CollectionManager<T> : CollectionManager where T : MyCollection
+    {
+        protected override void Load()
+        {
+            Collections = [.. loadCollectionList(CollectionsDirectory)];
+            if (migrateOldCollections(Collections)) SaveAllCollections();
         }
 
-        private List<T> loadCollectionList(string folderPath)
+        private List<MyCollection> loadCollectionList(string folderPath)
         {
             if (!Directory.Exists(folderPath))
                 Directory.CreateDirectory(folderPath);
 
-            var result = new List<T>();
+            var result = new List<MyCollection>();
 
             foreach (string file in Directory.EnumerateFiles(folderPath, "*.json"))
             {
@@ -102,7 +107,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
 
         protected abstract string CollectionsFilePathOld { get; }
 
-        private bool migrateOldCollections(BindableList<T> list)
+        private bool migrateOldCollections(BindableList<MyCollection> list)
         {
             if (!File.Exists(CollectionsFilePathOld))
                 return false;
@@ -121,11 +126,11 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
             return true;
         }
 
-        private List<T> loadCollectionListOld()
+        private List<MyCollection> loadCollectionListOld()
         {
             if (!File.Exists(CollectionsFilePathOld)) return [];
 
-            var result = JsonConvert.DeserializeObject<List<T>>(File.ReadAllText(CollectionsFilePathOld)) ?? [];
+            var result = JsonConvert.DeserializeObject<List<MyCollection>>(File.ReadAllText(CollectionsFilePathOld)) ?? [];
             result = result.Where(c => c.EncodedScores.Count > 0).ToList();
 
             foreach (var collection in result)

@@ -6,10 +6,9 @@ using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
 using osu.Framework.Bindables;
-using osu.Game.Scoring;
-using PerformanceCalculatorGUI.Screens.MyCollections;
+using PerformanceCalculatorGUI.Configuration;
 
-namespace PerformanceCalculatorGUI.Configuration
+namespace PerformanceCalculatorGUI.Screens.MyCollections
 {
     public class MyCollection
     {
@@ -60,7 +59,7 @@ namespace PerformanceCalculatorGUI.Configuration
 
             foreach (string score in EncodedScores)
             {
-                CollectionScore decodedScore = decodeScore(score, Version);
+                var decodedScore = decodeScore(score, Version);
                 Scores.Add(decodedScore);
             }
         }
@@ -72,9 +71,9 @@ namespace PerformanceCalculatorGUI.Configuration
             {
                 ScoreInfoCacheManager.WriteScore(writer, score);
 
-                writer.Write(score.MasterPp);
-                writer.Write(score.BranchPp);
-                writer.Write(score.DeltaPp);
+                writer.Write(score.MasterPP);
+                writer.Write(score.BranchPP);
+                writer.Write(score.DeltaPercentage);
 
                 return Convert.ToBase64String(memoryStream.ToArray()); // Convert to string
             }
@@ -86,13 +85,13 @@ namespace PerformanceCalculatorGUI.Configuration
             using (var memoryStream = new MemoryStream(byteArray))
             using (var reader = new BinaryReader(memoryStream))
             {
-                ScoreInfo scoreInfo = ScoreInfoCacheManager.ReadScore(reader, version);
-                CollectionScore collectionScore = new CollectionScore(scoreInfo);
+                var scoreInfo = ScoreInfoCacheManager.ReadScore(reader, version);
+                var collectionScore = new CollectionScore(scoreInfo);
                 if (version < 1) return collectionScore;
 
-                collectionScore.MasterPp = reader.ReadDouble();
-                collectionScore.BranchPp = reader.ReadDouble();
-                collectionScore.DeltaPp = reader.ReadDouble();
+                collectionScore.MasterPP = reader.ReadDouble();
+                collectionScore.BranchPP = reader.ReadDouble();
+                collectionScore.DeltaPercentage = reader.ReadDouble();
 
                 return collectionScore;
             }

@@ -19,7 +19,6 @@ using osu.Game.Graphics.Sprites;
 using osu.Game.Graphics.UserInterface;
 using osuTK.Input;
 using PerformanceCalculatorGUI.Components.TextBoxes;
-using PerformanceCalculatorGUI.Configuration;
 
 namespace PerformanceCalculatorGUI.Screens.MyCollections
 {

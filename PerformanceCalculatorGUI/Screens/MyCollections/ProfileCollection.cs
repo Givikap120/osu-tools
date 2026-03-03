@@ -3,8 +3,6 @@
 
 using Newtonsoft.Json;
 using osu.Framework.Bindables;
-using PerformanceCalculatorGUI.Configuration;
-using PerformanceCalculatorGUI.Screens;
 
 namespace PerformanceCalculatorGUI.Screens.MyCollections
 {

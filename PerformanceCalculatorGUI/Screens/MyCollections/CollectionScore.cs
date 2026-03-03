@@ -14,9 +14,12 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
 
     public class CollectionScore : ScoreInfo
     {
-        public double MasterPp = -1; // Not used for now
-        public double BranchPp = -1;
-        public double DeltaPp = -1;
+        // Not used for now, everything is based of normal "PP" member
+        public double MasterPP = 0;
+        public double BranchPP = 0;
+
+        // Used in delta mode for calculating expected deltas
+        public double DeltaPercentage = 1;
 
         public CollectionScore(ScoreInfo score)
         {
@@ -46,8 +49,8 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
 
         public CollectionScore(ScoreInfo score, PpTarget target) : this(score)
         {
-            if (target == PpTarget.Master) MasterPp = score.PP ?? -1;
-            else if (target == PpTarget.Branch) BranchPp = score.PP ?? -1;
+            if (target == PpTarget.Master) MasterPP = score.PP ?? -1;
+            else if (target == PpTarget.Branch) BranchPP = score.PP ?? -1;
         }
     }
 }

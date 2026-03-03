@@ -6,13 +6,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using NUnit.Framework;
 using osu.Framework.Allocation;
-using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Logging;
+using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Online.API.Requests.Responses;
-using osu.Game.Overlays.Dialog;
+using osu.Game.Overlays;
 using osu.Game.Rulesets.Mods;
 using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Configuration;
@@ -27,8 +28,8 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
         private ProfileCollection? getCollection(string username)
         {
-            var collection = collections.Collections.FirstOrDefault(
-                c => (c.Player.Value?.IsThisUsername(username) ?? false) && (c.RulesetId == ruleset.Value.OnlineID));
+            var collection = (ProfileCollection?)collections.Collections.FirstOrDefault(
+                c => (((ProfileCollection)c).Player.Value?.IsThisUsername(username) ?? false) && (c.RulesetId == ruleset.Value.OnlineID));
             if (collection == null) return null;
 
             currentPlayer = collection.Player.Value;
@@ -56,16 +57,30 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 collection.BonusPp = playcountBonusPP;
 
                 collection.Scores.Clear();
-                var allScores = GetProfileScores().ToArray();
+                convertChildrenToCollectionScoreIfNeeded();
 
-                foreach (var score in allScores)
+                foreach (var drawableScore in scores.Children)
                 {
-                    if (score == null) continue;
-                    collection.Scores.Add(new CollectionScore(score, PpTarget.Master));
+                    var score = drawableScore.Score.ScoreInfoSource;
+                    if (score != null) collection.Scores.Add((CollectionScore)score);
                 }
 
                 collections.SaveCollection(collection);
             });
+        }
+
+        private void convertChildrenToCollectionScoreIfNeeded()
+        {
+            if (profileImportTypeDropdown.Current.Value != ProfileCalculationType.Collection) return;
+
+            foreach (var drawableScore in scores.Children)
+            {
+                var score = drawableScore.Score.ScoreInfoSource;
+                if (score == null || score is CollectionScore) continue;
+
+                var collectionScore = new CollectionScore(score, PpTarget.Master);
+                drawableScore.Score.ScoreInfoSource = collectionScore;
+            }
         }
 
         private Task calculateProfileFromCollection(string username)
@@ -195,5 +210,14 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 });
             }, TaskContinuationOptions.None);
         }
+
+        public OverlayColourProvider ColourProvider => colourProvider;
+        public DialogOverlay DialogOverlay => dialogOverlay;
+        public FillFlowContainer<ExtendedProfileScore> Scores => scores;
+        public SwitchButton DeltaModeCheckbox => deltaModeCheckbox;
+        public CollectionManager Collections => collections;
+        public RoundedButton OverwriteValuesButton => overwriteValuesButton;
+        public MyCollection? CurrentCollection => collections.Collections.FirstOrDefault(c => ((ProfileCollection)c).Player.Value == currentPlayer);
+        public void PrepareScoresBeforeUpdate() => convertChildrenToCollectionScoreIfNeeded();
     }
 }

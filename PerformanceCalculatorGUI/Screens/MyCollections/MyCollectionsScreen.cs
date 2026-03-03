@@ -32,7 +32,7 @@ using PerformanceCalculatorGUI.Configuration;
 
 namespace PerformanceCalculatorGUI.Screens.MyCollections
 {
-    public partial class MyCollectionsScreen : PerformanceCalculatorScreen
+    public partial class MyCollectionsScreen : PerformanceCalculatorScreen, ICanCalculateCollection
     {
         public override bool ShouldShowConfirmationDialogOnSwitch => false;
 
@@ -64,6 +64,9 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
         private GridContainer collectionContainer = null!;
         private SpriteText collectionNameText = null!;
         private FillFlowContainer<ExtendedProfileScore> drawableScores = null!;
+
+        private RoundedButton overwriteValuesButton = null!;
+        private SwitchButton deltaModeCheckbox = null!;
 
         private CancellationTokenSource calculationCancellatonToken = null!;
         //private NotifyCollectionChangedEventHandler collectionChangedEventHandler = null!;
@@ -126,6 +129,8 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                                     new Dimension(GridSizeMode.AutoSize),
                                     new Dimension(GridSizeMode.AutoSize),
                                     new Dimension(GridSizeMode.AutoSize),
+                                    new Dimension(GridSizeMode.AutoSize),
+                                    new Dimension(GridSizeMode.AutoSize),
                                 },
                                 Content = new[]
                                 {
@@ -139,6 +144,8 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                                             Origin = Anchor.CentreLeft
                                         },
                                         new EmptyDrawable(),
+                                        this.ConstructDeltaModeCheckboxText(new MarginPadding { Right = 10 }),
+                                        deltaModeCheckbox = this.ConstructDeltaModeCheckbox(new MarginPadding { Right = 20 }),
                                         sortingTabControl = new OverlaySortTabControl<MyCollectionSortCriteria>
                                         {
                                             Anchor = Anchor.CentreRight,
@@ -153,27 +160,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
                                             Height = collection_controls_height,
                                             Action = selectAsActiveCollection
                                         },
-                                        new StatefulButton("Overwrite pp values")
-                                        {
-                                            Width = 150,
-                                            Height = collection_controls_height,
-                                            BackgroundColour = colourProvider.Background1,
-                                            Action = () =>
-                                            {
-                                                dialogOverlay.Push(new ConfirmDialog("Do you really want to overwrite all pp values with local values?", () =>
-                                                {
-                                                    foreach(var drawableScore in drawableScores.Children)
-                                                    {
-                                                        var profileScore = drawableScore.Score;
-                                                        var scoreInfo = profileScore.ScoreInfoSource!;
-                                                        scoreInfo.PP = profileScore.PerformanceAttributes?.Total;
-                                                        drawableScore.LivePP = profileScore.PerformanceAttributes?.Total ?? 0;
-                                                    }
-
-                                                    collections.SaveCollection(CurrentCollection!);
-                                                }));
-                                            }
-                                        },
+                                        overwriteValuesButton = this.ConstructOverwriteValuesButton(collection_controls_height),
                                         addScoresButton = new AddScoresButton(this)
                                         {
                                             Width = 150,
@@ -455,6 +442,13 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
 
             calculationCancellatonToken?.Cancel();
         }
+
+        public OverlayColourProvider ColourProvider => colourProvider;
+        public DialogOverlay DialogOverlay => dialogOverlay;
+        public FillFlowContainer<ExtendedProfileScore> Scores => drawableScores;
+        public SwitchButton DeltaModeCheckbox => deltaModeCheckbox;
+        public CollectionManager Collections => collections;
+        public RoundedButton OverwriteValuesButton => overwriteValuesButton;
 
         private partial class EmptyDrawable : Drawable
         {

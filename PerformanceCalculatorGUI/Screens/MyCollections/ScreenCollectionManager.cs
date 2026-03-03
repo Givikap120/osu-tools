@@ -1,8 +1,6 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using PerformanceCalculatorGUI.Configuration;
-
 namespace PerformanceCalculatorGUI.Screens.MyCollections
 {
     public class ScreenCollectionManager : CollectionManager<MyCollection>
@@ -12,7 +10,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
 
         public MyCollection? ActiveCollection = null;
 
-        public override void Load()
+        protected override void Load()
         {
             base.Load();
 

@@ -32,17 +32,16 @@ using osu.Framework.Platform;
 using ButtonState = PerformanceCalculatorGUI.Components.ButtonState;
 using osu.Game.Graphics.UserInterface;
 using osu.Game.Overlays.Dialog;
+using PerformanceCalculatorGUI.Screens.MyCollections;
 
 namespace PerformanceCalculatorGUI.Screens.Profile
 {
-    public partial class ProfileScreen : PerformanceCalculatorScreen
+    public partial class ProfileScreen : PerformanceCalculatorScreen, ICanCalculateCollection
     {
         [Cached]
         private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Plum);
 
         private StatefulButton calculationButton = null!;
-        private SwitchButton includePinnedCheckbox = null!;
-        private SwitchButton onlyDisplayBestCheckbox = null!;
         private VerboseLoadingLayer loadingLayer = null!;
 
         private GridContainer layout = null!;
@@ -52,14 +51,23 @@ namespace PerformanceCalculatorGUI.Screens.Profile
         private LabelledTextBox usernameTextBox = null!;
         private Container userPanelContainer = null!;
         private UserCard? userPanel;
+        private FillFlowContainer switchesContainer = null!;
 
         private GridContainer setupContainer = null!;
         private Container profileImportTypeContainer = null!;
         private OsuEnumDropdown<ProfileCalculationType> profileImportTypeDropdown = null!;
 
-        private StatefulButton overwriteValuesButton = null!;
+        private RoundedButton overwriteValuesButton = null!;
         private StatefulButton resetFromServerButton = null!;
         private RealmSettingsMenu settingsMenu = null!;
+
+        private SwitchButton includePinnedCheckbox = null!;
+        private SwitchButton onlyDisplayBestCheckbox = null!;
+        private SwitchButton deltaModeCheckbox = null!;
+
+        private OsuSpriteText includePinnedCheckboxText = null!;
+        private OsuSpriteText onlyDisplayBestCheckboxText = null!;
+        private OsuSpriteText deltaModeCheckboxText = null!;
 
         private CancellationTokenSource? calculationCancellatonToken;
 
@@ -131,27 +139,36 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 },
             };
 
-            overwriteValuesButton = new StatefulButton("Overwrite pp values")
+            includePinnedCheckbox = new SwitchButton
             {
-                Width = 170,
-                Height = username_container_height,
-                BackgroundColour = colourProvider.Background1,
-                Action = () =>
-                {
-                    dialogOverlay.Push(new ConfirmDialog("Do you really want to overwrite all pp values with local values?", () =>
-                    {
-                        foreach (var drawableScore in scores.Children)
-                        {
-                            var profileScore = drawableScore.Score;
-                            var scoreInfo = profileScore.ScoreInfoSource!;
-                            scoreInfo.PP = profileScore.PerformanceAttributes?.Total;
-                            drawableScore.LivePP = profileScore.PerformanceAttributes?.Total ?? 0;
-                        }
+                Anchor = Anchor.CentreLeft,
+                Origin = Anchor.CentreLeft,
+                Current = { Value = false },
+            };
 
-                        var collection = collections.Collections.FirstOrDefault(c => c.Player.Value == currentPlayer);
-                        if (collection != null) collections.SaveCollection(collection);
-                    }));
-                }
+            includePinnedCheckboxText = new OsuSpriteText
+            {
+                Anchor = Anchor.CentreLeft,
+                Origin = Anchor.CentreLeft,
+                Font = OsuFont.Torus.With(weight: FontWeight.SemiBold, size: 14),
+                UseFullGlyphHeight = false,
+                Text = "Include pinned scores"
+            };
+
+            onlyDisplayBestCheckbox = new SwitchButton
+            {
+                Anchor = Anchor.CentreLeft,
+                Origin = Anchor.CentreLeft,
+                Current = { Value = false },
+            };
+
+            onlyDisplayBestCheckboxText = new OsuSpriteText
+            {
+                Anchor = Anchor.CentreLeft,
+                Origin = Anchor.CentreLeft,
+                Font = OsuFont.Torus.With(weight: FontWeight.SemiBold, size: 14),
+                UseFullGlyphHeight = false,
+                Text = "Only display best score on each beatmap"
             };
 
             resetFromServerButton = new StatefulButton("Reset from server")
@@ -169,6 +186,10 @@ namespace PerformanceCalculatorGUI.Screens.Profile
             };
 
             settingsMenu = new RealmSettingsMenu();
+
+            deltaModeCheckbox = this.ConstructDeltaModeCheckbox();
+            deltaModeCheckboxText = this.ConstructDeltaModeCheckboxText();
+            overwriteValuesButton = this.ConstructOverwriteValuesButton(username_container_height);
 
             InternalChildren = new Drawable[]
             {
@@ -216,43 +237,12 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                                 AutoSizeAxes = Axes.Y,
                                 Children = new Drawable[]
                                 {
-                                    new FillFlowContainer
+                                    switchesContainer = new FillFlowContainer
                                     {
                                         AutoSizeAxes = Axes.Both,
                                         Direction = FillDirection.Horizontal,
                                         Margin = new MarginPadding { Vertical = 2, Left = 10 },
-                                        Spacing = new Vector2(5),
-                                        Children = new Drawable[]
-                                        {
-                                            includePinnedCheckbox = new SwitchButton
-                                            {
-                                                Anchor = Anchor.CentreLeft,
-                                                Origin = Anchor.CentreLeft,
-                                                Current = { Value = false },
-                                            },
-                                            new OsuSpriteText
-                                            {
-                                                Anchor = Anchor.CentreLeft,
-                                                Origin = Anchor.CentreLeft,
-                                                Font = OsuFont.Torus.With(weight: FontWeight.SemiBold, size: 14),
-                                                UseFullGlyphHeight = false,
-                                                Text = "Include pinned scores"
-                                            },
-                                            onlyDisplayBestCheckbox = new SwitchButton
-                                            {
-                                                Anchor = Anchor.CentreLeft,
-                                                Origin = Anchor.CentreLeft,
-                                                Current = { Value = false },
-                                            },
-                                            new OsuSpriteText
-                                            {
-                                                Anchor = Anchor.CentreLeft,
-                                                Origin = Anchor.CentreLeft,
-                                                Font = OsuFont.Torus.With(weight: FontWeight.SemiBold, size: 14),
-                                                UseFullGlyphHeight = false,
-                                                Text = "Only display best score on each beatmap"
-                                            }
-                                        }
+                                        Spacing = new Vector2(5)
                                     },
                                     sortingTabControl = new OverlaySortTabControl<ProfileSortCriteria>
                                     {
@@ -321,6 +311,8 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                             new Dimension(GridSizeMode.AutoSize),
                             new Dimension(GridSizeMode.AutoSize),
                             new Dimension(GridSizeMode.AutoSize),
+                            new Dimension(GridSizeMode.AutoSize),
+                            new Dimension(GridSizeMode.AutoSize),
                             new Dimension(GridSizeMode.AutoSize)
                         };
                         setupContainer.Content = new[]
@@ -333,6 +325,16 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                                 profileImportTypeContainer,
                                 calculationButton
                             }
+                        };
+                        switchesContainer.Clear(false);
+                        switchesContainer.Children = new Drawable[]
+                        {
+                            includePinnedCheckbox,
+                            includePinnedCheckboxText,
+                            onlyDisplayBestCheckbox,
+                            onlyDisplayBestCheckboxText,
+                            deltaModeCheckbox,
+                            deltaModeCheckboxText
                         };
                         break;
 
@@ -355,6 +357,18 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                             }
                         };
                         break;
+                }
+
+                if (val.NewValue != ProfileCalculationType.Collection)
+                {
+                    switchesContainer.Clear(false);
+                    switchesContainer.Children = new Drawable[]
+                    {
+                        includePinnedCheckbox,
+                        includePinnedCheckboxText,
+                        onlyDisplayBestCheckbox,
+                        onlyDisplayBestCheckboxText
+                    };
                 }
             }, true);
 
