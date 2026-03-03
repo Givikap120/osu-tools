@@ -61,8 +61,8 @@ namespace PerformanceCalculatorGUI.Screens
 
         private static string getCognition(OsuPerformanceAttributes performance)
         {
-            //return performance.Cognition;
             return "";
+            //return $"{performance.Reading:0} reading pp";
         }
 
         private static double getARPostDT(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods)
@@ -171,7 +171,7 @@ namespace PerformanceCalculatorGUI.Screens
             }
         }
 
-        public static void TestCS_old(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
+        public static void TestCS(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
         {
             List<Mod> localMods = cloneMods(appliedMods);
             OsuModDifficultyAdjust DA = getModOrAdd<OsuModDifficultyAdjust>(localMods);
@@ -181,12 +181,12 @@ namespace PerformanceCalculatorGUI.Screens
                 DA.CircleSize.Value = CS;
                 var (difficulty, performance) = calc(localMods);
                 //Console.WriteLine($"CS{CS:0.0#} (AR{beatmapDifficulty.ApproachRate:0.##}): {difficulty.StarRating:0.##}* {performance.Total:0}pp ({getCognition(performance):0} cognition pp)");
-                //Console.WriteLine($"CS{CS:0.0#}: {difficulty.StarRating:0.##}* {performance.Total:0}pp ({performance.Aim:0} aim, {performance.Speed:0} speed)");
-                Console.WriteLine($"{CS:0.0#},{difficulty.StarRating:0.##},{performance.Total:0},{performance.Aim:0},{performance.Speed:0}");
+                Console.WriteLine($"CS{CS:0.0#}: {difficulty.StarRating:0.##}* {performance.Total:0}pp ({performance.Aim:0}; aim pp {performance.Speed:0} speed pp; {getCognition(performance)})");
+                //Console.WriteLine($"{CS:0.0#},{difficulty.StarRating:0.##},{performance.Total:0},{performance.Aim:0},{performance.Speed:0}");
             }
         }
 
-        public static void TestCS(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
+        public static void TestCS_alt(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
         {
             List<Mod> localMods = cloneMods(appliedMods);
             OsuModDifficultyAdjust DA = getModOrAdd<OsuModDifficultyAdjust>(localMods);
@@ -210,6 +210,31 @@ namespace PerformanceCalculatorGUI.Screens
             }
         }
 
+        private static double[] normalizeWeighted((double value, double delta)[] input, double targetSum)
+        {
+            int n = input.Length;
+            double[] result = new double[n];
+
+            double currentSum = 0.0;
+            double weightedSum = 0.0;
+
+            for (int i = 0; i < n; i++)
+            {
+                currentSum += input[i].value;
+                weightedSum += input[i].value * input[i].delta;
+            }
+
+            if (weightedSum == 0.0) currentSum = weightedSum;
+
+            double k = (targetSum - currentSum) / weightedSum;
+
+            for (int i = 0; i < n; i++)
+                result[i] = input[i].value * (1.0 + k * input[i].delta);
+
+            return result;
+        }
+
+
         public static void TestHR(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
         {
             var localMods = cloneMods(appliedMods);
@@ -226,15 +251,15 @@ namespace PerformanceCalculatorGUI.Screens
 
             Console.WriteLine($"{baseVal:0}pp -> {hrVal:0}pp ({hrVal - baseVal:+0;-0;0}pp)");
 
-            double csResult = testParam("CS", beatmapDifficulty, beatmapDifficultyHR, da, calc, localMods, baseVal, hrVal);
-            double arResult = testParam("AR", beatmapDifficulty, beatmapDifficultyHR, da, calc, localMods, baseVal, hrVal);
-            double odResult = testParam("OD", beatmapDifficulty, beatmapDifficultyHR, da, calc, localMods, baseVal, hrVal);
+            var csResult = testParam("CS", beatmapDifficulty, beatmapDifficultyHR, da, calc, localMods, baseVal, hrVal);
+            var arResult = testParam("AR", beatmapDifficulty, beatmapDifficultyHR, da, calc, localMods, baseVal, hrVal);
+            var odResult = testParam("OD", beatmapDifficulty, beatmapDifficultyHR, da, calc, localMods, baseVal, hrVal);
 
-            double multiplier = (hrVal - baseVal) / (csResult + arResult + odResult);
+            double[] results = normalizeWeighted([csResult, arResult, odResult], hrVal - baseVal);
 
-            printNormed("CS", csResult * multiplier);
-            printNormed("AR", arResult * multiplier);
-            printNormed("OD", odResult * multiplier);
+            printNormed("CS", results[0]);
+            printNormed("AR", results[1]);
+            printNormed("OD", results[2]);
         }
 
         public static void TestEZ(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
@@ -253,15 +278,15 @@ namespace PerformanceCalculatorGUI.Screens
 
             Console.WriteLine($"{baseVal:0}pp -> {ezVal:0}pp ({ezVal - baseVal:+0;-0;0}pp)");
 
-            double csResult = testParam("CS", beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, ezVal);
-            double arResult = testParam("AR", beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, ezVal);
-            double odResult = testParam("OD", beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, ezVal);
+            var csResult = testParam("CS", beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, ezVal);
+            var arResult = testParam("AR", beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, ezVal);
+            var odResult = testParam("OD", beatmapDifficulty, beatmapDifficultyEZ, da, calc, localMods, baseVal, ezVal);
 
-            double multiplier = (ezVal - baseVal) / (csResult + arResult + odResult);
+            double[] results = normalizeWeighted([csResult, arResult, odResult], ezVal - baseVal);
 
-            printNormed("CS", csResult * multiplier);
-            printNormed("AR", arResult * multiplier);
-            printNormed("OD", odResult * multiplier);
+            printNormed("CS", results[0]);
+            printNormed("AR", results[1]);
+            printNormed("OD", results[2]);
         }
 
         public static void TestAROD10(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
@@ -303,21 +328,29 @@ namespace PerformanceCalculatorGUI.Screens
 
             Console.WriteLine($"{arodVal:0}pp -> {baseVal:0}pp ({baseVal - arodVal:+0;-0;0}pp) -> {baseValHD:0}pp ({baseValHD - arodVal:+0;-0;0}pp)");
 
-            double arhdResult = testParam("AR", beatmapDifficultyAR, beatmapDifficulty, da, calc, localMods, arVal, baseValHD, () => localMods.RemoveAll(m => m is OsuModHidden));
-            double arResult = testParam("AR", beatmapDifficultyAR, beatmapDifficulty, da, calc, localMods, arVal, baseVal);
-            double hdResult = baseValHD - baseVal;
-            double odResult = testParam("OD", beatmapDifficultyOD, beatmapDifficulty, da, calc, localMods, odVal, baseVal);
+            double hdResultValue = baseValHD - baseVal;
+            double arhdResultValue = testParam("AR", beatmapDifficultyAR, beatmapDifficulty, da, calc, localMods, arVal, baseValHD, () => localMods.RemoveAll(m => m is OsuModHidden)).value;
+            var arResult = testParam("AR", beatmapDifficultyAR, beatmapDifficulty, da, calc, localMods, arVal, baseVal);
+            var odResult = testParam("OD", beatmapDifficultyOD, beatmapDifficulty, da, calc, localMods, odVal, baseVal);
 
-            double arhdMultipier = arhdResult / (arResult + hdResult);
-            arResult *= arhdMultipier;
-            hdResult *= arhdMultipier;
+            double arhdMultipier = arhdResultValue / (arResult.value + hdResultValue);
+            arResult.value *= arhdMultipier;
+            hdResultValue *= arhdMultipier;
 
-            double multiplier = (baseVal - arodVal) / (arResult + odResult);
+            double targetSum = baseVal - arodVal;
+            double currentSum = arResult.value + odResult.value;
+            double weightedSum = arResult.value * arResult.delta + odResult.value * arResult.delta;
+            weightedSum = weightedSum == 0 ? currentSum : weightedSum;
 
-            printNormed("ARHD", arhdResult * multiplier);
-            printNormed("AR", arResult * multiplier);
-            printNormed("HD", hdResult * multiplier);
-            printNormed("OD", odResult * multiplier);
+            double k = (targetSum - currentSum) / weightedSum;
+
+            double arMultiplier = 1.0 + k * arResult.delta;
+            double odMultiplier = 1.0 + k * odResult.delta;
+
+            printNormed("ARHD", arhdResultValue * arMultiplier);
+            printNormed("AR", arResult.value * arMultiplier);
+            printNormed("HD", hdResultValue * arMultiplier);
+            printNormed("OD", odResult.value * odMultiplier);
         }
 
         public static void TestAcc(BeatmapDifficulty beatmapDifficulty, IReadOnlyList<Mod> appliedMods, Func<IReadOnlyList<Mod>, double, (OsuDifficultyAttributes difficulty, OsuPerformanceAttributes performance)> calc)
@@ -329,7 +362,7 @@ namespace PerformanceCalculatorGUI.Screens
             }
         }
 
-        private static double testParam(string name, BeatmapDifficulty diff, BeatmapDifficulty diffAdj, OsuModDifficultyAdjust da, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes diffAttr, OsuPerformanceAttributes perfAttr)> calc, List<Mod> localMods, double baseVal, double adjVal, Action? stageAdjust = null)
+        private static (double value, double delta) testParam(string name, BeatmapDifficulty diff, BeatmapDifficulty diffAdj, OsuModDifficultyAdjust da, Func<IReadOnlyList<Mod>, (OsuDifficultyAttributes diffAttr, OsuPerformanceAttributes perfAttr)> calc, List<Mod> localMods, double baseVal, double adjVal, Action? stageAdjust = null)
         {
             double plus, minus;
 
@@ -348,8 +381,9 @@ namespace PerformanceCalculatorGUI.Screens
 
             //int result = (int)Math.Round(((plus - baseVal) + (adjVal - minus)) / 2);
             double result = Math.Abs(plusDelta) >= Math.Abs(minusDelta) ? minusDelta : plusDelta;
+            double delta = Math.Abs(plusDelta - minusDelta);
 
-            return result;
+            return (result, delta);
         }
 
         private static void printNormed(string name, double value)

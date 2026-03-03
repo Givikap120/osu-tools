@@ -325,7 +325,7 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
         {
             var difficultyObjects = (difficultyCalculator.Value as IExtendedDifficultyCalculator)!.GetDifficultyHitObjects();
 
-            var difficulties = skill.GetObjectDifficulties();
+            IReadOnlyList<double> difficulties = skill.GetObjectDifficulties();
             double skillGraphMultiplier = getSkillGraphMultiplier(skill);
 
             var skillStrainList = new List<Strain>();
@@ -381,7 +381,7 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
         private static double getSkillGraphMultiplier(Skill skill)
         {
             if (skill is Speed) return 1.5;
-            if (skill is Flashlight) return 20;
+            if (skill is Flashlight) return 10;
 
             return 1.0;
         }
