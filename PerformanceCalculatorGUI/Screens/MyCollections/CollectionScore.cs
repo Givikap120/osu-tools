@@ -3,7 +3,7 @@
 
 using osu.Game.Scoring;
 
-namespace PerformanceCalculatorGUI.Configuration
+namespace PerformanceCalculatorGUI.Screens.MyCollections
 {
     public enum PpTarget
     {

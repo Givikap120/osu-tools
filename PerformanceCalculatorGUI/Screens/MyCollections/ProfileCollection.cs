@@ -3,9 +3,10 @@
 
 using Newtonsoft.Json;
 using osu.Framework.Bindables;
+using PerformanceCalculatorGUI.Configuration;
 using PerformanceCalculatorGUI.Screens;
 
-namespace PerformanceCalculatorGUI.Configuration
+namespace PerformanceCalculatorGUI.Screens.MyCollections
 {
     public class ProfileCollection : MyCollection
     {

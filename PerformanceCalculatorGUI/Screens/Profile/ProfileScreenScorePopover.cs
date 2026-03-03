@@ -7,7 +7,7 @@ using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Overlays;
 using osu.Game.Overlays.Dialog;
 using PerformanceCalculatorGUI.Components;
-using PerformanceCalculatorGUI.Configuration;
+using PerformanceCalculatorGUI.Screens.MyCollections;
 
 namespace PerformanceCalculatorGUI.Screens.Profile
 {

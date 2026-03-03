@@ -41,6 +41,7 @@ using osuTK;
 using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
+using PerformanceCalculatorGUI.Screens.MyCollections;
 using PerformanceCalculatorGUI.Screens.ObjectInspection;
 using PerformanceCalculatorGUI.Screens.Simulate;
 using PerformanceCalculatorGUI.Utils;

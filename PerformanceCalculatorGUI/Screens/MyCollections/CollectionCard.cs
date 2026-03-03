@@ -21,7 +21,7 @@ using osuTK.Input;
 using PerformanceCalculatorGUI.Components.TextBoxes;
 using PerformanceCalculatorGUI.Configuration;
 
-namespace PerformanceCalculatorGUI.Components.Collections
+namespace PerformanceCalculatorGUI.Screens.MyCollections
 {
     public partial class CollectionCard : OsuClickableContainer, IHasPopover
     {

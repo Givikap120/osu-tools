@@ -28,7 +28,6 @@ using osu.Game.Rulesets;
 using osu.Game.Scoring;
 using osuTK.Input;
 using PerformanceCalculatorGUI.Components;
-using PerformanceCalculatorGUI.Components.Collections;
 using PerformanceCalculatorGUI.Configuration;
 
 namespace PerformanceCalculatorGUI.Screens.MyCollections

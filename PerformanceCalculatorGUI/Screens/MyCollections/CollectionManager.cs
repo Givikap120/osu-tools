@@ -7,8 +7,9 @@ using System.Linq;
 using Newtonsoft.Json;
 using osu.Framework.Bindables;
 using osu.Game.Extensions;
+using PerformanceCalculatorGUI.Configuration;
 
-namespace PerformanceCalculatorGUI.Configuration
+namespace PerformanceCalculatorGUI.Screens.MyCollections
 {
     public abstract class CollectionManager<T> where T : MyCollection
     {

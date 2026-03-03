@@ -18,6 +18,7 @@ using osu.Game.Rulesets.Osu;
 using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Configuration;
 using PerformanceCalculatorGUI.Screens.Collections;
+using PerformanceCalculatorGUI.Screens.MyCollections;
 
 namespace PerformanceCalculatorGUI
 {

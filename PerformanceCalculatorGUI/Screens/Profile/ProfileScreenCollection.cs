@@ -15,6 +15,7 @@ using System;
 using osu.Framework.Graphics;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Framework.Graphics.Containers;
+using PerformanceCalculatorGUI.Screens.MyCollections;
 
 namespace PerformanceCalculatorGUI.Screens.Profile
 {
