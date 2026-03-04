@@ -146,7 +146,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     if (performanceCalculator == null || calculationCancellatonToken == null || calculationCancellatonToken.IsCancellationRequested)
                         return;
 
-                    double livePP = score.PP ?? 0.0;
+                    double livePP = this.GetLivePP(score);
                     var perfAttributes = await (performanceCalculator.CalculateAsync(parsedScore.ScoreInfo, difficultyAttributes, calculationCancellatonToken.Token)).ConfigureAwait(false)!;
 
                     var play = new ExtendedScore(score, livePP, difficultyAttributes, perfAttributes);
@@ -218,6 +218,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
         public CollectionManager Collections => collections;
         public RoundedButton OverwriteValuesButton => overwriteValuesButton;
         public MyCollection? CurrentCollection => collections.Collections.FirstOrDefault(c => ((ProfileCollection)c).Player.Value == currentPlayer);
+        public void UpdateSorting() => updateSorting(sorting.Value);
         public void PrepareScoresBeforeUpdate() => convertChildrenToCollectionScoreIfNeeded();
     }
 }

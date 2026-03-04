@@ -449,6 +449,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
         public SwitchButton DeltaModeCheckbox => deltaModeCheckbox;
         public CollectionManager Collections => collections;
         public RoundedButton OverwriteValuesButton => overwriteValuesButton;
+        public void UpdateSorting() => updateSorting(sorting.Value);
 
         private partial class EmptyDrawable : Drawable
         {

@@ -126,11 +126,11 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
             return true;
         }
 
-        private List<MyCollection> loadCollectionListOld()
+        private List<T> loadCollectionListOld()
         {
             if (!File.Exists(CollectionsFilePathOld)) return [];
 
-            var result = JsonConvert.DeserializeObject<List<MyCollection>>(File.ReadAllText(CollectionsFilePathOld)) ?? [];
+            var result = JsonConvert.DeserializeObject<List<T>>(File.ReadAllText(CollectionsFilePathOld)) ?? [];
             result = result.Where(c => c.EncodedScores.Count > 0).ToList();
 
             foreach (var collection in result)

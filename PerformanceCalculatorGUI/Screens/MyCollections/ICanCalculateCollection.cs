@@ -23,6 +23,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
         RoundedButton OverwriteValuesButton { get; }
         MyCollection? CurrentCollection { get; }
 
+        void UpdateSorting();
         void PrepareScoresBeforeUpdate() { }
     }
 
@@ -101,6 +102,7 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
             if (value.OldValue == value.NewValue) return;
             target.OverwriteValuesButton.Text = value.NewValue ? "Overwrite pp deltas" : "Overwrite pp values";
             target.UpdateVisualPpValues();
+            target.UpdateSorting();
         }
 
         public static void UpdateVisualPpValues(this ICanCalculateCollection target)
@@ -110,16 +112,20 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
             foreach (var drawableScore in target.Scores.Children)
             {
                 CollectionScore scoreInfo = (CollectionScore)drawableScore.Score.ScoreInfoSource!;
+                drawableScore.LivePP = GetLivePP(target, scoreInfo);
+            }
+        }
 
-                if (target.DeltaModeCheckbox.Current.Value)
-                {
-                    // In delta mode we base of "expected" values instead of actual values
-                    drawableScore.LivePP = (scoreInfo.PP ?? 0) * scoreInfo.DeltaPercentage;
-                }
-                else
-                {
-                    drawableScore.LivePP = scoreInfo.PP ?? 0;
-                }
+        public static double GetLivePP(this ICanCalculateCollection target, CollectionScore scoreInfo)
+        {
+            if (target.DeltaModeCheckbox.Current.Value)
+            {
+                // In delta mode we base of "expected" values instead of actual values
+                return (scoreInfo.PP ?? 0) * scoreInfo.DeltaPercentage;
+            }
+            else
+            {
+                return scoreInfo.PP ?? 0;
             }
         }
     }
