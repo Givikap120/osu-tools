@@ -261,7 +261,7 @@ namespace PerformanceCalculatorGUI.Utils
             var scoreProcessor = rulesetInstance.CreateScoreProcessor();
 
             // Populate the maximum statistics.
-            var maxBasicResult = rulesetInstance.GetHitResults()
+            var maxBasicResult = rulesetInstance.GetHitResultsForDisplay()
                                                       .Select(h => h.result)
                                                       .Where(h => h.IsBasic()).MaxBy(scoreProcessor.GetBaseScoreForResult);
 
