@@ -13,6 +13,7 @@ using osu.Game.Beatmaps;
 using osu.Game.Beatmaps.Formats;
 using osu.Game.Beatmaps.Legacy;
 using osu.Game.Database;
+using osu.Game.Extensions;
 using osu.Game.IO.Legacy;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Replays;
@@ -21,6 +22,7 @@ using osu.Game.Rulesets;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Replays;
 using osu.Game.Rulesets.Scoring;
+using osuTK;
 using SharpCompress.Compressors.LZMA;
 using osu.Game.Scoring;
 using osu.Game.Scoring.Legacy;
@@ -33,7 +35,6 @@ namespace PerformanceCalculatorGUI.Utils
         private IBeatmap currentBeatmap;
         private Ruleset currentRuleset;
 
-        private float beatmapOffset;
 
         private readonly IRulesetStore rulesets;
         private readonly BeatmapManager beatmaps;
@@ -83,6 +84,7 @@ namespace PerformanceCalculatorGUI.Utils
 
             return workingBeatmap;
         }
+        private long beatmapOffset;
 
         public Score Parse(Stream stream)
         {
@@ -93,9 +95,8 @@ namespace PerformanceCalculatorGUI.Utils
 
             WorkingBeatmap workingBeatmap;
             ScoreRank? decodedRank = null;
-            bool haveBeatmap = false;
 
-            using (var sr = new SerializationReader(stream))
+            using (SerializationReader sr = new SerializationReader(stream))
             {
                 currentRuleset = GetRuleset(sr.ReadByte());
                 var scoreInfo = new ScoreInfo { Ruleset = currentRuleset.RulesetInfo };
@@ -121,8 +122,6 @@ namespace PerformanceCalculatorGUI.Utils
 
                 if (workingBeatmap != null && workingBeatmap is not DummyWorkingBeatmap && workingBeatmap.Beatmap.HitObjects.Count > 0)
                 {
-                    haveBeatmap = true;
-
                     currentBeatmap = workingBeatmap.GetPlayableBeatmap(currentRuleset.RulesetInfo, scoreInfo.Mods);
                     scoreInfo.BeatmapInfo = currentBeatmap.BeatmapInfo;
 
@@ -166,6 +165,9 @@ namespace PerformanceCalculatorGUI.Utils
                 else if (version >= 20121008)
                     scoreInfo.LegacyOnlineID = sr.ReadInt32();
 
+                if (scoreInfo.LegacyOnlineID == 0)
+                    scoreInfo.LegacyOnlineID = -1;
+
                 byte[] compressedScoreInfo = null;
 
                 if (version >= 30000001)
@@ -178,7 +180,7 @@ namespace PerformanceCalculatorGUI.Utils
                 {
                     readCompressedData(compressedScoreInfo, reader =>
                     {
-                        var readScore = JsonConvert.DeserializeObject<LegacyReplaySoloScoreInfo>(reader.ReadToEnd());
+                        LegacyReplaySoloScoreInfo readScore = JsonConvert.DeserializeObject<LegacyReplaySoloScoreInfo>(reader.ReadToEnd());
 
                         Debug.Assert(readScore != null);
 
@@ -194,27 +196,29 @@ namespace PerformanceCalculatorGUI.Utils
                         if (readScore.TotalScoreWithoutMods is long totalScoreWithoutMods)
                             score.ScoreInfo.TotalScoreWithoutMods = totalScoreWithoutMods;
                         else
-                            LegacyScoreDecoder.PopulateTotalScoreWithoutMods(score.ScoreInfo);
+                            PopulateTotalScoreWithoutMods(score.ScoreInfo);
+
+                        score.ScoreInfo.Pauses.AddRange(readScore.Pauses);
                     });
                 }
             }
 
-            PopulateStatistics(score.ScoreInfo, workingBeatmap);
+            PopulateMaximumStatistics(score.ScoreInfo, workingBeatmap);
 
             if (score.ScoreInfo.IsLegacyScore)
                 score.ScoreInfo.LegacyTotalScore = score.ScoreInfo.TotalScore;
 
-            if (haveBeatmap)
-            {
-                StandardisedScoreMigrationTools.UpdateFromLegacy(score.ScoreInfo, workingBeatmap);
+            StandardisedScoreMigrationTools.UpdateFromLegacy(score.ScoreInfo, workingBeatmap);
 
-                // before returning for database import, we must restore the database-sourced BeatmapInfo.
-                // if not, the clone operation in GetPlayableBeatmap will cause a dereference and subsequent database exception.
-                score.ScoreInfo.BeatmapInfo = workingBeatmap.BeatmapInfo;
+            if (decodedRank != null)
+                score.ScoreInfo.Rank = decodedRank.Value;
 
-                // Don't do this part, we want actual MD5 hash to be displayed
-                // score.ScoreInfo.BeatmapHash = workingBeatmap.BeatmapInfo.Hash;
-            }
+            // before returning for database import, we must restore the database-sourced BeatmapInfo.
+            // if not, the clone operation in GetPlayableBeatmap will cause a dereference and subsequent database exception.
+            score.ScoreInfo.BeatmapInfo = workingBeatmap.BeatmapInfo;
+
+            // Don't do this part, we want actual MD5 hash to be displayed
+            // score.ScoreInfo.BeatmapHash = workingBeatmap.BeatmapInfo.Hash;
 
             return score;
         }
@@ -235,12 +239,12 @@ namespace PerformanceCalculatorGUI.Utils
                     if (v < 0)
                         throw new IOException("Can't Read 1");
 
-                    outSize |= (long)(byte)v << 8 * i;
+                    outSize |= (long)(byte)v << (8 * i);
                 }
 
                 long compressedSize = replayInStream.Length - replayInStream.Position;
 
-                using (var lzma = new LzmaStream(properties, replayInStream, compressedSize, outSize))
+                using (var lzma = LzmaStream.Create(properties, replayInStream, compressedSize, outSize))
                 using (var reader = new StreamReader(lzma))
                     readFunc(reader);
             }
@@ -251,8 +255,10 @@ namespace PerformanceCalculatorGUI.Utils
         /// </summary>
         /// <param name="score">The score to populate the statistics of.</param>
         /// <param name="workingBeatmap">The corresponding <see cref="WorkingBeatmap"/>.</param>
-        public static void PopulateStatistics(ScoreInfo score, WorkingBeatmap workingBeatmap)
+        public static void PopulateMaximumStatistics(ScoreInfo score, WorkingBeatmap workingBeatmap)
         {
+            Debug.Assert(score.BeatmapInfo != null);
+
             if (score.MaximumStatistics.Select(kvp => kvp.Value).Sum() > 0)
                 return;
 
@@ -261,11 +267,11 @@ namespace PerformanceCalculatorGUI.Utils
             var scoreProcessor = rulesetInstance.CreateScoreProcessor();
 
             // Populate the maximum statistics.
-            var maxBasicResult = rulesetInstance.GetHitResultsForDisplay()
+            HitResult maxBasicResult = rulesetInstance.GetHitResultsForDisplay()
                                                       .Select(h => h.result)
                                                       .Where(h => h.IsBasic()).MaxBy(scoreProcessor.GetBaseScoreForResult);
 
-            foreach ((var result, int count) in score.Statistics)
+            foreach ((HitResult result, int count) in score.Statistics)
             {
                 switch (result)
                 {
@@ -294,25 +300,32 @@ namespace PerformanceCalculatorGUI.Utils
             if (!score.IsLegacyScore)
                 return;
 
+#pragma warning disable CS0618
             // In osu! and osu!mania, some judgements affect combo but aren't stored to scores.
             // A special hit result is used to pad out the combo value to match, based on the max combo from the difficulty attributes.
-            if (workingBeatmap != null)
-            {
-                var calculator = rulesetInstance.CreateDifficultyCalculator(workingBeatmap);
-                var attributes = calculator.Calculate(score.Mods);
+            var calculator = rulesetInstance.CreateDifficultyCalculator(workingBeatmap);
+            var attributes = calculator.Calculate(score.Mods);
 
-#pragma warning disable CS0618
-                int maxComboFromStatistics = score.MaximumStatistics.Where(kvp => kvp.Key.AffectsCombo()).Select(kvp => kvp.Value).DefaultIfEmpty(0).Sum();
-                if (attributes.MaxCombo > maxComboFromStatistics)
-                    score.MaximumStatistics[HitResult.LegacyComboIncrease] = attributes.MaxCombo - maxComboFromStatistics;
+            int maxComboFromStatistics = score.MaximumStatistics.Where(kvp => kvp.Key.AffectsCombo()).Select(kvp => kvp.Value).DefaultIfEmpty(0).Sum();
+            if (attributes.MaxCombo > maxComboFromStatistics)
+                score.MaximumStatistics[HitResult.LegacyComboIncrease] = attributes.MaxCombo - maxComboFromStatistics;
 #pragma warning restore CS0618
-            }
+        }
+
+        public static void PopulateTotalScoreWithoutMods(ScoreInfo score)
+        {
+            double modMultiplier = 1;
+
+            foreach (var mod in score.Mods)
+                modMultiplier *= mod.ScoreMultiplier;
+
+            score.TotalScoreWithoutMods = (long)Math.Round(score.TotalScore / modMultiplier);
         }
 
         private void readLegacyReplay(Replay replay, StreamReader reader)
         {
-            float lastTime = beatmapOffset;
-            ReplayFrame currentFrame = null;
+            long lastTime = beatmapOffset;
+            var legacyFrames = new List<LegacyReplayFrame>();
 
             string[] frames = reader.ReadToEnd().Split(',');
 
@@ -324,38 +337,83 @@ namespace PerformanceCalculatorGUI.Utils
                     continue;
 
                 if (split[0] == "-12345")
+                {
                     // Todo: The seed is provided in split[3], which we'll need to use at some point
                     continue;
+                }
 
-                float diff = Parsing.ParseFloat(split[0]);
-                float mouseX = Parsing.ParseFloat(split[1], Parsing.MAX_COORDINATE_VALUE);
+                // In mania, mouseX encodes the pressed keys in the lower 20 bits
+                int mouseXParseLimit = currentRuleset.RulesetInfo.OnlineID == 3 ? (1 << 20) - 1 : Parsing.MAX_COORDINATE_VALUE;
+
+                // the legacy replay format as defined by stable expects frame delta times
+                // ('delta time' here meaning the amount of time between consecutive frames)
+                // to be integral and does not allow fractional values.
+                // one particular reason why this matters is that integral deltas
+                // avoid nasty floating point traps like accumulation error from summation or round-off error.
+                // however, there was a period in lazer's lifetime wherein lazer emitted replays
+                // with fractional (float) frame deltas, up until https://github.com/ppy/osu/pull/12583.
+                // despite the fact that gameplay mechanics changed multiple times since
+                // and the replay isn't going to play back anywhere near accurately anyway,
+                // no mistakes are ever forgiven, thus this attempts to parse the delta as an integer once,
+                // and if that fails, tries again as float.
+                // notably this cannot just be `(int)Parsing.ParseFloat(split[0])`, because that can lose information
+                // (`float` numbers have 24 bits of significand precision, which is not enough to accurately represent every possible value of `int`).
+                int diff;
+                if (!int.TryParse(split[0], out diff))
+                    diff = (int)Math.Round(Parsing.ParseFloat(split[0]));
+
+                float mouseX = Parsing.ParseFloat(split[1], mouseXParseLimit);
                 float mouseY = Parsing.ParseFloat(split[2], Parsing.MAX_COORDINATE_VALUE);
 
                 lastTime += diff;
 
-                if (i < 2 && mouseX == 256 && mouseY == -500)
-                    // at the start of the replay, stable places two replay frames, at time 0 and SkipBoundary - 1, respectively.
-                    // both frames use a position of (256, -500).
-                    // ignore these frames as they serve no real purpose (and can even mislead ruleset-specific handlers - see mania)
-                    continue;
-
-                // Todo: At some point we probably want to rewind and play back the negative-time frames
-                // but for now we'll achieve equal playback to stable by skipping negative frames
-                if (diff < 0)
-                    continue;
-
-                currentFrame = convertFrame(new LegacyReplayFrame(lastTime,
+                legacyFrames.Add(new LegacyReplayFrame(lastTime,
                     mouseX,
                     mouseY,
-                    (ReplayButtonState)Parsing.ParseInt(split[3])), currentFrame);
+                    (ReplayButtonState)Parsing.ParseInt(split[3])));
+            }
 
-                replay.Frames.Add(currentFrame);
+            // https://github.com/peppy/osu-stable-reference/blob/e53980dd76857ee899f66ce519ba1597e7874f28/osu!/GameModes/Play/ReplayWatcher.cs#L62-L67
+            if (legacyFrames.Count >= 2 && legacyFrames[1].Time < legacyFrames[0].Time)
+            {
+                legacyFrames[1].Time = legacyFrames[0].Time;
+                legacyFrames[0].Time = 0;
+            }
+
+            // https://github.com/peppy/osu-stable-reference/blob/e53980dd76857ee899f66ce519ba1597e7874f28/osu!/GameModes/Play/ReplayWatcher.cs#L69-L71
+            if (legacyFrames.Count >= 3 && legacyFrames[0].Time > legacyFrames[2].Time)
+                legacyFrames[0].Time = legacyFrames[1].Time = legacyFrames[2].Time;
+
+            // at the start of the replay, stable places two replay frames, at time 0 and SkipBoundary - 1, respectively.
+            // both frames use a position of (256, -500).
+            // ignore these frames as they serve no real purpose (and can even mislead ruleset-specific handlers - see mania)
+            if (legacyFrames.Count >= 2 && legacyFrames[1].Position == new Vector2(256, -500))
+                legacyFrames.RemoveAt(1);
+
+            if (legacyFrames.Count >= 1 && legacyFrames[0].Position == new Vector2(256, -500))
+                legacyFrames.RemoveAt(0);
+
+            ReplayFrame currentFrame = null;
+
+            foreach (var legacyFrame in legacyFrames)
+            {
+                // never allow backwards time traversal in relation to the current frame.
+                // this handles frames with negative delta.
+                // this doesn't match stable 100% as stable will do something similar to adding an interpolated "intermediate frame"
+                // at the point wherein time flow changes from backwards to forwards, but it'll do for now.
+                if (currentFrame != null && legacyFrame.Time < currentFrame.Time)
+                    continue;
+
+                replay.Frames.Add(currentFrame = convertFrame(legacyFrame, currentFrame));
             }
         }
 
         private ReplayFrame convertFrame(LegacyReplayFrame currentFrame, ReplayFrame lastFrame)
         {
-            var convertible = currentRuleset.CreateConvertibleReplayFrame() ?? throw new InvalidOperationException($"Legacy replay cannot be converted for the ruleset: {currentRuleset.Description}");
+            var convertible = currentRuleset.CreateConvertibleReplayFrame();
+            if (convertible == null)
+                throw new InvalidOperationException($"Legacy replay cannot be converted for the ruleset: {currentRuleset.Description}");
+
             convertible.FromLegacy(currentFrame, currentBeatmap, lastFrame);
 
             var frame = (ReplayFrame)convertible;
