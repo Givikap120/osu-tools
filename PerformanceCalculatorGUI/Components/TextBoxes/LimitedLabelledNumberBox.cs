@@ -66,7 +66,7 @@ namespace PerformanceCalculatorGUI.Components.TextBoxes
                     return;
                 }
 
-                Value.Value = default;
+                Value.Value = 0;
             }
             protected override bool CanAddCharacter(char character)
             {

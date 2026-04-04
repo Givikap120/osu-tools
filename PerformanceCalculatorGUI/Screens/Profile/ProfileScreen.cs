@@ -42,6 +42,7 @@ namespace PerformanceCalculatorGUI.Screens.Profile
         private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Plum);
 
         private StatefulButton calculationButton = null!;
+        
         private VerboseLoadingLayer loadingLayer = null!;
 
         private GridContainer layout = null!;
@@ -62,10 +63,12 @@ namespace PerformanceCalculatorGUI.Screens.Profile
         private RealmSettingsMenu settingsMenu = null!;
 
         private SwitchButton includePinnedCheckbox = null!;
+        private SwitchButton includeFirstsCheckbox = null!;
         private SwitchButton onlyDisplayBestCheckbox = null!;
         private SwitchButton deltaModeCheckbox = null!;
 
         private OsuSpriteText includePinnedCheckboxText = null!;
+        private OsuSpriteText includeFirstsCheckboxText = null!;
         private OsuSpriteText onlyDisplayBestCheckboxText = null!;
         private OsuSpriteText deltaModeCheckboxText = null!;
 
@@ -153,6 +156,22 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                 Font = OsuFont.Torus.With(weight: FontWeight.SemiBold, size: 14),
                 UseFullGlyphHeight = false,
                 Text = "Include pinned scores"
+            };
+
+            includeFirstsCheckbox = new SwitchButton
+            {
+                Anchor = Anchor.CentreLeft,
+                Origin = Anchor.CentreLeft,
+                Current = { Value = false },
+            };
+
+            includeFirstsCheckboxText = new OsuSpriteText
+            {
+                Anchor = Anchor.CentreLeft,
+                Origin = Anchor.CentreLeft,
+                Font = OsuFont.Torus.With(weight: FontWeight.SemiBold, size: 14),
+                UseFullGlyphHeight = false,
+                Text = "Include first place scores"
             };
 
             onlyDisplayBestCheckbox = new SwitchButton
@@ -278,7 +297,6 @@ namespace PerformanceCalculatorGUI.Screens.Profile
 
             usernameTextBox.OnCommit += (_, _) => { calculateProfiles(usernameTextBox.Current.Value); };
             sorting.ValueChanged += e => { updateSorting(e.NewValue); };
-            includePinnedCheckbox.Current.ValueChanged += e => { calculateProfiles(usernameTextBox.Current.Value); };
 
             profileImportTypeDropdown.Current.BindValueChanged(val =>
             {
@@ -331,6 +349,8 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                         {
                             includePinnedCheckbox,
                             includePinnedCheckboxText,
+                            includeFirstsCheckbox,
+                            includeFirstsCheckboxText,
                             onlyDisplayBestCheckbox,
                             onlyDisplayBestCheckboxText,
                             deltaModeCheckbox,
@@ -366,6 +386,8 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                     {
                         includePinnedCheckbox,
                         includePinnedCheckboxText,
+                        includeFirstsCheckbox,
+                        includeFirstsCheckboxText,
                         onlyDisplayBestCheckbox,
                         onlyDisplayBestCheckboxText
                     };
@@ -485,7 +507,14 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                         {
                             var pinnedScores = await apiManager.GetJsonFromApi<List<SoloScoreInfo>>($"users/{player.OnlineID}/scores/pinned?mode={ruleset.Value.ShortName}&limit={max_api_scores_in_one_query}")
                                                                .ConfigureAwait(false);
-                            apiScores = apiScores.Concat(pinnedScores.Where(p => !apiScores.Any(b => b.ID == p.ID)).ToArray()).ToList();
+                            apiScores = apiScores.Concat(pinnedScores.Where(p => apiScores.All(b => b.ID != p.ID)).ToArray()).ToList();
+                        }
+
+                        if (includeFirstsCheckbox.Current.Value)
+                        {
+                            var firstScores = await apiManager.GetJsonFromApi<List<SoloScoreInfo>>($"users/{player.OnlineID}/scores/firsts?mode={ruleset.Value.ShortName}&limit={max_api_scores_in_one_query}")
+                                                              .ConfigureAwait(false);
+                            apiScores = apiScores.Concat(firstScores.Where(p => apiScores.All(b => b.ID != p.ID)).ToArray()).ToList();
                         }
 
                         foreach (var score in apiScores)
