@@ -1,17 +1,21 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using osu.Framework.Allocation;
+using osu.Framework.Audio;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Logging;
 using osu.Framework.Platform;
+using osu.Framework.Utils;
+using osu.Game.Beatmaps;
 using osu.Game.Database;
 using osu.Game.Extensions;
 using osu.Game.Graphics.UserInterfaceV2;
@@ -19,6 +23,7 @@ using osu.Game.Overlays;
 using osu.Game.Scoring;
 using osu.Game.Utils;
 using PerformanceCalculatorGUI.Components;
+using PerformanceCalculatorGUI.Components.BeatmapDataExport;
 using PerformanceCalculatorGUI.Configuration;
 
 namespace PerformanceCalculatorGUI.Screens
@@ -35,6 +40,9 @@ namespace PerformanceCalculatorGUI.Screens
         //private LabelledSwitchButton exportOnlyFromLazerCheckbox = null!;
         private LabelledTextBox exportDirectoryNameTextBox = null!;
 
+        // Export beatmap data
+        private StatefulButton exportBeatmapDataButton = null!;
+
         private CancellationTokenSource? calculationCancellatonToken;
 
         [Cached]
@@ -43,20 +51,19 @@ namespace PerformanceCalculatorGUI.Screens
         [Resolved]
         private NotificationDisplay notificationDisplay { get; set; } = null!;
 
-        //[Resolved]
-        //private APIManager apiManager { get; set; }
-
-        //[Resolved]
-        //private Bindable<RulesetInfo> ruleset { get; set; }
-
-        //[Resolved]
-        //private RulesetStore rulesets { get; set; }
+        [Resolved]
+        private AudioManager audio { get; set; } = null!;
 
         [Resolved]
         private SettingsManager configManager { get; set; } = null!;
 
         [Resolved]
+        private BeatmapManager beatmapManager { get; set; } = null!;
+
+        [Resolved]
         private GameHost gameHost { get; set; } = null!;
+
+        private RealmAccess? realmAccess;
 
         public override bool ShouldShowConfirmationDialogOnSwitch => false;
 
@@ -88,37 +95,60 @@ namespace PerformanceCalculatorGUI.Screens
                         {
                             new FillFlowContainer
                             {
-                                Name = "Settings",
-                                Height = settings_height,
-                                RelativeSizeAxes = Axes.X,
-                                Direction = FillDirection.Horizontal,
+                                RelativeSizeAxes = Axes.Both,
+                                Direction = FillDirection.Vertical,
                                 Children = new Drawable[]
                                 {
-                                    exportAllScoresButton = new StatefulButton("Export all scores")
+                                    new FillFlowContainer
                                     {
-                                        Width = 150,
-                                        Action = exportAllScores
-                                    },
+                                        Name = "Scores",
+                                        Height = settings_height,
+                                        RelativeSizeAxes = Axes.X,
+                                        Direction = FillDirection.Horizontal,
+                                        Children = new Drawable[]
+                                        {
+                                            exportAllScoresButton = new StatefulButton("Export all scores")
+                                            {
+                                                Width = 150,
+                                                Action = exportAllScores
+                                            },
 
-                                    clearExportFolderCheckbox = new LabelledSwitchButton
-                                    {
-                                        Label = "Clear folder before export",
-                                        RelativeSizeAxes = Axes.None,
-                                        Width = 300,
+                                            clearExportFolderCheckbox = new LabelledSwitchButton
+                                            {
+                                                Label = "Clear folder before export",
+                                                RelativeSizeAxes = Axes.None,
+                                                Width = 300,
+                                            },
+                                            //exportOnlyFromLazerCheckbox = new LabelledSwitchButton
+                                            //{
+                                            //    Label = "Skip scores from stable database",
+                                            //    RelativeSizeAxes = Axes.None,
+                                            //    Width = 300,
+                                            //},
+                                            exportDirectoryNameTextBox = new LabelledTextBox
+                                            {
+                                                Label = "Export Folder",
+                                                Text = @"exported scores",
+                                                RelativeSizeAxes = Axes.None,
+                                                Width = 500,
+                                            },
+                                        }
                                     },
-                                    //exportOnlyFromLazerCheckbox = new LabelledSwitchButton
-                                    //{
-                                    //    Label = "Skip scores from stable database",
-                                    //    RelativeSizeAxes = Axes.None,
-                                    //    Width = 300,
-                                    //},
-                                    exportDirectoryNameTextBox = new LabelledTextBox
+                                    new FillFlowContainer
                                     {
-                                        Label = "Export Folder",
-                                        Text = @"exported scores",
-                                        RelativeSizeAxes = Axes.None,
-                                        Width = 500,
-                                    },
+                                        Name = "Data",
+                                        Height = settings_height,
+                                        RelativeSizeAxes = Axes.X,
+                                        Direction = FillDirection.Horizontal,
+                                        Children = new Drawable[]
+                                        {
+                                            exportBeatmapDataButton = new StatefulButton("Export beatmap data")
+                                            {
+                                                Width = 150,
+                                                Action = exportBeatmapData
+                                            },
+                                        }
+                                    }
                                 }
                             }
                         },
@@ -134,6 +164,31 @@ namespace PerformanceCalculatorGUI.Screens
             //exportOnlyFromLazerCheckbox.Current.Value = true;
         }
 
+        public void UpdateLoadingState(string text)
+        {
+            Schedule(() => loadingLayer.Text.Value = text);
+        }
+
+        private RealmAccess? getRealmAccess()
+        {
+            //if (realmAccess != null)
+            //    return realmAccess;
+
+            string lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
+
+            if (lazerPath == string.Empty)
+            {
+                notificationDisplay.Display(new Notification("Please set-up path to lazer database folder in GUI settings"));
+                return null;
+            }
+
+            var storage = gameHost.GetStorage(lazerPath);
+            File.Copy(Path.Combine(lazerPath, @"client.realm"), Path.Combine(lazerPath, @"client_osutools_copy.realm"), true);
+            realmAccess = new RealmAccess(storage, @"client_osutools_copy.realm");
+
+            return realmAccess;
+        }
+
         private void exportAllScores()
         {
             calculationCancellatonToken?.Cancel();
@@ -141,22 +196,13 @@ namespace PerformanceCalculatorGUI.Screens
 
             loadingLayer.Show();
             exportAllScoresButton.State.Value = ButtonState.Loading;
-
             calculationCancellatonToken = new CancellationTokenSource();
-            var token = calculationCancellatonToken.Token;
 
+            var realm = getRealmAccess();
             string lazerPath = configManager.GetBindable<string>(Settings.LazerFolderPath).Value;
+            if (realm == null) return;
 
-            if (lazerPath == string.Empty)
-            {
-                notificationDisplay.Display(new Notification("Please set-up path to lazer database folder in GUI settings"));
-                return;
-            }
-
-            var storage = gameHost.GetStorage(lazerPath);
-            File.Copy(Path.Combine(lazerPath, @"client.realm"), Path.Combine(lazerPath, @"client_osutools_copy.realm"), true);
-            var realm = new RealmAccess(storage, @"client_osutools_copy.realm");
-
+            var token = calculationCancellatonToken.Token;
             string exportDirectoryName = exportDirectoryNameTextBox.Current.Value ?? "exported scores";
 
             if (clearExportFolderCheckbox.Current.Value && Directory.Exists(exportDirectoryName))
@@ -241,6 +287,59 @@ namespace PerformanceCalculatorGUI.Screens
                 exportStorage.Delete(filename);
                 throw;
             }
+        }
+
+        private void exportBeatmapData()
+        {
+            calculationCancellatonToken?.Cancel();
+            calculationCancellatonToken?.Dispose();
+
+            loadingLayer.Show();
+            exportBeatmapDataButton.State.Value = ButtonState.Loading;
+            calculationCancellatonToken = new CancellationTokenSource();
+
+            var realm = getRealmAccess();
+            if (realm == null) return;
+
+            var token = calculationCancellatonToken.Token;
+
+            Task.Run(() =>
+            {
+                Schedule(() => loadingLayer.Text.Value = "Getting beatmaps...");
+                var beatmaps = getBeatmaps(realm, 1000);
+
+                Schedule(() => loadingLayer.Text.Value = "Calculating beatmap data...");
+                var exporter = new BeatmapDataExporter(this, audio, configManager, beatmapManager);
+                //exporter.ExportBeatmapData(beatmaps, "baseinfo.csv", "modinfo.csv", token);
+                exporter.ExportBeatmapData(beatmaps, "combinedinfo.csv", token);
+
+            }).ContinueWith(t =>
+            {
+                Logger.Log(t.Exception?.ToString(), level: LogLevel.Error);
+                notificationDisplay.Display(new Notification(t.Exception?.Flatten().Message));
+            }, TaskContinuationOptions.OnlyOnFaulted).ContinueWith(t =>
+            {
+                Schedule(() =>
+                {
+                    loadingLayer.Hide();
+                    exportBeatmapDataButton.State.Value = ButtonState.Done;
+                });
+            }, token);
+        }
+
+        private IEnumerable<BeatmapInfo> getBeatmaps(RealmAccess realm, int countToSelect)
+        {
+            return realm.Run(r =>
+            {
+                var list = r.All<BeatmapInfo>().ToList(); // materialize once
+                int count = list.Count;
+
+                return Enumerable.Range(0, count)
+                    .OrderBy(_ => RNG.Next())
+                    .Take(countToSelect)
+                    .Select(i => list[i].Detach())
+                    .ToList();
+            });
         }
     }
 }

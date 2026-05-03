@@ -477,6 +477,7 @@ namespace PerformanceCalculatorGUI.Components
 
             return base.OnMouseDown(e);
         }
+
         public double LivePP
         {
             set
