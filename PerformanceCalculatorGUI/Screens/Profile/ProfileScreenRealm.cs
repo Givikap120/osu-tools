@@ -139,8 +139,8 @@ namespace PerformanceCalculatorGUI.Screens.Profile
                         Schedule(() => loadingLayer.Text.Value = $"Calculating {player.Username}'s scores... {currentScoresCount} / {totalScoresCount}");
                         currentScoresCount++;
 
-                        double AR = OsuDifficultyCalculator.CalculateRateAdjustedApproachRate(working.Beatmap.Difficulty.ApproachRate, ModUtils.CalculateRateWithMods(score.Mods));
-                        double OD = OsuDifficultyCalculator.CalculateRateAdjustedOverallDifficulty(working.Beatmap.Difficulty.OverallDifficulty, ModUtils.CalculateRateWithMods(score.Mods));
+                        double AR = RulesetHelper.CalculateRateAdjustedApproachRate(working.Beatmap.Difficulty.ApproachRate, ModUtils.CalculateRateWithMods(score.Mods));
+                        double OD = RulesetHelper.CalculateRateAdjustedOverallDifficulty(working.Beatmap.Difficulty.OverallDifficulty, ModUtils.CalculateRateWithMods(score.Mods));
 
                         //if (AR <= 10) continue;
 

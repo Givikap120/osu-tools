@@ -109,13 +109,20 @@ namespace PerformanceCalculatorGUI.Components.BeatmapDataExport
             RelevantBaseData baseInfo = GetBaseInfo(working, token);
 
             // We don't want to calculate extreme edge cases that would pollute the data
-            if (baseInfo.StarRating > 13 || baseInfo.StarRating < 0.5 || baseInfo.CircleCount + baseInfo.SliderCount > 5000 || baseInfo.Length > 30 * 60) return;
+            int objectCount = baseInfo.CircleCount + baseInfo.SliderCount;
+            bool edgeCaseStarRating = baseInfo.StarRating > 13 || baseInfo.StarRating < 0.5;
+            bool edgeCaseObjectCount = objectCount > 5000 || objectCount < 100;
+            bool edgeCaseLength = baseInfo.Length > 30 * 60 || baseInfo.Length < 20;
+            if (edgeCaseStarRating || edgeCaseObjectCount || edgeCaseLength) return;
 
             if (!combineCSV) baseRows.Add($"{beatmap.MD5Hash},{getTitle(beatmap)},{baseInfo}");
 
             foreach (var modCombination in modCombinations)
             {
                 RelevantModData modInfo = GetModInfo(working, modCombination, token);
+
+                // Filter out edge cases for mods as well
+                if (modInfo.StarRating > 13 || modInfo.StarRating < 0.5) continue;
 
                 if (combineCSV)
                 {

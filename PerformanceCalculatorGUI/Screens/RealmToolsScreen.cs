@@ -306,7 +306,7 @@ namespace PerformanceCalculatorGUI.Screens
             Task.Run(() =>
             {
                 Schedule(() => loadingLayer.Text.Value = "Getting beatmaps...");
-                var beatmaps = getBeatmaps(realm, 1000);
+                var beatmaps = getBeatmaps(realm, 10000);
 
                 Schedule(() => loadingLayer.Text.Value = "Calculating beatmap data...");
                 var exporter = new BeatmapDataExporter(this, audio, configManager, beatmapManager);
