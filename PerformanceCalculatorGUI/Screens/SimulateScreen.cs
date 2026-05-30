@@ -1008,7 +1008,7 @@ namespace PerformanceCalculatorGUI.Screens
                 if (ruleset.Value.OnlineID != -1)
                 {
                     // official rulesets can generate more precise hits from accuracy
-                    if (mods.OfType<OsuModClassic>().Any(m => m.NoSliderHeadAccuracy.Value))
+                    if (isLegacyScoreCheckBox.Current.Value)
                     {
                         statistics = RulesetHelper.GenerateHitResultsForRuleset(ruleset.Value, accuracyTextBox.Value.Value / 100.0, beatmap, mods, missesTextBox.Value.Value, countMeh, countGood,
                             null, null);
