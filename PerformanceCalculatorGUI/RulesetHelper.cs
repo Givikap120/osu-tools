@@ -603,6 +603,26 @@ namespace PerformanceCalculatorGUI
             return total / max;
         }
 
+        public static int? GetSliderTailMiss(ScoreInfo scoreInfo)
+        {
+            if (scoreInfo.Statistics.TryGetValue(HitResult.SliderTailHit, out int count))
+                return scoreInfo.MaximumStatistics[HitResult.SliderTailHit] - count;
+            return null;
+        }
+
+        public static void ConvertToAccuracy(double accuracy, ScoreInfo scoreInfo, IBeatmap beatmap, Mod[] mods)
+        {
+            var newStatistics = GenerateHitResultsForRuleset(scoreInfo.Ruleset, accuracy, beatmap, mods,
+                scoreInfo.Statistics.GetValueOrDefault(HitResult.Miss),
+                null, null,
+                scoreInfo.Statistics.GetValueOrDefault(HitResult.LargeTickMiss),
+                GetSliderTailMiss(scoreInfo));
+
+            scoreInfo.Statistics = newStatistics;
+            scoreInfo.Accuracy = GetAccuracyForRuleset(scoreInfo.Ruleset, beatmap, newStatistics, mods);
+            scoreInfo.Rank = StandardisedScoreMigrationTools.ComputeRank(scoreInfo);
+        }
+
         public static bool ValidateScoreId(string scoreId)
         {
             string[] validRulesetNames = { "osu", "taiko", "fruits", "mania" };
