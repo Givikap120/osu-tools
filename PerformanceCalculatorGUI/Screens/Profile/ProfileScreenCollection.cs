@@ -73,8 +73,9 @@ namespace PerformanceCalculatorGUI.Screens.Profile
         {
             if (profileImportTypeDropdown.Current.Value != ProfileCalculationType.Collection) return;
 
-            foreach (var drawableScore in scores.Children)
+            for (int i = 0; i < scores.Children.Count; i++)
             {
+                var drawableScore = scores.Children[i];
                 var score = drawableScore.Score.ScoreInfoSource;
                 if (score == null || score is CollectionScore) continue;
 
