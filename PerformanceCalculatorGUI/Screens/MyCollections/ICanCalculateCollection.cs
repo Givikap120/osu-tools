@@ -73,6 +73,8 @@ namespace PerformanceCalculatorGUI.Screens.MyCollections
 
             target.DialogOverlay.Push(new ConfirmDialog($"Do you really want to overwrite all pp {overwriteTarget} with local {overwriteTarget}?", () =>
             {
+                target.PrepareScoresBeforeUpdate();
+
                 foreach (var drawableScore in target.Scores.Children)
                 {
                     var profileScore = drawableScore.Score;
