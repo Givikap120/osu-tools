@@ -1458,7 +1458,7 @@ namespace PerformanceCalculatorGUI.Screens
                 countMeh = mehsTextBox.Value.Value;
             }
 
-            int totalScore = RulesetHelper.AdjustManiaScore(scoreTextBox.Value.Value, mods);
+            int totalScore = RulesetHelper.AdjustManiaScore(scoreTextBox.Value.Value, mods, ruleset.Value.CreateInstance());
 
             var beatmap = working!.GetPlayableBeatmap(ruleset.Value, mods);
 

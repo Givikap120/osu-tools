@@ -381,7 +381,11 @@ namespace PerformanceCalculatorGUI.Screens.Simulate
         private static double getSkillGraphMultiplier(Skill skill)
         {
             if (skill is Speed) return 1.5;
-            if (skill is Flashlight) return 10;
+
+            var flashlightType = Type.GetType("osu.Game.Rulesets.Osu.Difficulty.Skills.Flashlight");
+
+            if (flashlightType?.IsInstanceOfType(skill) == true)
+                return 10;
 
             return 1.0;
         }

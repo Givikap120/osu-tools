@@ -46,8 +46,16 @@ namespace PerformanceCalculatorGUI.Components.BeatmapDataExport
             StarRating = osuDifficultyAttributes.StarRating;
             AimDifficulty = osuDifficultyAttributes.AimDifficulty;
             SpeedDifficulty = osuDifficultyAttributes.SpeedDifficulty;
-            FlashlightDifficulty = osuDifficultyAttributes.FlashlightDifficulty;
-            SliderFactor = osuDifficultyAttributes.SliderFactor;
+
+            var type = osuDifficultyAttributes.GetType();
+
+            FlashlightDifficulty =
+                (double?)type.GetProperty("FlashlightDifficulty")?.GetValue(osuDifficultyAttributes)
+                ?? 0;
+
+            SliderFactor =
+                (double?)type.GetProperty("SliderFactor")?.GetValue(osuDifficultyAttributes)
+                ?? 0;
         }
 
         public override readonly string ToString()

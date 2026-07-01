@@ -52,7 +52,7 @@ namespace PerformanceCalculatorGUI.Screens
             for (int i = 0; i < objectStrains.Count; i++)
             {
                 double difficulty = objectStrains[i];
-                double hitProbability = DifficultyCalculationUtils.Erf(skill / (Math.Sqrt(2) * difficulty));
+                double hitProbability = DiffUtils.Erf(skill / (Math.Sqrt(2) * difficulty));
                 fcProbability *= hitProbability;
 
                 var newObject = new ObjectProbablityInfo(hitObjects[j], hitProbability, fcProbability);
