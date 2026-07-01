@@ -989,7 +989,7 @@ namespace PerformanceCalculatorGUI.Screens
                 countMeh = mehsTextBox.Value.Value;
             }
 
-            int score = ruleset.Value.ShortName == "mania" ? RulesetHelper.AdjustManiaScore(scoreTextBox.Value.Value, appliedMods.Value) : scoreTextBox.Value.Value;
+            int score = ruleset.Value.ShortName == "mania" ? RulesetHelper.AdjustManiaScore(scoreTextBox.Value.Value, appliedMods.Value, ruleset.Value.CreateInstance()) : scoreTextBox.Value.Value;
 
             APIUser user = new APIUser
             {
