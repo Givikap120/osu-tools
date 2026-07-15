@@ -711,7 +711,7 @@ namespace PerformanceCalculatorGUI.Screens
             currentScore.ScoreInfo.SetCount50(safeParseInt(mehBox.Text));
             currentScore.ScoreInfo.SetCountMiss(safeParseInt(missBox.Text));
 
-            currentScore.ScoreInfo.TotalScore = safeParseLong(scoreBox.Text);
+            populateScoreFromModMultipliers(currentScore.ScoreInfo);
             currentScore.ScoreInfo.MaxCombo = safeParseInt(comboBox.Text);
 
             currentScore.ScoreInfo.Date = DateTimeOffset.Parse(dateBox.Text).ToLocalTime();
@@ -724,8 +724,6 @@ namespace PerformanceCalculatorGUI.Screens
 
             currentScore.ScoreInfo.OnlineID = safeParseLong(lazerScoreIDBox.Text);
             currentScore.ScoreInfo.ClientVersion = clientVersionBox.Text;
-
-            currentScore.ScoreInfo.TotalScoreWithoutMods = safeParseLong(scoreWithoutModsBox.Text);
 
             statisticsContainer.ExportContainer(ref currentScore.ScoreInfo);
 
@@ -743,6 +741,33 @@ namespace PerformanceCalculatorGUI.Screens
             }
 
             return currentScore;
+        }
+
+        private void populateScoreFromModMultipliers(ScoreInfo score)
+        {
+            if (scoreBox.Text != "")
+            {
+                score.TotalScore = safeParseLong(scoreBox.Text);
+            }
+            if (scoreWithoutModsBox.Text != "")
+            {
+                score.TotalScoreWithoutMods = safeParseLong(scoreWithoutModsBox.Text);
+            }
+
+            var ruleset = score.Ruleset.CreateInstance();
+            var scoreMultiplierCalculator = ruleset.CreateScoreMultiplierCalculator(new ScoreMultiplierContext(score.BeatmapInfo?.Difficulty ?? new BeatmapDifficulty(), score));
+            double modMultiplier = scoreMultiplierCalculator.CalculateFor(score.Mods);
+
+            if (scoreBox.Text == "")
+            {
+                score.TotalScore = (long)Math.Round(score.TotalScoreWithoutMods * modMultiplier);
+                scoreBox.Text = score.TotalScore.ToString();
+            }
+            if (scoreWithoutModsBox.Text == "")
+            {
+                score.TotalScoreWithoutMods = (long)Math.Round(score.TotalScore / modMultiplier);
+                scoreWithoutModsBox.Text = score.TotalScoreWithoutMods.ToString();
+            }
         }
 
         private void exportCurrentReplay()
