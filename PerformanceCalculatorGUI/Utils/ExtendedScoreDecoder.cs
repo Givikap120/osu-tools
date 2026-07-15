@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
+using osu.Framework.Extensions;
 using osu.Game.Beatmaps;
 using osu.Game.Beatmaps.Formats;
 using osu.Game.Beatmaps.Legacy;
@@ -35,16 +36,17 @@ namespace PerformanceCalculatorGUI.Utils
         private IBeatmap currentBeatmap;
         private Ruleset currentRuleset;
 
-
         private readonly IRulesetStore rulesets;
         private readonly BeatmapManager beatmaps;
         private readonly SettingsManager configManager;
+        private readonly APIManager apiManager;
 
-        public ExtendedScoreDecoder(IRulesetStore rulesets, BeatmapManager beatmaps, SettingsManager configManager)
+        public ExtendedScoreDecoder(IRulesetStore rulesets, BeatmapManager beatmaps, SettingsManager configManager, APIManager apiManager)
         {
             this.rulesets = rulesets;
             this.beatmaps = beatmaps;
             this.configManager = configManager;
+            this.apiManager = apiManager;
         }
 
         protected Ruleset GetRuleset(int rulesetId) => rulesets.GetRuleset(rulesetId)?.CreateInstance();
@@ -54,8 +56,30 @@ namespace PerformanceCalculatorGUI.Utils
             if (beatmaps == null)
                 return null;
 
+            WorkingBeatmap workingBeatmap = getFromLazer(md5Hash);
+            if (workingBeatmap != null)
+                return workingBeatmap;
+
+            var task = apiManager.GetJsonFromApi<APIBeatmap>($"beatmaps/lookup", [(@"checksum", md5Hash)]);
+            task.WaitSafely();
+
+            APIBeatmap apiBeatmap = task.GetResultSafely();
+            if (apiBeatmap == null)
+                return null;
+
+            // Technically we already have all the needed info, but for simplicity we would still try to get WorkingBeatmap
+            int beatmapId = apiBeatmap.OnlineID;
+            string cachePath = configManager.GetBindable<string>(Settings.CachePath).Value;
+
+            return ProcessorWorkingBeatmap.FromFileOrId(beatmapId.ToString(), null, cachePath);
+
+        }
+
+        protected WorkingBeatmap getFromLazer(string md5Hash)
+        {
             // Try to get from manager first
-            var workingBeatmap = beatmaps.GetWorkingBeatmap(beatmaps.QueryBeatmap(b => b.MD5Hash == md5Hash));
+            BeatmapInfo beatmapInfo = beatmaps.QueryBeatmap(b => b.MD5Hash == md5Hash);
+            WorkingBeatmap workingBeatmap = beatmaps.GetWorkingBeatmap(beatmapInfo);
 
             if (workingBeatmap is DummyWorkingBeatmap)
                 return null;

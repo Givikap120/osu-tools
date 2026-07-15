@@ -13,7 +13,7 @@ using PerformanceCalculatorGUI.Configuration;
 
 namespace PerformanceCalculatorGUI
 {
-    internal class APIManager
+    public class APIManager
     {
         public static readonly EndpointConfiguration ENDPOINT_CONFIGURATION = new ProductionEndpointConfiguration();
 
@@ -31,7 +31,7 @@ namespace PerformanceCalculatorGUI
             clientSecretBindable = configManager.GetBindable<string>(Settings.ClientSecret);
         }
 
-        public async Task<T> GetJsonFromApi<T>(string request)
+        public async Task<T> GetJsonFromApi<T>(string request, (string name, string value)[]? requestParams = null)
         {
             if (token == null)
             {
@@ -42,6 +42,15 @@ namespace PerformanceCalculatorGUI
             using var req = new JsonWebRequest<T>($"{ENDPOINT_CONFIGURATION.APIUrl}/api/v2/{request}");
             req.AddHeader("x-api-version", api_version.ToString(CultureInfo.InvariantCulture));
             req.AddHeader(nameof(System.Net.HttpRequestHeader.Authorization), $"Bearer {token.AccessToken}");
+
+            if (requestParams != null)
+            {
+                foreach ((string name, string value) in requestParams)
+                {
+                    req.AddParameter(name, value);
+                }
+            }
+
             await req.PerformAsync().ConfigureAwait(false);
 
             return req.ResponseObject;

@@ -103,6 +103,9 @@ namespace PerformanceCalculatorGUI.Screens
         private AudioManager audio { get; set; } = null!;
 
         [Resolved]
+        private APIManager apiManager { get; set; } = null!;
+
+        [Resolved]
         private Bindable<IReadOnlyList<Mod>> appliedMods { get; set; } = null!;
 
         [Resolved]
@@ -610,7 +613,7 @@ namespace PerformanceCalculatorGUI.Screens
 
             try
             {
-                ExtendedScoreDecoder decoder = new ExtendedScoreDecoder(rulesets, beatmapManager, configManager);
+                ExtendedScoreDecoder decoder = new ExtendedScoreDecoder(rulesets, beatmapManager, configManager, apiManager);
                 using (var stream = File.OpenRead(replay))
                     score = decoder.Parse(stream);
 
