@@ -84,6 +84,7 @@ namespace PerformanceCalculatorGUI.Utils
 
             return workingBeatmap;
         }
+
         private long beatmapOffset;
 
         public Score Parse(Stream stream)
@@ -208,14 +209,17 @@ namespace PerformanceCalculatorGUI.Utils
             if (score.ScoreInfo.IsLegacyScore)
                 score.ScoreInfo.LegacyTotalScore = score.ScoreInfo.TotalScore;
 
-            StandardisedScoreMigrationTools.UpdateFromLegacy(score.ScoreInfo, workingBeatmap);
+            if (workingBeatmap != null)
+            {
+                StandardisedScoreMigrationTools.UpdateToLatestScoring(score.ScoreInfo, workingBeatmap);
+
+                // before returning for database import, we must restore the database-sourced BeatmapInfo.
+                // if not, the clone operation in GetPlayableBeatmap will cause a dereference and subsequent database exception.
+                score.ScoreInfo.BeatmapInfo = workingBeatmap.BeatmapInfo;
+            }
 
             if (decodedRank != null)
                 score.ScoreInfo.Rank = decodedRank.Value;
-
-            // before returning for database import, we must restore the database-sourced BeatmapInfo.
-            // if not, the clone operation in GetPlayableBeatmap will cause a dereference and subsequent database exception.
-            score.ScoreInfo.BeatmapInfo = workingBeatmap.BeatmapInfo;
 
             // Don't do this part, we want actual MD5 hash to be displayed
             // score.ScoreInfo.BeatmapHash = workingBeatmap.BeatmapInfo.Hash;
@@ -257,8 +261,6 @@ namespace PerformanceCalculatorGUI.Utils
         /// <param name="workingBeatmap">The corresponding <see cref="WorkingBeatmap"/>.</param>
         public static void PopulateMaximumStatistics(ScoreInfo score, WorkingBeatmap workingBeatmap)
         {
-            Debug.Assert(score.BeatmapInfo != null);
-
             if (score.MaximumStatistics.Select(kvp => kvp.Value).Sum() > 0)
                 return;
 
@@ -297,7 +299,7 @@ namespace PerformanceCalculatorGUI.Utils
                 }
             }
 
-            if (!score.IsLegacyScore)
+            if (!score.IsLegacyScore || workingBeatmap == null)
                 return;
 
 #pragma warning disable CS0618
@@ -314,10 +316,9 @@ namespace PerformanceCalculatorGUI.Utils
 
         public static void PopulateTotalScoreWithoutMods(ScoreInfo score)
         {
-            double modMultiplier = 1;
-
-            foreach (var mod in score.Mods)
-                modMultiplier *= mod.ScoreMultiplier;
+            var ruleset = score.Ruleset.CreateInstance();
+            var scoreMultiplierCalculator = ruleset.CreateScoreMultiplierCalculator(new ScoreMultiplierContext(score.BeatmapInfo?.Difficulty ?? new BeatmapDifficulty(), score));
+            double modMultiplier = scoreMultiplierCalculator.CalculateFor(score.Mods);
 
             score.TotalScoreWithoutMods = (long)Math.Round(score.TotalScore / modMultiplier);
         }
