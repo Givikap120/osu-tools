@@ -714,7 +714,6 @@ namespace PerformanceCalculatorGUI.Screens
             currentScore.ScoreInfo.SetCount50(safeParseInt(mehBox.Text));
             currentScore.ScoreInfo.SetCountMiss(safeParseInt(missBox.Text));
 
-            populateScoreFromModMultipliers(currentScore.ScoreInfo);
             currentScore.ScoreInfo.MaxCombo = safeParseInt(comboBox.Text);
 
             currentScore.ScoreInfo.Date = DateTimeOffset.Parse(dateBox.Text).ToLocalTime();
@@ -724,6 +723,7 @@ namespace PerformanceCalculatorGUI.Screens
             currentScore.ScoreInfo.LegacyTotalScore = legacyTotalScoreBox.Text == "" ? null : long.Parse(legacyTotalScoreBox.Text);
 
             currentScore.ScoreInfo.Mods = appliedMods.Value.ToArray();
+            populateScoreFromModMultipliers(currentScore.ScoreInfo);
 
             currentScore.ScoreInfo.OnlineID = safeParseLong(lazerScoreIDBox.Text);
             currentScore.ScoreInfo.ClientVersion = clientVersionBox.Text;
