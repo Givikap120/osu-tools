@@ -23,6 +23,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 {
     public partial class MatchSummaryPanel : CompositeDrawable
     {
+        private readonly MultiplayerScreen parent;
         private readonly RoomHistory history;
         private IReadOnlyList<RoomGame> games;
         private FillFlowContainer results = null!;
@@ -32,8 +33,9 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         private OverlayColourProvider colours = null!;
         private GameHost host = null!;
 
-        public MatchSummaryPanel(RoomHistory history, IReadOnlyList<RoomGame> games)
+        public MatchSummaryPanel(MultiplayerScreen parent, RoomHistory history, IReadOnlyList<RoomGame> games)
         {
+            this.parent = parent;
             this.history = history;
             this.games = games;
             RelativeSizeAxes = Axes.X;
@@ -86,6 +88,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                                 calculateButton = new StatefulButton("Calculate")
                                 {
                                     Width = 100,
+                                    Action = () => parent.ConvertTo(dropdown.Current.Value)
                                 }
                             } }
                         },

@@ -60,9 +60,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
             double accuracy = converter.ScoreInfo.Accuracy;
             double lazerCombo = linearToLazerCombo(converter.UniversalComboScore);
 
-            double scoreWithoutMods =
-                max_score * 0.5 *
-                (Math.Pow(accuracy, 5) + accuracy * lazerCombo);
+            double scoreWithoutMods = max_score * 0.5 * (Math.Pow(accuracy, 5) + accuracy * lazerCombo);
 
             // Bonus intentionally excluded from the converted score.
             return (long)Math.Round(scoreWithoutMods * GetModMultiplier(converter));

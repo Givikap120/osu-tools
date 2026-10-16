@@ -49,7 +49,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
 
         public double GetScoreForType(ScoreType type)
         {
-            if (type == Source)
+            if (type == Source || type == ScoreType.None)
                 return TotalScore;
 
             return type switch

@@ -21,8 +21,11 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 {
     public partial class RoomGameCard : Container
     {
+        public FillFlowContainer<RoomScoreCard> ScoreCards = null!;
+
         private readonly RoomHistory history;
         private readonly RoomGame game;
+        private readonly Dictionary<string, List<Drawable>> columnContents = new();
         private const float corner_radius = 8;
 
         public RoomGameCard(RoomHistory history, RoomGame game)
@@ -35,30 +38,12 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             CornerRadius = corner_radius;
         }
 
-        private readonly Dictionary<string, List<Drawable>> columnContents = new();
-
-        private Drawable alignedColumn(string key, Drawable content, Anchor anchor = Anchor.BottomLeft, Anchor contentAnchor = Anchor.CentreRight)
+        public void ConvertTo(ScoreType type)
         {
-            if (!columnContents.TryGetValue(key, out var group))
-                columnContents[key] = group = new List<Drawable>();
-
-            group.Add(content);
-
-            content.Anchor = contentAnchor;
-            content.Origin = contentAnchor;
-
-            var cell = new Container
+            foreach (RoomScoreCard scoreCard in ScoreCards.Children)
             {
-                Anchor = anchor,
-                Origin = anchor,
-                Child = content
-            };
-
-            cell.OnUpdate += _ => cell.Size = new Vector2(
-                group.Max(d => d.Width),
-                group.Max(d => d.Height));
-
-            return cell;
+                scoreCard.ConvertTo(type);
+            }
         }
 
         [BackgroundDependencyLoader]
@@ -85,7 +70,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 return;
             }
 
-            var rows = new FillFlowContainer
+            ScoreCards = new FillFlowContainer<RoomScoreCard>
             {
                 RelativeSizeAxes = Axes.X,
                 AutoSizeAxes = Axes.Y,
@@ -93,7 +78,8 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 Padding = new MarginPadding { Left = 8, Right = 8, Bottom = 8 },
                 Spacing = new Vector2(0, 5)
             };
-            content.Add(rows);
+
+            content.Add(ScoreCards);
             var ruleset = RulesetHelper.GetRulesetFromLegacyID(game.RulesetId);
 
             if (game.HasTeams)
@@ -103,17 +89,17 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 
                 foreach (string team in teams)
                     foreach (var score in game.Scores.Where(s => game.TeamFor(s) == team).OrderByDescending(s => s.TotalScore))
-                        rows.Add(new RoomScoreCard(history, game, score, columnContents));
+                        ScoreCards.Add(new RoomScoreCard(history, game, score, columnContents));
 
                 foreach (var score in game.Scores.Where(s => game.TeamFor(s) is not ("red" or "blue")).OrderByDescending(s => s.TotalScore))
-                    rows.Add(new RoomScoreCard(history, game, score, columnContents));
+                    ScoreCards.Add(new RoomScoreCard(history, game, score, columnContents));
 
                 content.Add(createTeamFooter(colours));
             }
             else
             {
                 foreach (var score in game.Scores.OrderByDescending(s => s.TotalScore))
-                    rows.Add(new RoomScoreCard(history, game, score, columnContents));
+                    ScoreCards.Add(new RoomScoreCard(history, game, score, columnContents));
             }
         }
 
@@ -226,6 +212,30 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             Font = OsuFont.GetFont(size: size),
             Colour = colour ?? Colour4.White
         };
+
+        private Drawable alignedColumn(string key, Drawable content, Anchor anchor = Anchor.BottomLeft, Anchor contentAnchor = Anchor.CentreRight)
+        {
+            if (!columnContents.TryGetValue(key, out var group))
+                columnContents[key] = group = new List<Drawable>();
+
+            group.Add(content);
+
+            content.Anchor = contentAnchor;
+            content.Origin = contentAnchor;
+
+            var cell = new Container
+            {
+                Anchor = anchor,
+                Origin = anchor,
+                Child = content
+            };
+
+            cell.OnUpdate += _ => cell.Size = new Vector2(
+                group.Max(d => d.Width),
+                group.Max(d => d.Height));
+
+            return cell;
+        }
 
         public static Colour4 TeamColour(string team) => team == "red" ? Colour4.FromHex("FF7799") : Colour4.FromHex("77BBFF");
     }

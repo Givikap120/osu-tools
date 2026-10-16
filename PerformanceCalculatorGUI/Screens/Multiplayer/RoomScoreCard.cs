@@ -41,9 +41,9 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         private readonly Dictionary<string, List<Drawable>> columnContents;
         private readonly List<(string Key, Drawable Content)> registeredColumns = new();
         private ScoreConverter scoreConverter = null!;
+        private Metric scoreMetric = null!;
 
-        public RoomScoreCard(RoomHistory history, RoomGame game, SoloScoreInfo score,
-            Dictionary<string, List<Drawable>> columnContents)
+        public RoomScoreCard(RoomHistory history, RoomGame game, SoloScoreInfo score, Dictionary<string, List<Drawable>> columnContents)
         {
             this.history = history;
             this.game = game;
@@ -56,6 +56,12 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             Height = 50;
             Masking = true;
             CornerRadius = 4;
+        }
+
+        public void ConvertTo(ScoreType type)
+        {
+            double score = scoreConverter.GetScoreForType(type);
+            scoreMetric.Value.Text = $"{Math.Round(score):N0}";
         }
 
         [BackgroundDependencyLoader]
@@ -266,9 +272,9 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                     Spacing = new Vector2(16, 0),
                     Children = new Drawable[]
                     {
-                        metric("COMBO", $"{score.MaxCombo:N0}x", 14, colours.Content1, colours.Content2),
-                        metric("ACCURACY", $"{score.Accuracy:P2}", 14, colours.Content1, colours.Content2),
-                        metric("SCORE", $"{score.TotalScore:N0}", 24, Colour4.FromHex("FF66AB"), colours.Content2)
+                        alignedMetric("COMBO", $"{score.MaxCombo:N0}x", 14, colours.Content1, colours.Content2),
+                        alignedMetric("ACCURACY", $"{score.Accuracy:P2}", 14, colours.Content1, colours.Content2),
+                        alignedColumn("SCORE", scoreMetric = new Metric("SCORE", $"{score.TotalScore:N0}", 24, Colour4.FromHex("FF66AB"), colours.Content2))
                     }
                 },
                 new FillFlowContainer
@@ -278,7 +284,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                     Origin = Anchor.TopRight,
                     Direction = FillDirection.Horizontal,
                     Spacing = new Vector2(10, 0),
-                    Children = keys.Select(key => metric(
+                    Children = keys.Select(key => alignedMetric(
                         key.ToString(),
                         $"{score.Statistics.GetValueOrDefault(key):N0}",
                         11, colours.Content1, colours.Content2)).ToArray()
@@ -287,36 +293,44 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             };
         }
 
-        private Drawable metric(string label, string value, float size, Colour4 colour, Colour4 labelColour) => alignedColumn(label, new FillFlowContainer
+        private partial class Metric : FillFlowContainer
         {
-            AutoSizeAxes = Axes.Both,
-            Anchor = Anchor.BottomLeft,
-            Origin = Anchor.BottomLeft,
-            Direction = FillDirection.Horizontal,
-            Spacing = new Vector2(3, 0),
-            Children = new Drawable[]
-            {
-                new OsuSpriteText
-                {
-                    Text = label,
-                    Font = OsuFont.GetFont(size: 9),
-                    Colour = labelColour,
-                    Anchor = Anchor.BottomLeft,
-                    Origin = Anchor.BottomLeft
-                },
-                new OsuSpriteText
-                {
-                    Text = value,
-                    Font = OsuFont.GetFont(size: size, weight: FontWeight.Bold),
-                    Colour = colour,
-                    Anchor = Anchor.BottomLeft,
-                    Origin = Anchor.BottomLeft
-                }
-            }
-        });
+            public OsuSpriteText Label { get; set; }
+            public OsuSpriteText Value { get; set; }
 
-        private Drawable alignedColumn(string key, Drawable content,
-            Anchor anchor = Anchor.BottomLeft, Anchor contentAnchor = Anchor.CentreRight)
+            public Metric(string label, string value, float size, Colour4 colour, Colour4 labelColour)
+            {
+                AutoSizeAxes = Axes.Both;
+                Anchor = Anchor.BottomLeft;
+                Origin = Anchor.BottomLeft;
+                Direction = FillDirection.Horizontal;
+                Spacing = new Vector2(3, 0);
+                Children = new Drawable[]
+                {
+                    Label = new OsuSpriteText
+                    {
+                        Text = label,
+                        Font = OsuFont.GetFont(size: 12),
+                        Colour = labelColour,
+                        Anchor = Anchor.BottomLeft,
+                        Origin = Anchor.BottomLeft
+                    },
+                    Value = new OsuSpriteText
+                    {
+                        Text = value,
+                        Font = OsuFont.GetFont(size: size, weight: FontWeight.Bold),
+                        Colour = colour,
+                        Anchor = Anchor.BottomLeft,
+                        Origin = Anchor.BottomLeft
+                    }
+                };
+            }
+        }
+
+        private Drawable alignedMetric(string label, string value, float size, Colour4 colour, Colour4 labelColour)
+            => alignedColumn(label, new Metric(label, value, size, colour, labelColour));
+
+        private Drawable alignedColumn(string key, Drawable content, Anchor anchor = Anchor.BottomLeft, Anchor contentAnchor = Anchor.CentreRight)
         {
             if (!columnContents.TryGetValue(key, out var group))
                 columnContents[key] = group = new List<Drawable>();

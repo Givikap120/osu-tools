@@ -27,6 +27,9 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 {
     public partial class MultiplayerScreen : PerformanceCalculatorScreen
     {
+        public ScoreType CurrentType { get; private set; } = ScoreType.None;
+        public RoomHistory? History { get; private set; }
+
         [Cached]
         private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Green);
 
@@ -37,15 +40,27 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         private StatefulButton loadButton = null!;
         private FillFlowContainer timeline = null!;
         private OsuScrollContainer scroll = null!;
-        private FillFlowContainer gameCards = null!;
+        private FillFlowContainer<RoomGameCard> gameCards = null!;
         private MatchSummaryPanel summaryPanel = null!;
         private CancellationTokenSource? loadCancellation;
-        public RoomHistory? History { get; private set; }
         public override bool ShouldShowConfirmationDialogOnSwitch => false;
 
         public MultiplayerScreen()
         {
             RelativeSizeAxes = Axes.Both;
+        }
+
+        public void ConvertTo(ScoreType type)
+        {
+            if (CurrentType == type)
+                return;
+
+            CurrentType = type;
+
+            foreach (RoomGameCard gameCard in gameCards.Children)
+            {
+                gameCard.ConvertTo(type);
+            }
         }
 
         [BackgroundDependencyLoader]
@@ -230,21 +245,18 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 return;
             }
 
-            timeline.Add(summaryPanel = new MatchSummaryPanel(history, games)
+            timeline.Add(summaryPanel = new MatchSummaryPanel(this, history, games)
             {
                 Depth = -1
             });
 
-            timeline.Add(gameCards = new FillFlowContainer
+            timeline.Add(gameCards = new FillFlowContainer<RoomGameCard>
             {
                 RelativeSizeAxes = Axes.X,
                 AutoSizeAxes = Axes.Y,
                 Direction = FillDirection.Vertical,
                 Spacing = new Vector2(0, 20)
             });
-
-            //timeline.SetLayoutPosition(summaryPanel, 0);
-            //timeline.SetLayoutPosition(gameCards, 1);
 
             displayGames(games);
         }
