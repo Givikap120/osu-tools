@@ -356,7 +356,9 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             };
 
             var keys = standard.Concat(game.Scores.SelectMany(s => s.Statistics.Keys)
-                    .Except(standard).OrderBy(key => key, StringComparer.Ordinal))
+                .Except(standard)
+                .OrderBy(key => key, StringComparer.Ordinal))
+                .Where(key => key is not ("ignore_hit" or "ignore_miss" or "large_bonus" or "small_bonus"))
                 .ToArray();
 
             return new FillFlowContainer
