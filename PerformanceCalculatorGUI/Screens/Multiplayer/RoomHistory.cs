@@ -50,6 +50,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         [JsonProperty("allowed_mods")] public List<JObject> AllowedMods { get; set; } = new List<JObject>();
         [JsonProperty("details")] public RoomGameDetails Details { get; set; } = new RoomGameDetails();
         [JsonProperty("scores")] public List<RoomScore> Scores { get; set; } = new List<RoomScore>();
+        [JsonProperty("legacy_scoring_type")] public string? LegacyScoringType { get; set; }
 
         public bool HasTeams => Details.RoomType is "team_versus" or "tag_team_versus";
         public string? TeamFor(RoomScore score) => Details.Teams.GetValueOrDefault(score.UserId);

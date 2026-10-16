@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -112,23 +113,22 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         private void startLoad()
         {
             cancelLoad();
-            if (!tryParseRoomId(roomInput.Current.Value, out long roomId))
-            {
+
+            if (!tryParseRoomLink(roomInput.Current.Value, out long roomId, out bool stable))
                 return;
-            }
 
             History = null;
             timeline.Clear();
             loadButton.State.Value = ButtonState.Loading;
             loadCancellation = new CancellationTokenSource();
-            _ = loadRoomAsync(roomId, loadCancellation.Token);
+            _ = loadRoomAsync(roomId, stable, loadCancellation.Token);
         }
 
-        private async Task loadRoomAsync(long roomId, CancellationToken token)
+        private async Task loadRoomAsync(long roomId, bool stable, CancellationToken token)
         {
             try
             {
-                var history = await loadHistoryAsync(roomId, token).ConfigureAwait(false);
+                var history = await loadHistoryAsync(roomId, stable, token).ConfigureAwait(false);
 
                 Schedule(() =>
                 {
@@ -149,7 +149,20 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             }
         }
 
-        private async Task<RoomHistory> loadHistoryAsync(long roomId, CancellationToken cancellationToken, Action<int>? progress = null)
+        private async Task<RoomEventsResponse> getPageFromApi(long roomId, bool stable, (string, string)[]? parameters, CancellationToken cancellationToken)
+        {
+            if (!stable)
+            {
+                return await api.GetJsonFromApi<RoomEventsResponse>($"rooms/{roomId}/events", parameters, cancellationToken).ConfigureAwait(false);
+            }
+
+            var response = await api.GetJsonFromApi<JObject>(
+                    $"matches/{roomId}", parameters, cancellationToken).ConfigureAwait(false);
+
+            return StableRoomConverter.Convert(response);
+        }
+
+        private async Task<RoomHistory> loadHistoryAsync(long roomId, bool stable, CancellationToken cancellationToken, Action<int>? progress = null)
         {
             var history = new RoomHistory();
             long? before = null;
@@ -162,7 +175,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                     ? new[] { ("limit", "100") }
                     : new[] { ("limit", "100"), ("before", before.Value.ToString(CultureInfo.InvariantCulture)) };
 
-                var page = await api.GetJsonFromApi<RoomEventsResponse>($"rooms/{roomId}/events", parameters, cancellationToken).ConfigureAwait(false);
+                var page = await getPageFromApi(roomId, stable, parameters, cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
 
                 history.Merge(page);
@@ -194,7 +207,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 
                 RoomGame? game = history.Games.GetValueOrDefault(entry.GameId.Value);
 
-                if (game?.Expired != true || renderedGames.Add(entry.GameId.Value))
+                if (game?.Expired != true || !renderedGames.Add(entry.GameId.Value))
                     continue;
 
                 timeline.Add(new RoomGameCard(history, entry, game));
@@ -213,19 +226,32 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 loadButton.State.Value = ButtonState.Initial;
         }
 
-        private static bool tryParseRoomId(string input, out long roomId)
+        private static bool tryParseRoomLink(string input, out long roomId, out bool stable)
         {
+            roomId = 0;
+            stable = false;
             input = input.Trim();
-            if (long.TryParse(input, NumberStyles.None, CultureInfo.InvariantCulture, out roomId))
-                return roomId > 0;
 
-            if (!Uri.TryCreate(input, UriKind.Absolute, out var uri) || uri.Host != "osu.ppy.sh" || uri.Scheme is not ("http" or "https"))
+            if (!Uri.TryCreate(input, UriKind.Absolute, out var uri)
+                || uri.Host != "osu.ppy.sh"
+                || uri.Scheme is not ("http" or "https"))
                 return false;
 
-            string[]? parts = uri.AbsolutePath.Trim('/').Split('/');
-            return parts.Length is 3 or 4 && parts[0] == "multiplayer" && parts[1] == "rooms"
-                   && (parts.Length == 3 || parts[3] == "events")
-                   && long.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out roomId) && roomId > 0;
+            string[] parts = uri.AbsolutePath.Trim('/').Split('/');
+
+            stable = parts.Length == 3
+                     && parts[0] == "community"
+                     && parts[1] == "matches";
+
+            bool lazer = parts.Length is 3 or 4
+                         && parts[0] == "multiplayer"
+                         && parts[1] == "rooms"
+                         && (parts.Length == 3 || parts[3] == "events");
+
+            return (stable || lazer)
+                   && long.TryParse(parts[2], NumberStyles.None,
+                       CultureInfo.InvariantCulture, out roomId)
+                   && roomId > 0;
         }
 
         public override bool OnExiting(ScreenExitEvent e)
