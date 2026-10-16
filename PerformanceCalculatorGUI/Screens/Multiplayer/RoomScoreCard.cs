@@ -16,12 +16,13 @@ using osu.Game.Graphics.Sprites;
 using osu.Game.Online.API;
 using osu.Game.Online.Leaderboards;
 using osu.Game.Overlays;
-using osu.Game.Rulesets;
 using osu.Game.Rulesets.UI;
 using osu.Game.Scoring;
 using osu.Game.Users;
 using osu.Game.Users.Drawables;
 using osuTK;
+using PerformanceCalculatorGUI.Configuration;
+using PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters;
 
 namespace PerformanceCalculatorGUI.Screens.Multiplayer
 {
@@ -30,10 +31,14 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         public RoomScore Score { get; private set; }
         public string? Team { get; private set; }
 
+        [Resolved]
+        private SettingsManager settingsManager { get; set; } = null!;
+
         private readonly RoomHistory history;
         private readonly RoomGame game;
         private readonly Dictionary<string, List<Drawable>> columnContents;
         private readonly List<(string Key, Drawable Content)> registeredColumns = new();
+        private ScoreConverter scoreConverter = null!;
 
         public RoomScoreCard(RoomHistory history, RoomGame game, RoomScore score,
             Dictionary<string, List<Drawable>> columnContents)
@@ -55,7 +60,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         private void load(OverlayColourProvider colours, GameHost host)
         {
             var ruleset = RulesetHelper.GetRulesetFromLegacyID(Score.RulesetId);
-            string difficulty = history.Beatmaps.GetValueOrDefault(Score.BeatmapId)?.Version ?? Score.BeatmapId.ToString();
+            var beatmap = history.Beatmaps.GetValueOrDefault(Score.BeatmapId) ?? throw new InvalidOperationException($"Could not find beatmap with ID {Score.BeatmapId} in history.");
 
             Enum.TryParse<CountryCode>(history.Users.GetValueOrDefault(Score.UserId)?.CountryCode, true, out var country);
             if (!Enum.TryParse<ScoreRank>(Score.Rank, true, out var rank) || !Score.Passed)
@@ -125,24 +130,24 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                     Origin = Anchor.BottomLeft,
                     Children = new Drawable[]
                     {
-                    new SpriteIcon
-                    {
-                        Icon = FontAwesome.Regular.DotCircle,
-                        Size = new Vector2(11),
-                        Anchor = Anchor.CentreLeft,
-                        Origin = Anchor.CentreLeft,
-                        Colour = colours.Content2
-                    },
-                    new Container
-                    {
-                        RelativeSizeAxes = Axes.Both,
-                        Padding = new MarginPadding { Left = 17, Right = 8 },
-                        Child = text(difficulty, 13, colours.Content2).With(t =>
+                        new SpriteIcon
                         {
-                            t.Anchor = Anchor.CentreLeft;
-                            t.Origin = Anchor.CentreLeft;
-                        })
-                    }
+                            Icon = FontAwesome.Regular.DotCircle,
+                            Size = new Vector2(11),
+                            Anchor = Anchor.CentreLeft,
+                            Origin = Anchor.CentreLeft,
+                            Colour = colours.Content2
+                        },
+                        new Container
+                        {
+                            RelativeSizeAxes = Axes.Both,
+                            Padding = new MarginPadding { Left = 17, Right = 8 },
+                            Child = text(beatmap.Version, 13, colours.Content2).With(t =>
+                            {
+                                t.Anchor = Anchor.CentreLeft;
+                                t.Origin = Anchor.CentreLeft;
+                            })
+                        }
                     }
                 });
             }
@@ -223,6 +228,8 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 },
                 layout
             };
+
+            scoreConverter = new ScoreConverter(settingsManager, Score, beatmap);
         }
 
         private Drawable scoreDetails(RoomScore score, OverlayColourProvider colours)

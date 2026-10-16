@@ -14,15 +14,7 @@ using osu.Framework.Platform;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
-using osu.Game.Online.API;
-using osu.Game.Online.Leaderboards;
 using osu.Game.Overlays;
-using osu.Game.Rulesets;
-using osu.Game.Rulesets.UI;
-using osu.Game.Scoring;
-using osu.Game.Screens.Play;
-using osu.Game.Users;
-using osu.Game.Users.Drawables;
 using osuTK;
 
 namespace PerformanceCalculatorGUI.Screens.Multiplayer
