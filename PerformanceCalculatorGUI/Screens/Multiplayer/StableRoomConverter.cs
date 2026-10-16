@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using osu.Game.Online.API.Requests.Responses;
 
 namespace PerformanceCalculatorGUI.Screens.Multiplayer
 {
@@ -12,8 +13,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
     {
         public static RoomEventsResponse Convert(JObject response)
         {
-            var match = response["match"]
-                ?? throw new InvalidOperationException("Missing match data.");
+            var match = response["match"] ?? throw new InvalidOperationException("Missing match data.");
 
             var result = new RoomEventsResponse
             {
@@ -23,8 +23,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                     Name = match.Value<string>("name") ?? string.Empty,
                     Type = "head_to_head"
                 },
-                Users = response["users"]?.ToObject<List<RoomUser>>()
-                        ?? new List<RoomUser>(),
+                Users = response["users"]?.ToObject<List<RoomUser>>() ?? new List<RoomUser>(),
                 FirstEventId = response.Value<long>("first_event_id"),
                 LastEventId = response.Value<long>("latest_event_id"),
                 CurrentGameId = response.Value<long?>("current_game_id")
@@ -58,13 +57,11 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 if (game == null)
                     continue;
 
-                var scores = game["scores"]?.ToObject<List<RoomScore>>()
-                             ?? new List<RoomScore>();
+                var scores = game["scores"]?.ToObject<List<SoloScoreInfo>>() ?? new List<SoloScoreInfo>();
 
                 var teams = new Dictionary<long, string>();
 
-                foreach (var score in game["scores"]?.OfType<JObject>()
-                                      ?? Enumerable.Empty<JObject>())
+                foreach (var score in game["scores"]?.OfType<JObject>() ?? Enumerable.Empty<JObject>())
                 {
                     string? team = (string?)score["match"]?["team"];
 
@@ -72,8 +69,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                         teams[score.Value<long>("user_id")] = team;
                 }
 
-                DateTimeOffset? endTime =
-                    game["end_time"]?.ToObject<DateTimeOffset>();
+                DateTimeOffset? endTime = game["end_time"]?.ToObject<DateTimeOffset>();
 
                 result.Games.Add(new RoomGame
                 {
@@ -107,8 +103,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                     result.Beatmaps.Add(beatmap.ToObject<RoomBeatmap>()!);
 
                     if (beatmap["beatmapset"] is JObject beatmapSet)
-                        result.BeatmapSets.Add(
-                            beatmapSet.ToObject<RoomBeatmapSet>()!);
+                        result.BeatmapSets.Add(beatmapSet.ToObject<RoomBeatmapSet>()!);
                 }
             }
 

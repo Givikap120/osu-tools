@@ -14,8 +14,10 @@ using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Online.API;
+using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Online.Leaderboards;
 using osu.Game.Overlays;
+using osu.Game.Rulesets.Scoring;
 using osu.Game.Rulesets.UI;
 using osu.Game.Scoring;
 using osu.Game.Users;
@@ -28,7 +30,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 {
     public partial class RoomScoreCard : CompositeDrawable
     {
-        public RoomScore Score { get; private set; }
+        public SoloScoreInfo Score { get; private set; }
         public string? Team { get; private set; }
 
         [Resolved]
@@ -40,7 +42,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         private readonly List<(string Key, Drawable Content)> registeredColumns = new();
         private ScoreConverter scoreConverter = null!;
 
-        public RoomScoreCard(RoomHistory history, RoomGame game, RoomScore score,
+        public RoomScoreCard(RoomHistory history, RoomGame game, SoloScoreInfo score,
             Dictionary<string, List<Drawable>> columnContents)
         {
             this.history = history;
@@ -59,12 +61,10 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         [BackgroundDependencyLoader]
         private void load(OverlayColourProvider colours, GameHost host)
         {
-            var ruleset = RulesetHelper.GetRulesetFromLegacyID(Score.RulesetId);
-            var beatmap = history.Beatmaps.GetValueOrDefault(Score.BeatmapId) ?? throw new InvalidOperationException($"Could not find beatmap with ID {Score.BeatmapId} in history.");
+            var ruleset = RulesetHelper.GetRulesetFromLegacyID(Score.RulesetID);
+            var beatmap = history.Beatmaps.GetValueOrDefault(Score.BeatmapID) ?? throw new InvalidOperationException($"Could not find beatmap with ID {Score.BeatmapID} in history.");
 
-            Enum.TryParse<CountryCode>(history.Users.GetValueOrDefault(Score.UserId)?.CountryCode, true, out var country);
-            if (!Enum.TryParse<ScoreRank>(Score.Rank, true, out var rank) || !Score.Passed)
-                rank = ScoreRank.F;
+            Enum.TryParse<CountryCode>(history.Users.GetValueOrDefault(Score.UserID)?.CountryCode, true, out var country);
 
             var scoreContent = new FillFlowContainer
             {
@@ -80,7 +80,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                         AutoSizeAxes = Axes.Both,
                         Direction = FillDirection.Horizontal,
                         Spacing = new Vector2(2, 0),
-                        Children = Score.Mods.Select(m => new ModIcon(m.ToObject<APIMod>()!.ToMod(ruleset))
+                        Children = Score.Mods.Select(m => new ModIcon(m.ToMod(ruleset))
                         {
                             Scale = new Vector2(0.32f)
                         }).ToArray()
@@ -94,7 +94,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             var player = new OsuClickableContainer
             {
                 RelativeSizeAxes = Axes.Both,
-                Action = () => host.OpenUrlExternally($"https://osu.ppy.sh/users/{Score.UserId}"),
+                Action = () => host.OpenUrlExternally($"https://osu.ppy.sh/users/{Score.UserID}"),
                 Children = new Drawable[]
                 {
                     new DrawableFlag(country)
@@ -109,7 +109,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                     {
                         RelativeSizeAxes = Axes.Both,
                         Padding = new MarginPadding { Left = 34, Right = 8 },
-                        Child = text(history.Username(Score.UserId), 16, colours.Content1).With(t =>
+                        Child = text(history.Username(Score.UserID), 16, colours.Content1).With(t =>
                         {
                             t.Anchor = Anchor.CentreLeft;
                             t.Origin = Anchor.CentreLeft;
@@ -171,7 +171,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                         Anchor = Anchor.CentreRight,
                         Origin = Anchor.CentreRight,
                         Size = new Vector2(rank_width, 22),
-                        Child = new DrawableRank(rank)
+                        Child = new DrawableRank(Score.Rank)
                         {
                             Anchor = Anchor.Centre,
                             Origin = Anchor.Centre
@@ -232,22 +232,21 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             scoreConverter = new ScoreConverter(settingsManager, Score, beatmap, game.ScoreType);
         }
 
-        private Drawable scoreDetails(RoomScore score, OverlayColourProvider colours)
+        private Drawable scoreDetails(SoloScoreInfo score, OverlayColourProvider colours)
         {
-            string[] standard = game.RulesetId switch
+            HitResult[] standard = game.RulesetId switch
             {
-                0 => new[] { "great", "ok", "meh", "miss" },
-                1 => new[] { "great", "ok", "miss" },
-                2 => new[] { "great", "large_tick_hit", "small_tick_hit", "small_tick_miss", "miss" },
-                3 => new[] { "perfect", "great", "good", "ok", "meh", "miss" },
-                _ => Array.Empty<string>()
+                0 => new[] { HitResult.Great, HitResult.Ok, HitResult.Meh, HitResult.Miss },
+                1 => new[] { HitResult.Great, HitResult.Ok, HitResult.Miss },
+                2 => new[] { HitResult.Great, HitResult.LargeTickHit, HitResult.SmallTickHit, HitResult.SmallTickMiss, HitResult.Miss },
+                3 => new[] { HitResult.Perfect, HitResult.Great, HitResult.Good, HitResult.Ok, HitResult.Meh, HitResult.Miss },
+                _ => Array.Empty<HitResult>()
             };
 
             var keys = standard.Concat(game.Scores.SelectMany(s => s.Statistics.Keys)
                 .Except(standard)
-                .OrderBy(key => key, StringComparer.Ordinal))
-                .Where(key => key is not ("ignore_hit" or "ignore_miss" or "large_bonus" or "small_bonus"))
-                .ToArray();
+                .Where(key => key is not (HitResult.IgnoreHit or HitResult.IgnoreMiss or HitResult.LargeBonus or HitResult.SmallBonus))
+                .ToArray());
 
             return new FillFlowContainer
             {
@@ -280,7 +279,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                     Direction = FillDirection.Horizontal,
                     Spacing = new Vector2(10, 0),
                     Children = keys.Select(key => metric(
-                        key.Replace('_', ' ').ToUpperInvariant(),
+                        key.ToString(),
                         $"{score.Statistics.GetValueOrDefault(key):N0}",
                         11, colours.Content1, colours.Content2)).ToArray()
                 }

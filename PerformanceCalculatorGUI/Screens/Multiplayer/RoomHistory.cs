@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using osu.Game.Online.API.Requests.Responses;
 
 namespace PerformanceCalculatorGUI.Screens.Multiplayer
 {
@@ -49,11 +50,11 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         [JsonProperty("required_mods")] public List<JObject> RequiredMods { get; set; } = new List<JObject>();
         [JsonProperty("allowed_mods")] public List<JObject> AllowedMods { get; set; } = new List<JObject>();
         [JsonProperty("details")] public RoomGameDetails Details { get; set; } = new RoomGameDetails();
-        [JsonProperty("scores")] public List<RoomScore> Scores { get; set; } = new List<RoomScore>();
+        [JsonProperty("scores")] public List<SoloScoreInfo> Scores { get; set; } = new List<SoloScoreInfo>();
         [JsonProperty("legacy_scoring_type")] public string? LegacyScoringType { get; set; }
 
         public bool HasTeams => Details.RoomType is "team_versus" or "tag_team_versus";
-        public string? TeamFor(RoomScore score) => Details.Teams.GetValueOrDefault(score.UserId);
+        public string? TeamFor(SoloScoreInfo score) => Details.Teams.GetValueOrDefault(score.UserID);
         public long TeamTotal(string team) => Scores.Where(s => s.Passed && TeamFor(s) == team).Sum(s => s.TotalScore);
 
         public ScoreType ScoreType => LegacyScoringType switch
@@ -70,22 +71,6 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         [JsonProperty("room_type")] public string RoomType { get; set; } = string.Empty;
         [JsonProperty("started_at")] public DateTimeOffset StartedAt { get; set; }
         [JsonProperty("teams", NullValueHandling = NullValueHandling.Ignore)] public Dictionary<long, string> Teams { get; set; } = new Dictionary<long, string>();
-    }
-
-    public class RoomScore
-    {
-        [JsonProperty("id")] public long? Id { get; set; }
-        [JsonProperty("user_id")] public long UserId { get; set; }
-        [JsonProperty("beatmap_id")] public long BeatmapId { get; set; }
-        [JsonProperty("ruleset_id")] public int RulesetId { get; set; }
-        [JsonProperty("total_score")] public long TotalScore { get; set; }
-        [JsonProperty("accuracy")] public double Accuracy { get; set; }
-        [JsonProperty("max_combo")] public int MaxCombo { get; set; }
-        [JsonProperty("rank")] public string Rank { get; set; } = string.Empty;
-        [JsonProperty("passed")] public bool Passed { get; set; }
-        [JsonProperty("mods")] public List<JObject> Mods { get; set; } = new List<JObject>();
-        [JsonProperty("statistics")] public Dictionary<string, int> Statistics { get; set; } = new Dictionary<string, int>();
-        [JsonExtensionData] public IDictionary<string, JToken> AdditionalData { get; set; } = new Dictionary<string, JToken>();
     }
 
     public class RoomUser

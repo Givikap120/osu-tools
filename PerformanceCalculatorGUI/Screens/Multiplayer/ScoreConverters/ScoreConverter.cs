@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using osu.Game.Beatmaps;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Scoring;
+using osuTK;
 using PerformanceCalculatorGUI.Configuration;
 
 namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
@@ -18,29 +19,22 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
         public WorkingBeatmap Beatmap { get; private set; }
         public double TotalScore => ScoreInfo.TotalScore;
 
-        public ScoreConverter(SettingsManager configManager, RoomScore roomScore, RoomBeatmap roomBeatmap, ScoreType source)
+        public ScoreConverter(SettingsManager configManager, SoloScoreInfo score, RoomBeatmap roomBeatmap, ScoreType source)
         {
-            long beatmapId = roomScore.BeatmapId > 0
-                ? roomScore.BeatmapId
-                : roomBeatmap.Id;
+            long beatmapId = score.BeatmapID > 0 ? score.BeatmapID : roomBeatmap.Id;
 
             if (beatmapId <= 0)
                 throw new ArgumentException("The score has no valid beatmap ID.");
 
             Beatmap = ProcessorWorkingBeatmap.FromFileOrId(beatmapId.ToString(), cachePath: configManager.GetBindable<string>(Settings.CachePath).Value);
 
-            var json = JObject.FromObject(roomScore);
-            json["id"] = roomScore.Id ?? 0;
-            json["beatmap_id"] = beatmapId;
+            var ruleset = RulesetHelper.GetRulesetFromLegacyID(score.RulesetID);
+            var mods = Array.ConvertAll(score.Mods, mod => mod.ToMod(ruleset));
 
-            var apiScore = json.ToObject<SoloScoreInfo>()
-                ?? throw new InvalidOperationException("Could not deserialize the score.");
-
-            var ruleset = RulesetHelper.GetRulesetFromLegacyID(roomScore.RulesetId);
-            var mods = Array.ConvertAll(apiScore.Mods, mod => mod.ToMod(ruleset));
-
-            ScoreInfo = apiScore.ToScoreInfo(mods, Beatmap.BeatmapInfo);
+            ScoreInfo = score.ToScoreInfo(mods, Beatmap.BeatmapInfo);
             ScoreInfo.Ruleset = ruleset.RulesetInfo;
+            ScoreInfo.Statistics = new(score.Statistics);
+            ScoreInfo.MaximumStatistics = new(score.MaximumStatistics);
 
             Source = source;
 
