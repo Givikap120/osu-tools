@@ -16,7 +16,9 @@ using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Graphics.UserInterface;
+using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Overlays;
+using osu.Game.Scoring;
 using osuTK;
 using PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters;
 
@@ -152,20 +154,28 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 
                 foreach (string team in teams)
                     foreach (var score in game.Scores.Where(s => game.TeamFor(s) == team).OrderByDescending(s => s.TotalScore))
-                        ScoreCards.Add(new RoomScoreCard(history, game, score, columnContents));
+                        if (hasMap(score))
+                            ScoreCards.Add(new RoomScoreCard(history, game, score, columnContents));
 
                 foreach (var score in game.Scores.Where(s => game.TeamFor(s) is not ("red" or "blue")).OrderByDescending(s => s.TotalScore))
-                    ScoreCards.Add(new RoomScoreCard(history, game, score, columnContents));
+                    if (hasMap(score))
+                        ScoreCards.Add(new RoomScoreCard(history, game, score, columnContents));
 
                 content.Add(teamFooter = new TeamFooter(this));
             }
             else
             {
                 foreach (var score in game.Scores.OrderByDescending(s => s.TotalScore))
-                    ScoreCards.Add(new RoomScoreCard(history, game, score, columnContents));
+                    if (hasMap(score))
+                        ScoreCards.Add(new RoomScoreCard(history, game, score, columnContents));
             }
 
             IncludeInSummary.BindValueChanged(c => cardDim.Alpha = c.NewValue ? 0 : 0.5f, true);
+        }
+
+        private bool hasMap(SoloScoreInfo score)
+        {
+            return history.Beatmaps.GetValueOrDefault(score.BeatmapID) != null;
         }
 
         private OsuClickableContainer createHeader(OverlayColourProvider colours, LargeTextureStore textures, GameHost host)
