@@ -210,7 +210,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 if (game?.Expired != true || !renderedGames.Add(entry.GameId.Value))
                     continue;
 
-                timeline.Add(new RoomGameCard(history, entry, game));
+                timeline.Add(new RoomGameCard(history, game));
             }
 
             if (history.Events.Count == 0)

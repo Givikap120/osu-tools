@@ -84,6 +84,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
     {
         [JsonProperty("id")] public long Id { get; set; }
         [JsonProperty("username")] public string Username { get; set; } = string.Empty;
+        [JsonProperty("country_code")] public string? CountryCode { get; set; }
     }
 
     public class RoomBeatmap
