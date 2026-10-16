@@ -229,7 +229,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 layout
             };
 
-            scoreConverter = new ScoreConverter(settingsManager, Score, beatmap);
+            scoreConverter = new ScoreConverter(settingsManager, Score, beatmap, game.ScoreType);
         }
 
         private Drawable scoreDetails(RoomScore score, OverlayColourProvider colours)

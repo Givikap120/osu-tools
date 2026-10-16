@@ -55,6 +55,14 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         public bool HasTeams => Details.RoomType is "team_versus" or "tag_team_versus";
         public string? TeamFor(RoomScore score) => Details.Teams.GetValueOrDefault(score.UserId);
         public long TeamTotal(string team) => Scores.Where(s => s.Passed && TeamFor(s) == team).Sum(s => s.TotalScore);
+
+        public ScoreType ScoreType => LegacyScoringType switch
+        {
+            null => ScoreType.Lazer,
+            "score" => ScoreType.Legacy,
+            "scorev2" => ScoreType.ScoreV2,
+            _ => ScoreType.None
+        };
     }
 
     public class RoomGameDetails

@@ -20,17 +20,13 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
 {
     public class ScoreConverter
     {
+        public ScoreType Source { get; private set; }
         public double UniversalComboScore { get; private set; }
         public ScoreInfo ScoreInfo { get; private set; }
         public WorkingBeatmap Beatmap { get; private set; }
+        public double TotalScore => ScoreInfo.TotalScore;
 
-        private ScoreConverter(ScoreInfo scoreInfo, WorkingBeatmap beatmap)
-        {
-            ScoreInfo = scoreInfo;
-            Beatmap = beatmap;
-        }
-
-        public ScoreConverter(SettingsManager configManager, RoomScore roomScore, RoomBeatmap roomBeatmap)
+        public ScoreConverter(SettingsManager configManager, RoomScore roomScore, RoomBeatmap roomBeatmap, ScoreType source)
         {
             long beatmapId = roomScore.BeatmapId > 0
                 ? roomScore.BeatmapId
@@ -53,18 +49,30 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
 
             ScoreInfo = apiScore.ToScoreInfo(mods, Beatmap.BeatmapInfo);
             ScoreInfo.Ruleset = ruleset.RulesetInfo;
+
+            Source = source;
+
+            UniversalComboScore = source switch
+            {
+                ScoreType.Lazer => LazerScoreConversionHelper.GetUniversalComboScore(this),
+                ScoreType.Legacy => 0,
+                ScoreType.ScoreV2 => 0,
+                _ => throw new ArgumentOutOfRangeException(nameof(source), source, null)
+            };
         }
 
-        public void InitFromLazerScore()
+        public double GetScoreForType(ScoreType type)
         {
-        }
+            if (type == Source)
+                return TotalScore;
 
-        public void InitFromLegacyScore()
-        {
-        }
-
-        public void InitFromScoreV2()
-        {
+            return type switch
+            {
+                ScoreType.Lazer => LazerScoreConversionHelper.CalculateScore(this),
+                ScoreType.Legacy => 0,
+                ScoreType.ScoreV2 => 0,
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+            };
         }
     }
 }
