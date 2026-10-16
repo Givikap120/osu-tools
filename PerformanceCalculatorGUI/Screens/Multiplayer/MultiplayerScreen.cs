@@ -15,11 +15,13 @@ using osu.Framework.Graphics.Shapes;
 using osu.Framework.Screens;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
+using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Online.Multiplayer;
 using osu.Game.Overlays;
 using osuTK;
 using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Components.TextBoxes;
+using PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters;
 
 namespace PerformanceCalculatorGUI.Screens.Multiplayer
 {
@@ -35,6 +37,8 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         private StatefulButton loadButton = null!;
         private FillFlowContainer timeline = null!;
         private OsuScrollContainer scroll = null!;
+        private FillFlowContainer gameCards = null!;
+        private MatchSummaryPanel summaryPanel = null!;
         private CancellationTokenSource? loadCancellation;
         public RoomHistory? History { get; private set; }
         public override bool ShouldShowConfirmationDialogOnSwitch => false;
@@ -82,7 +86,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                                         },
                                         loadButton = new StatefulButton("Load")
                                         {
-                                            Width = 70,
+                                            Width = 120,
                                             Action = startLoad
                                         }
                                     }
@@ -198,23 +202,62 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 
         private void renderHistory(RoomHistory history)
         {
+            timeline.Clear();
+
             var renderedGames = new HashSet<long>();
+            var games = new List<RoomGame>();
 
             foreach (var entry in history.Events.Values)
             {
-                if (entry.GameId == null || entry.Type is not "game_completed" and not "game_started")
+                if (entry.GameId == null
+                    || entry.Type is not ("game_completed" or "game_started"))
                     continue;
 
-                RoomGame? game = history.Games.GetValueOrDefault(entry.GameId.Value);
+                var game = history.Games.GetValueOrDefault(entry.GameId.Value);
 
-                if (game?.Expired != true || !renderedGames.Add(entry.GameId.Value))
+                if (game?.Expired != true || !renderedGames.Add(game.Id))
                     continue;
 
-                timeline.Add(new RoomGameCard(history, game));
+                games.Add(game);
             }
 
-            if (history.Events.Count == 0)
-                timeline.Add(new OsuSpriteText { Text = "This room has no events." });
+            if (games.Count == 0)
+            {
+                timeline.Add(new OsuSpriteText
+                {
+                    Text = "This room has no completed games."
+                });
+                return;
+            }
+
+            timeline.Add(summaryPanel = new MatchSummaryPanel(history, games)
+            {
+                Depth = -1
+            });
+
+            timeline.Add(gameCards = new FillFlowContainer
+            {
+                RelativeSizeAxes = Axes.X,
+                AutoSizeAxes = Axes.Y,
+                Direction = FillDirection.Vertical,
+                Spacing = new Vector2(0, 20)
+            });
+
+            //timeline.SetLayoutPosition(summaryPanel, 0);
+            //timeline.SetLayoutPosition(gameCards, 1);
+
+            displayGames(games);
+        }
+
+        private void displayGames(IReadOnlyList<RoomGame> games)
+        {
+            gameCards.Clear();
+
+            if (History == null)
+                return;
+
+            foreach (var game in games)
+                gameCards.Add(new RoomGameCard(History, game));
         }
 
         private void cancelLoad()
