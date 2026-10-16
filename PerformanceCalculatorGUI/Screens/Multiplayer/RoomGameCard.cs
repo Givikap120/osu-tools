@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Toolkit.HighPerformance;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -11,6 +12,7 @@ using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Platform;
+using osu.Framework.Utils;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
@@ -21,11 +23,20 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 {
     public partial class RoomGameCard : Container
     {
-        public FillFlowContainer<RoomScoreCard> ScoreCards = null!;
-
+        // Data
         private readonly RoomHistory history;
         private readonly RoomGame game;
+
+        // Children
+        public FillFlowContainer<RoomScoreCard> ScoreCards { get; private set; } = null!;
+
+        private TeamFooter? teamFooter;
         private readonly Dictionary<string, List<Drawable>> columnContents = new();
+
+        // Dependencies
+        [Resolved]
+        private OverlayColourProvider colours { get; set; } = null!;
+
         private const float corner_radius = 8;
 
         public RoomGameCard(RoomHistory history, RoomGame game)
@@ -38,16 +49,49 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             CornerRadius = corner_radius;
         }
 
+        // Returns converted score for the given team
+        public long TeamTotal(string team) => ScoreCards.Where(s => s.Team == team).Sum(s => s.CurrentTotalScore);
+
         public void ConvertTo(ScoreType type)
         {
             foreach (RoomScoreCard scoreCard in ScoreCards.Children)
             {
                 scoreCard.ConvertTo(type);
             }
+
+            teamFooter?.Calculate();
+
+            // Reorder cards
+            IEnumerable<RoomScoreCard> ordered;
+
+            if (game.HasTeams)
+            {
+                string winningTeam = TeamTotal("blue") > TeamTotal("red") ? "blue" : "red";
+
+                ordered = ScoreCards
+                    .OrderBy(card =>
+                    {
+                        string? team = card.Team;
+                        return team == winningTeam ? 0 : team is "red" or "blue" ? 1 : 2;
+                    })
+                    .ThenByDescending(card => card.CurrentTotalScore)
+                    .ThenBy(card => card.Score.UserID);
+            }
+            else
+            {
+                ordered = ScoreCards
+                    .OrderByDescending(card => card.CurrentTotalScore)
+                    .ThenBy(card => card.Score.UserID);
+            }
+
+            int position = 0;
+
+            foreach (var card in ordered)
+                ScoreCards.SetLayoutPosition(card, position++);
         }
 
         [BackgroundDependencyLoader]
-        private void load(OverlayColourProvider colours, LargeTextureStore textures, GameHost host)
+        private void load(LargeTextureStore textures, GameHost host)
         {
             var content = new FillFlowContainer
             {
@@ -62,6 +106,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 new Box { RelativeSizeAxes = Axes.Both, Colour = colours.Background4 },
                 content
             };
+
             content.Add(createHeader(colours, textures, host));
 
             if (game.Scores.Count == 0)
@@ -94,7 +139,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 foreach (var score in game.Scores.Where(s => game.TeamFor(s) is not ("red" or "blue")).OrderByDescending(s => s.TotalScore))
                     ScoreCards.Add(new RoomScoreCard(history, game, score, columnContents));
 
-                content.Add(createTeamFooter(colours));
+                content.Add(teamFooter = new TeamFooter(this));
             }
             else
             {
@@ -148,63 +193,6 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             return header;
         }
 
-        private Drawable createTeamFooter(OverlayColourProvider colours)
-        {
-            long red = game.TeamTotal("red");
-            long blue = game.TeamTotal("blue");
-            var footer = new FillFlowContainer
-            {
-                RelativeSizeAxes = Axes.X,
-                AutoSizeAxes = Axes.Y,
-                Direction = FillDirection.Vertical,
-                Children = new Drawable[]
-                {
-                    new Container
-                    {
-                        RelativeSizeAxes = Axes.X,
-                        Height = 70,
-                        Padding = new MarginPadding { Left = 18, Right = 18, Top = 0, Bottom = 0 },
-                        Children = new Drawable[] { teamTotal("Red Team", red, "red", Anchor.TopLeft), teamTotal("Blue Team", blue, "blue", Anchor.TopRight) }
-                    }
-                }
-            };
-            bool aborted = history.Events.Values.Any(e => e.GameId == game.Id && e.Type == "game_aborted");
-            if (game.Expired && !aborted && game.Scores.All(s => game.TeamFor(s) is "red" or "blue"))
-            {
-                footer.Add(new Container
-                {
-                    RelativeSizeAxes = Axes.X,
-                    Height = 38,
-                    Children = new Drawable[]
-                    {
-                        new Box { RelativeSizeAxes = Axes.Both, Colour = colours.Background5 },
-                        new OsuSpriteText
-                        {
-                            Anchor = Anchor.Centre,
-                            Origin = Anchor.Centre,
-                            Font = OsuFont.GetFont(size: 17, weight: FontWeight.Bold),
-                            Text = red == blue ? "Draw" : $"{(red > blue ? "Red" : "Blue")} Team wins by {Math.Abs(red - blue):N0}"
-                        }
-                    }
-                });
-            }
-            return footer;
-        }
-
-        private static Drawable teamTotal(string name, long total, string team, Anchor anchor) => new FillFlowContainer
-        {
-            Anchor = anchor,
-            Origin = anchor,
-            AutoSizeAxes = Axes.Both,
-            Direction = FillDirection.Vertical,
-            Spacing = new Vector2(0, 4),
-            Children = new Drawable[]
-            {
-                new OsuSpriteText { Anchor = anchor, Origin = anchor, Text = name, Font = OsuFont.GetFont(size: 14, weight: FontWeight.Bold), Colour = TeamColour(team) },
-                new OsuSpriteText { Anchor = anchor, Origin = anchor, Text = $"{total:N0}", Font = OsuFont.GetFont(size: 26) }
-            }
-        };
-
         private static OsuSpriteText text(string value, float size, Colour4? colour = null) => new TruncatingSpriteText
         {
             RelativeSizeAxes = Axes.X,
@@ -213,28 +201,76 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             Colour = colour ?? Colour4.White
         };
 
-        private Drawable alignedColumn(string key, Drawable content, Anchor anchor = Anchor.BottomLeft, Anchor contentAnchor = Anchor.CentreRight)
+        private partial class TeamFooter : FillFlowContainer
         {
-            if (!columnContents.TryGetValue(key, out var group))
-                columnContents[key] = group = new List<Drawable>();
+            public RoomGameCard Owner;
 
-            group.Add(content);
+            public Container TeamResults { get; private set; }
+            public OsuSpriteText MatchResult { get; private set; }
 
-            content.Anchor = contentAnchor;
-            content.Origin = contentAnchor;
+            public TeamFooter(RoomGameCard owner)
+            {
+                Owner = owner;
 
-            var cell = new Container
+                RelativeSizeAxes = Axes.X;
+                AutoSizeAxes = Axes.Y;
+                Direction = FillDirection.Vertical;
+
+                Children = new Drawable[]
+                {
+                    TeamResults = new Container
+                    {
+                        RelativeSizeAxes = Axes.X,
+                        Height = 70,
+                        Padding = new MarginPadding { Left = 18, Right = 18, Top = 0, Bottom = 0 },
+                    },
+                    new Container
+                    {
+                        RelativeSizeAxes = Axes.X,
+                        Height = 38,
+                        Children = new Drawable[]
+                        {
+                            new Box { RelativeSizeAxes = Axes.Both, Colour = owner.colours.Background5 },
+                            MatchResult = new OsuSpriteText
+                            {
+                                Anchor = Anchor.Centre,
+                                Origin = Anchor.Centre,
+                                Font = OsuFont.GetFont(size: 17, weight: FontWeight.Bold),
+                            }
+                        }
+                    }
+                };
+
+                Calculate();
+            }
+
+            public void Calculate()
+            {
+                long red = Owner.TeamTotal("red");
+                long blue = Owner.TeamTotal("blue");
+
+                TeamResults.Children = new Drawable[]
+                {
+                    createTeamTotal("Red Team", red, "red", Anchor.TopLeft),
+                    createTeamTotal("Blue Team", blue, "blue", Anchor.TopRight)
+                };
+
+                MatchResult.Text = red == blue ? "Draw" : $"{(red > blue ? "Red" : "Blue")} Team wins by {Math.Abs(red - blue):N0}";
+            }
+
+            private static Drawable createTeamTotal(string name, long total, string team, Anchor anchor) => new FillFlowContainer
             {
                 Anchor = anchor,
                 Origin = anchor,
-                Child = content
+                AutoSizeAxes = Axes.Both,
+                Direction = FillDirection.Vertical,
+                Spacing = new Vector2(0, 4),
+                Children = new Drawable[]
+            {
+                new OsuSpriteText { Anchor = anchor, Origin = anchor, Text = name, Font = OsuFont.GetFont(size: 14, weight: FontWeight.Bold), Colour = TeamColour(team) },
+                new OsuSpriteText { Anchor = anchor, Origin = anchor, Text = $"{total:N0}", Font = OsuFont.GetFont(size: 26) }
+            }
             };
-
-            cell.OnUpdate += _ => cell.Size = new Vector2(
-                group.Max(d => d.Width),
-                group.Max(d => d.Height));
-
-            return cell;
         }
 
         public static Colour4 TeamColour(string team) => team == "red" ? Colour4.FromHex("FF7799") : Colour4.FromHex("77BBFF");

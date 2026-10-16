@@ -32,6 +32,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
     {
         public SoloScoreInfo Score { get; private set; }
         public string? Team { get; private set; }
+        public long CurrentTotalScore { get; set; }
 
         [Resolved]
         private SettingsManager settingsManager { get; set; } = null!;
@@ -48,9 +49,12 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             this.history = history;
             this.game = game;
             this.columnContents = columnContents;
+
             Score = score;
             Team = game.HasTeams && game.TeamFor(score) is ("red" or "blue")
                 ? game.TeamFor(score) : null;
+
+            CurrentTotalScore = Score.TotalScore;
 
             RelativeSizeAxes = Axes.X;
             Height = 50;
@@ -60,8 +64,8 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 
         public void ConvertTo(ScoreType type)
         {
-            double score = scoreConverter.GetScoreForType(type);
-            scoreMetric.Value.Text = $"{Math.Round(score):N0}";
+            CurrentTotalScore = scoreConverter.GetScoreForType(type);
+            scoreMetric.Value.Text = $"{CurrentTotalScore:N0}";
         }
 
         [BackgroundDependencyLoader]

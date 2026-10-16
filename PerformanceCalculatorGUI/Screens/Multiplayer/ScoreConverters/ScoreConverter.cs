@@ -17,7 +17,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
         public double UniversalComboScore { get; private set; }
         public ScoreInfo ScoreInfo { get; private set; }
         public WorkingBeatmap Beatmap { get; private set; }
-        public double TotalScore => ScoreInfo.TotalScore;
+        public long TotalScore => ScoreInfo.TotalScore;
 
         public ScoreConverter(SettingsManager configManager, SoloScoreInfo score, RoomBeatmap roomBeatmap, ScoreType source)
         {
@@ -47,7 +47,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
             };
         }
 
-        public double GetScoreForType(ScoreType type)
+        public long GetScoreForType(ScoreType type)
         {
             if (type == Source || type == ScoreType.None)
                 return TotalScore;

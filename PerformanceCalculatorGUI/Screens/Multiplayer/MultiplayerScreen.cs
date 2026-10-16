@@ -136,6 +136,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             if (!tryParseRoomLink(roomInput.Current.Value, out long roomId, out bool stable))
                 return;
 
+            CurrentType = ScoreType.None;
             History = null;
             timeline.Clear();
             loadButton.State.Value = ButtonState.Loading;
