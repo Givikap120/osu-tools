@@ -173,7 +173,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                             Origin = Anchor.CentreLeft,
                             RelativeSizeAxes = Axes.Both,
                             Padding = new MarginPadding { Left = 34, Right = 8 },
-                            Child = label(history.Username(player.UserId), 16)
+                            Child = rowLabel(history.Username(player.UserId), heading: false)
                         }
                     }
                 };
@@ -183,16 +183,16 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             }
         }
 
-        private static OsuSpriteText rowLabel(string text)
+        private static OsuSpriteText rowLabel(string text, bool heading = false)
         {
-            OsuSpriteText result = label(text, 16);
+            OsuSpriteText result = label(text, 16, heading ? FontWeight.Regular : FontWeight.Bold);
             result.Origin = Anchor.CentreLeft;
             result.Anchor = Anchor.CentreLeft;
             return result;
         }
 
         private Drawable row(string player, string played, string wins, string average, string z, Colour4? team, bool heading = false)
-            => row(rowLabel(player), played, wins, average, z, team, heading);
+            => row(rowLabel(player, heading), played, wins, average, z, team, heading);
 
         private Drawable row(Drawable player, string played, string wins, string average, string z, Colour4? team, bool heading = false)
         {
@@ -227,17 +227,17 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                             new Dimension(GridSizeMode.Relative, 0.10f), new Dimension(GridSizeMode.Relative, 0.22f),
                             new Dimension(GridSizeMode.Relative, 0.14f)
                         },
-                        Content = new[] { new[] { player, rowLabel(played), rowLabel(wins), rowLabel(average), rowLabel(z) } }
+                        Content = new[] { new[] { player, rowLabel(played, heading), rowLabel(wins, heading), rowLabel(average, heading), rowLabel(z, heading) } }
                     }
                 }
             };
         }
 
-        private static OsuSpriteText label(string text, float size) => new TruncatingSpriteText
+        private static OsuSpriteText label(string text, float size, FontWeight fontWeight = FontWeight.Regular) => new TruncatingSpriteText
         {
             RelativeSizeAxes = Axes.X,
             Text = text,
-            Font = OsuFont.GetFont(size: size),
+            Font = OsuFont.GetFont(size: size, weight: fontWeight),
         };
     }
 }

@@ -34,6 +34,8 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             var result = new MatchSummary();
             var players = new Dictionary<int, MatchPlayerSummary>();
 
+            games = games.Where(game => game.IncludeInSummary.Value);
+
             foreach (var game in games)
             {
                 if (game.ScoreCards == null)

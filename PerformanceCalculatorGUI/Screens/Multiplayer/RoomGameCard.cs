@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Toolkit.HighPerformance;
 using osu.Framework.Allocation;
+using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
@@ -16,6 +17,7 @@ using osu.Framework.Utils;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
+using osu.Game.Graphics.UserInterface;
 using osu.Game.Overlays;
 using osuTK;
 
@@ -26,11 +28,14 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         // Data
         private readonly RoomHistory history;
         private readonly RoomGame game;
+        public readonly BindableBool IncludeInSummary = new(true);
+        public bool HasTeams => game.HasTeams;
 
         // Children
         public FillFlowContainer<RoomScoreCard> ScoreCards { get; private set; } = null!;
 
         private TeamFooter? teamFooter;
+        private Box cardDim = null!;
         private readonly Dictionary<string, List<Drawable>> columnContents = new();
 
         // Dependencies
@@ -38,8 +43,6 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         private OverlayColourProvider colours { get; set; } = null!;
 
         private const float corner_radius = 8;
-
-        public bool HasTeams => game.HasTeams;
 
         public RoomGameCard(RoomHistory history, RoomGame game)
         {
@@ -105,11 +108,42 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 
             Children = new Drawable[]
             {
-                new Box { RelativeSizeAxes = Axes.Both, Colour = colours.Background4 },
+                new Box
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Colour = colours.Background4
+                },
+                cardDim = new Box {
+
+                    RelativeSizeAxes = Axes.Both,
+                    Colour = Colour4.Black,
+                    Alpha = 0,
+                    Depth = -1,
+                },
                 content
             };
 
             content.Add(createHeader(colours, textures, host));
+
+            var includeCheckbox = new OsuCheckbox
+            {
+                RelativeSizeAxes = Axes.None,
+                AutoSizeAxes = Axes.Y,
+                Width = 260,
+                Anchor = Anchor.CentreRight,
+                Origin = Anchor.CentreRight,
+                LabelText = "Include in match summary"
+            };
+
+            includeCheckbox.Current.BindTo(IncludeInSummary);
+
+            content.Add(new Container
+            {
+                RelativeSizeAxes = Axes.X,
+                Height = 36,
+                Padding = new MarginPadding { Left = 18, Right = 18 },
+                Child = includeCheckbox
+            });
 
             if (game.Scores.Count == 0)
             {
@@ -148,6 +182,8 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 foreach (var score in game.Scores.OrderByDescending(s => s.TotalScore))
                     ScoreCards.Add(new RoomScoreCard(history, game, score, columnContents));
             }
+
+            IncludeInSummary.BindValueChanged(c => cardDim.Alpha = c.NewValue ? 0 : 0.5f, true);
         }
 
         private OsuClickableContainer createHeader(OverlayColourProvider colours, LargeTextureStore textures, GameHost host)

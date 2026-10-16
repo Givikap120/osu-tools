@@ -54,8 +54,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
         public static long CalculateScore(ScoreConverter converter)
         {
             double accuracy = converter.ScoreInfo.Accuracy;
-            double linearCombo =
-                Math.Clamp(converter.UniversalComboScore, 0, 1);
+            double linearCombo = Math.Clamp(converter.UniversalComboScore, 0, 1);
 
             double accuracyPortion = Math.Pow(accuracy, 10);
             double weightedComboPortion = accuracy * linearCombo;

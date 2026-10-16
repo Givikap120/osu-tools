@@ -15,13 +15,10 @@ using osu.Framework.Graphics.Shapes;
 using osu.Framework.Screens;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
-using osu.Game.Online.API.Requests.Responses;
-using osu.Game.Online.Multiplayer;
 using osu.Game.Overlays;
 using osuTK;
 using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Components.TextBoxes;
-using PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters;
 
 namespace PerformanceCalculatorGUI.Screens.Multiplayer
 {
@@ -271,6 +268,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             loadCancellation?.Cancel();
             loadCancellation?.Dispose();
             loadCancellation = null;
+
             if (loadButton != null)
                 loadButton.State.Value = ButtonState.Initial;
         }
@@ -315,6 +313,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             {
                 loadCancellation?.Cancel();
                 loadCancellation?.Dispose();
+                loadCancellation = null;
             }
             base.Dispose(isDisposing);
         }
