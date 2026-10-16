@@ -5,8 +5,8 @@ using System;
 using Newtonsoft.Json.Linq;
 using osu.Game.Beatmaps;
 using osu.Game.Online.API.Requests.Responses;
+using osu.Game.Rulesets.Mods;
 using osu.Game.Scoring;
-using osuTK;
 using PerformanceCalculatorGUI.Configuration;
 
 namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
@@ -57,8 +57,31 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
                 ScoreType.Lazer => LazerScoreConversionHelper.CalculateScore(this),
                 ScoreType.Legacy => 0,
                 ScoreType.ScoreV2 => ScoreV2ConversionHelper.CalculateScore(this),
+                ScoreType.PP => (long)Math.Round(ScoreInfo.PP ?? calculatePerformance()),
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
             };
+        }
+
+        private double calculatePerformance()
+        {
+            var ruleset = RulesetHelper.GetRulesetFromLegacyID(ScoreInfo.RulesetID);
+
+            var difficultyCalculator = ruleset.CreateDifficultyCalculator(Beatmap);
+            var difficultyAttributes = difficultyCalculator.Calculate(ScoreInfo.Mods);
+
+            var performanceCalculator = ruleset.CreatePerformanceCalculator();
+            if (performanceCalculator == null) return 0;
+
+            var performanceAttributes = performanceCalculator.Calculate(ScoreInfo, difficultyAttributes);
+            ScoreInfo.PP = performanceAttributes.Total;
+            return ScoreInfo.PP.Value;
+        }
+
+        public static string FormatScore(long score, ScoreType type)
+        {
+            if (type == ScoreType.PP)
+                return $"{score:N0}pp";
+            return $"{score:N0}";
         }
     }
 }

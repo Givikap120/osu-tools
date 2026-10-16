@@ -8,6 +8,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         None,
         Lazer,
         Legacy,
-        ScoreV2
+        ScoreV2,
+        PP
     }
 }

@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Toolkit.HighPerformance;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
@@ -13,13 +12,13 @@ using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.Textures;
 using osu.Framework.Platform;
-using osu.Framework.Utils;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Graphics.UserInterface;
 using osu.Game.Overlays;
 using osuTK;
+using PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters;
 
 namespace PerformanceCalculatorGUI.Screens.Multiplayer
 {
@@ -29,6 +28,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         private readonly RoomHistory history;
         private readonly RoomGame game;
         public readonly BindableBool IncludeInSummary = new(true);
+        public ScoreType CurrentType { get; private set; } = ScoreType.None;
         public bool HasTeams => game.HasTeams;
 
         // Children
@@ -59,6 +59,8 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 
         public void ConvertTo(ScoreType type)
         {
+            CurrentType = type;
+
             foreach (RoomScoreCard scoreCard in ScoreCards.Children)
             {
                 scoreCard.ConvertTo(type);
@@ -293,10 +295,10 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                     createTeamTotal("Blue Team", blue, "blue", Anchor.TopRight)
                 };
 
-                MatchResult.Text = red == blue ? "Draw" : $"{(red > blue ? "Red" : "Blue")} Team wins by {Math.Abs(red - blue):N0}";
+                MatchResult.Text = red == blue ? "Draw" : $"{(red > blue ? "Red" : "Blue")} Team wins by {ScoreConverter.FormatScore(Math.Abs(red - blue), Owner.CurrentType)}";
             }
 
-            private static Drawable createTeamTotal(string name, long total, string team, Anchor anchor) => new FillFlowContainer
+            private Drawable createTeamTotal(string name, long total, string team, Anchor anchor) => new FillFlowContainer
             {
                 Anchor = anchor,
                 Origin = anchor,
@@ -304,10 +306,10 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 Direction = FillDirection.Vertical,
                 Spacing = new Vector2(0, 4),
                 Children = new Drawable[]
-            {
-                new OsuSpriteText { Anchor = anchor, Origin = anchor, Text = name, Font = OsuFont.GetFont(size: 14, weight: FontWeight.Bold), Colour = TeamColour(team) },
-                new OsuSpriteText { Anchor = anchor, Origin = anchor, Text = $"{total:N0}", Font = OsuFont.GetFont(size: 26) }
-            }
+                {
+                    new OsuSpriteText { Anchor = anchor, Origin = anchor, Text = name, Font = OsuFont.GetFont(size: 14, weight: FontWeight.Bold), Colour = TeamColour(team) },
+                    new OsuSpriteText { Anchor = anchor, Origin = anchor, Text = ScoreConverter.FormatScore(total, Owner.CurrentType), Font = OsuFont.GetFont(size: 26) }
+                }
             };
         }
 

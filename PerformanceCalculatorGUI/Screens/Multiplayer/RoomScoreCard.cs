@@ -13,7 +13,6 @@ using osu.Framework.Platform;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
-using osu.Game.Online.API;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Online.Leaderboards;
 using osu.Game.Overlays;
@@ -64,7 +63,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         public void ConvertTo(ScoreType type)
         {
             CurrentTotalScore = scoreConverter.GetScoreForType(type);
-            scoreMetric.Value.Text = $"{CurrentTotalScore:N0}";
+            scoreMetric.Value.Text = ScoreConverter.FormatScore(CurrentTotalScore, type);
         }
 
         [BackgroundDependencyLoader]

@@ -18,6 +18,7 @@ using osu.Game.Users;
 using osu.Game.Users.Drawables;
 using osuTK;
 using PerformanceCalculatorGUI.Components;
+using PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters;
 
 namespace PerformanceCalculatorGUI.Screens.Multiplayer
 {
@@ -81,7 +82,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                                     Child = dropdown = new OsuDropdown<ScoreType>
                                     {
                                         RelativeSizeAxes = Axes.X,
-                                        Items = new[] { ScoreType.None, ScoreType.Lazer, ScoreType.ScoreV2 },
+                                        Items = new[] { ScoreType.None, ScoreType.Lazer, ScoreType.ScoreV2, ScoreType.PP },
                                         Current = { Value = ScoreType.None }
                                     }
                                 },
@@ -179,7 +180,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 };
 
                 results.Add(row(identity, player.Played.ToString(), showWins ? player.Wins.ToString() : "",
-                    player.AverageScore.ToString("N0"), player.AverageZ.ToString("+0.00;-0.00;0.00"), teamColour));
+                    ScoreConverter.FormatScore((long)Math.Round(player.AverageScore), parent.CurrentType), player.AverageZ.ToString("+0.00;-0.00;0.00"), teamColour));
             }
         }
 
