@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using osu.Framework.Bindables;
 using osu.Framework.IO.Network;
@@ -31,11 +32,11 @@ namespace PerformanceCalculatorGUI
             clientSecretBindable = configManager.GetBindable<string>(Settings.ClientSecret);
         }
 
-        public async Task<T> GetJsonFromApi<T>(string request, (string name, string value)[]? requestParams = null)
+        public async Task<T> GetJsonFromApi<T>(string request, (string name, string value)[]? requestParams = null, CancellationToken cancellationToken = default)
         {
             if (token == null)
             {
-                await getAccessToken().ConfigureAwait(false);
+                await getAccessToken(cancellationToken).ConfigureAwait(false);
                 Debug.Assert(token != null);
             }
 
@@ -51,12 +52,12 @@ namespace PerformanceCalculatorGUI
                 }
             }
 
-            await req.PerformAsync().ConfigureAwait(false);
+            await req.PerformAsync(cancellationToken).ConfigureAwait(false);
 
             return req.ResponseObject;
         }
 
-        private async Task getAccessToken()
+        private async Task getAccessToken(CancellationToken cancellationToken)
         {
             using var req = new JsonWebRequest<OAuthToken>($"{ENDPOINT_CONFIGURATION.APIUrl}/oauth/token")
             {
@@ -67,7 +68,7 @@ namespace PerformanceCalculatorGUI
             req.AddParameter("client_secret", clientSecretBindable.Value);
             req.AddParameter("grant_type", "client_credentials");
             req.AddParameter("scope", "public");
-            await req.PerformAsync().ConfigureAwait(false);
+            await req.PerformAsync(cancellationToken).ConfigureAwait(false);
 
             token = req.ResponseObject;
         }
