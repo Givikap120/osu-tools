@@ -82,7 +82,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                                     Child = dropdown = new OsuDropdown<ScoreType>
                                     {
                                         RelativeSizeAxes = Axes.X,
-                                        Items = new[] { ScoreType.None, ScoreType.Lazer, ScoreType.ScoreV2, ScoreType.LazerCustom, ScoreType.PP },
+                                        Items = new[] { ScoreType.None, ScoreType.Lazer, ScoreType.Legacy, ScoreType.ScoreV2, ScoreType.LazerCustom, ScoreType.PP },
                                         Current = { Value = ScoreType.None }
                                     }
                                 },

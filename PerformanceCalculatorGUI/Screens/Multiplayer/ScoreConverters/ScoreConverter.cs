@@ -3,7 +3,6 @@
 
 using System;
 using System.Linq;
-using Newtonsoft.Json.Linq;
 using osu.Game.Beatmaps;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Rulesets.Mods;
@@ -42,7 +41,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
             UniversalComboScore = source switch
             {
                 ScoreType.Lazer => LazerScoreConversionHelper.GetUniversalComboScore(this),
-                ScoreType.Legacy => 0,
+                ScoreType.Legacy => LegacyScoreConversionHelper.GetUniversalComboScore(this),
                 ScoreType.ScoreV2 => ScoreV2ConversionHelper.GetUniversalComboScore(this),
                 _ => throw new ArgumentOutOfRangeException(nameof(source), source, null)
             };
@@ -56,7 +55,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
             return type switch
             {
                 ScoreType.Lazer => LazerScoreConversionHelper.CalculateScore(this),
-                ScoreType.Legacy => 0,
+                ScoreType.Legacy => LegacyScoreConversionHelper.CalculateScore(this),
                 ScoreType.ScoreV2 => ScoreV2ConversionHelper.CalculateScore(this),
                 ScoreType.LazerCustom => getCustomLazerScore(),
                 ScoreType.PP => (long)Math.Round(ScoreInfo.PP ?? calculatePerformance()),
