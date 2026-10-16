@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 using osu.Game.Beatmaps;
 using osu.Game.Online.API.Requests.Responses;
@@ -57,9 +58,23 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
                 ScoreType.Lazer => LazerScoreConversionHelper.CalculateScore(this),
                 ScoreType.Legacy => 0,
                 ScoreType.ScoreV2 => ScoreV2ConversionHelper.CalculateScore(this),
+                ScoreType.LazerCustom => getCustomLazerScore(),
                 ScoreType.PP => (long)Math.Round(ScoreInfo.PP ?? calculatePerformance()),
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
             };
+        }
+
+        private long getCustomLazerScore()
+        {
+            long lazerScore = Source == ScoreType.Lazer ? TotalScore : LazerScoreConversionHelper.CalculateScore(this);
+
+            if (ScoreInfo.Mods.Any(m => m is ModNoFail))
+                lazerScore *= 2;
+
+            double normalizedScore = (double)lazerScore / 1_000_000;
+
+            double adjustedScore = 1_000_000 * (normalizedScore * normalizedScore);
+            return (long)Math.Round(adjustedScore);
         }
 
         private double calculatePerformance()

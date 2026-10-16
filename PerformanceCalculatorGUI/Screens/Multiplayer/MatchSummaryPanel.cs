@@ -67,7 +67,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                     Spacing = new Vector2(0, 10),
                     Children = new Drawable[]
                     {
-                        title = label("Match Summary", 25),
+                        title = label($"Match Summary: \"{history.Room.Name}\"", 25),
                         controls = new GridContainer
                         {
                             RelativeSizeAxes = Axes.X,
@@ -82,7 +82,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                                     Child = dropdown = new OsuDropdown<ScoreType>
                                     {
                                         RelativeSizeAxes = Axes.X,
-                                        Items = new[] { ScoreType.None, ScoreType.Lazer, ScoreType.ScoreV2, ScoreType.PP },
+                                        Items = new[] { ScoreType.None, ScoreType.Lazer, ScoreType.ScoreV2, ScoreType.LazerCustom, ScoreType.PP },
                                         Current = { Value = ScoreType.None }
                                     }
                                 },

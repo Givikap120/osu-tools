@@ -9,6 +9,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         Lazer,
         Legacy,
         ScoreV2,
+        LazerCustom,
         PP
     }
 }
