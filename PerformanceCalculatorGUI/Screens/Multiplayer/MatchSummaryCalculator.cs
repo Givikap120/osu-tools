@@ -29,37 +29,66 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         public int UnassignedTeamMaps;
         public List<MatchPlayerSummary> Players = new();
 
-        public static MatchSummary Calculate(IReadOnlyList<RoomGame> games)
+        public static MatchSummary Calculate(IEnumerable<RoomGameCard> games)
         {
             var result = new MatchSummary();
             var players = new Dictionary<int, MatchPlayerSummary>();
 
-            foreach (var game in games.Where(g => g.Expired && g.Scores.Count > 0))
+            foreach (var game in games)
             {
-                // One entry per player per map. Newest submission wins if duplicated.
-                var scores = game.Scores.GroupBy(s => s.UserID)
-                    .Select(g => g.First()).ToArray();
+                if (game.ScoreCards == null)
+                    continue;
 
-                double[]? values = scores.Select(s => s.Passed ? (double)s.TotalScore : 0).ToArray();
+                // One submission per player per map, taking the newest.
+                var cards = game.ScoreCards.Children
+                    .GroupBy(card => card.Score.UserID)
+                    .Select(group => group
+                        .OrderByDescending(card => card.Score.EndedAt)
+                        .First())
+                    .ToArray();
+
+                if (cards.Length == 0)
+                    continue;
+
+                double[] values = cards
+                    .Select(card => card.Score.Passed
+                        ? (double)card.CurrentTotalScore
+                        : 0)
+                    .ToArray();
+
                 double mean = values.Average();
-                double deviation = Math.Sqrt(values.Average(v => (v - mean) * (v - mean)));
+                double deviation = Math.Sqrt(
+                    values.Average(value => (value - mean) * (value - mean)));
                 double highest = values.Max();
 
-                for (int i = 0; i < scores.Length; i++)
+                for (int i = 0; i < cards.Length; i++)
                 {
-                    var score = scores[i];
-                    if (!players.TryGetValue(score.UserID, out var player))
-                        players.Add(score.UserID, player = new MatchPlayerSummary { UserId = score.UserID });
+                    var card = cards[i];
+                    int userId = card.Score.UserID;
+
+                    if (!players.TryGetValue(userId, out var player))
+                    {
+                        player = new MatchPlayerSummary { UserId = userId };
+                        players.Add(userId, player);
+                    }
 
                     player.Played++;
                     player.ScoreSum += values[i];
-                    player.ZSum += deviation > 0 ? (values[i] - mean) / deviation : 0;
-                    if (game.HasTeams && game.TeamFor(score) is "red" or "blue")
-                        player.Teams.Add(game.TeamFor(score)!);
+                    player.ZSum += deviation > 0
+                        ? (values[i] - mean) / deviation
+                        : 0;
 
-                    // Tied first places each receive a point; all-zero maps award none.
-                    if (!game.HasTeams && score.Passed && highest > 0 && values[i] == highest)
+                    if (game.HasTeams && card.Team is "red" or "blue")
+                        player.Teams.Add(card.Team);
+
+                    // Tied first places share a win; all-zero maps award none.
+                    if (!game.HasTeams
+                        && card.Score.Passed
+                        && highest > 0
+                        && values[i] == highest)
+                    {
                         player.Wins++;
+                    }
                 }
 
                 if (!game.HasTeams)
@@ -70,26 +99,41 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 
                 result.TeamMaps++;
 
-                if (scores.Any(s => game.TeamFor(s) is not ("red" or "blue")) || !scores.Any(s => game.TeamFor(s) == "red") || !scores.Any(s => game.TeamFor(s) == "blue"))
+                if (cards.Any(card => card.Team is not ("red" or "blue"))
+                    || !cards.Any(card => card.Team == "red")
+                    || !cards.Any(card => card.Team == "blue"))
                 {
                     result.UnassignedTeamMaps++;
                     continue;
                 }
 
-                double red = scores.Where(s => s.Passed && game.TeamFor(s) == "red").Sum(s => (double)s.TotalScore);
-                double blue = scores.Where(s => s.Passed && game.TeamFor(s) == "blue").Sum(s => (double)s.TotalScore);
+                double red = cards
+                    .Where(card => card.Score.Passed && card.Team == "red")
+                    .Sum(card => (double)card.CurrentTotalScore);
 
-                if (red > blue) result.RedPoints++;
-                else if (blue > red) result.BluePoints++;
-                else result.TeamDraws++;
+                double blue = cards
+                    .Where(card => card.Score.Passed && card.Team == "blue")
+                    .Sum(card => (double)card.CurrentTotalScore);
+
+                if (red > blue)
+                    result.RedPoints++;
+                else if (blue > red)
+                    result.BluePoints++;
+                else
+                    result.TeamDraws++;
             }
 
             bool duel = result.TeamMaps == 0 && players.Count == 2;
 
             result.Players = (duel
-                    ? players.Values.OrderByDescending(p => p.Wins).ThenByDescending(p => p.AverageZ)
-                    : players.Values.OrderByDescending(p => p.AverageZ).ThenByDescending(p => p.Wins))
-                .ThenBy(p => p.UserId).ToList();
+                    ? players.Values
+                        .OrderByDescending(player => player.Wins)
+                        .ThenByDescending(player => player.AverageZ)
+                    : players.Values
+                        .OrderByDescending(player => player.AverageZ)
+                        .ThenByDescending(player => player.Wins))
+                .ThenBy(player => player.UserId)
+                .ToList();
 
             return result;
         }

@@ -88,7 +88,11 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                                 calculateButton = new StatefulButton("Calculate")
                                 {
                                     Width = 100,
-                                    Action = () => parent.ConvertTo(dropdown.Current.Value)
+                                    Action = () =>
+                                    {
+                                        parent.ConvertTo(dropdown.Current.Value);
+                                        UpdateSummary();
+                                    }
                                 }
                             } }
                         },
@@ -100,14 +104,14 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                     }
                 }
             };
-
-            renderSummary();
         }
 
-        private void renderSummary()
+        public void UpdateSummary()
         {
             results.Clear();
-            var summary = MatchSummary.Calculate(games);
+
+            var summary = MatchSummary.Calculate(parent.GameCards);
+
             if (summary.Players.Count == 0)
             {
                 results.Add(label("No completed games with scores.", 18));

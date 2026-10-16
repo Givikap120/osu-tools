@@ -29,6 +29,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
     {
         public ScoreType CurrentType { get; private set; } = ScoreType.None;
         public RoomHistory? History { get; private set; }
+        public FillFlowContainer<RoomGameCard> GameCards { get; private set; } = null!;
 
         [Cached]
         private OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Green);
@@ -40,7 +41,6 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         private StatefulButton loadButton = null!;
         private FillFlowContainer timeline = null!;
         private OsuScrollContainer scroll = null!;
-        private FillFlowContainer<RoomGameCard> gameCards = null!;
         private MatchSummaryPanel summaryPanel = null!;
         private CancellationTokenSource? loadCancellation;
         public override bool ShouldShowConfirmationDialogOnSwitch => false;
@@ -57,7 +57,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 
             CurrentType = type;
 
-            foreach (RoomGameCard gameCard in gameCards.Children)
+            foreach (RoomGameCard gameCard in GameCards.Children)
             {
                 gameCard.ConvertTo(type);
             }
@@ -251,7 +251,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 Depth = -1
             });
 
-            timeline.Add(gameCards = new FillFlowContainer<RoomGameCard>
+            timeline.Add(GameCards = new FillFlowContainer<RoomGameCard>
             {
                 RelativeSizeAxes = Axes.X,
                 AutoSizeAxes = Axes.Y,
@@ -259,18 +259,11 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 Spacing = new Vector2(0, 20)
             });
 
-            displayGames(games);
-        }
-
-        private void displayGames(IReadOnlyList<RoomGame> games)
-        {
-            gameCards.Clear();
-
-            if (History == null)
-                return;
-
             foreach (var game in games)
-                gameCards.Add(new RoomGameCard(History, game));
+                GameCards.Add(new RoomGameCard(history, game));
+
+            // Must be called after game cards are added
+            summaryPanel.UpdateSummary();
         }
 
         private void cancelLoad()

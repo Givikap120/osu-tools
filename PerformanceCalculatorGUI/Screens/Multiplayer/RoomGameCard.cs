@@ -39,6 +39,8 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 
         private const float corner_radius = 8;
 
+        public bool HasTeams => game.HasTeams;
+
         public RoomGameCard(RoomHistory history, RoomGame game)
         {
             this.history = history;

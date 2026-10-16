@@ -19,7 +19,6 @@ using osu.Game.Online.Leaderboards;
 using osu.Game.Overlays;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Rulesets.UI;
-using osu.Game.Scoring;
 using osu.Game.Users;
 using osu.Game.Users.Drawables;
 using osuTK;
