@@ -1,4 +1,4 @@
-﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
@@ -17,7 +17,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
         {
             var ruleset = new OsuRuleset();
 
-            var mods = converter.ScoreInfo.Mods.ToArray(); // Need to copy
+            var mods = converter.ScoreInfo.Mods.ToArray();
 
             if (!mods.Any(mod => mod is ModScoreV2))
             {
@@ -39,7 +39,12 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
                     "Expected a ScoreV2 source score.", nameof(converter));
 
             double accuracy = converter.ScoreInfo.Accuracy;
+            if (accuracy <= 0 || converter.ScoreInfo.MaxCombo <= 0)
+                return 0;
+
             double modMultiplier = GetModMultiplier(converter);
+            if (modMultiplier <= 0)
+                throw new InvalidOperationException("Cannot recover combo with a zero score multiplier.");
 
             // Prefer the original stable score when supplied by the API.
             // Otherwise TotalScore must contain the original ScoreV2 score.
@@ -48,6 +53,8 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
             double scoreWithoutMods = originalScore / modMultiplier;
             double weightedComboPortion = (scoreWithoutMods / max_score - 0.3 * Math.Pow(accuracy, 10)) / 0.7;
 
+            // The shared migration estimator accepts this linear combo representation.
+            // Judgement-quality weighting is removed approximately using mean accuracy.
             return Math.Clamp(weightedComboPortion / accuracy, 0, 1);
         }
 

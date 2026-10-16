@@ -1,4 +1,4 @@
-﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
@@ -32,7 +32,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
             statistics.TryGetValue(HitResult.SmallBonus, out int smallBonus);
             statistics.TryGetValue(HitResult.LargeBonus, out int largeBonus);
 
-            return smallBonus * 10 + largeBonus * 50;
+            return smallBonus * 10L + largeBonus * 50L;
         }
 
         public static double GetUniversalComboScore(ScoreConverter converter)
@@ -42,23 +42,19 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
 
             double accuracy = converter.ScoreInfo.Accuracy;
 
-            if (accuracy <= 0)
+            if (accuracy <= 0 || converter.ScoreInfo.MaxCombo <= 0)
                 return 0;
 
-            double scoreWithoutBonus =
-                converter.ScoreInfo.TotalScoreWithoutMods - GetBonusScore(converter);
+            double scoreWithoutBonus = converter.ScoreInfo.TotalScoreWithoutMods - GetBonusScore(converter);
+            double lazerCombo = (2 * scoreWithoutBonus / max_score - Math.Pow(accuracy, 5)) / accuracy;
 
-            double lazerCombo =
-                (2 * scoreWithoutBonus / max_score - Math.Pow(accuracy, 5))
-                / accuracy;
-
-            return lazerToLinearCombo(lazerCombo);
+            return ComboScoreConversionHelper.LazerToLinear(converter, lazerCombo);
         }
 
         public static long CalculateScore(ScoreConverter converter)
         {
             double accuracy = converter.ScoreInfo.Accuracy;
-            double lazerCombo = linearToLazerCombo(converter.UniversalComboScore);
+            double lazerCombo = ComboScoreConversionHelper.LinearToLazer(converter, converter.UniversalComboScore);
 
             double scoreWithoutMods = max_score * 0.5 * (Math.Pow(accuracy, 5) + accuracy * lazerCombo);
 
@@ -66,37 +62,5 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
             return (long)Math.Round(scoreWithoutMods * GetModMultiplier(converter));
         }
 
-        private static double lazerToLinearCombo(double lazerCombo)
-        {
-            lazerCombo = Math.Clamp(lazerCombo, 0, 1);
-
-            return 0.5 * (
-                lazerCombo * lazerCombo
-                + Math.Pow(lazerCombo, 4.0 / 3.0));
-        }
-
-        private static double linearToLazerCombo(double linearCombo)
-        {
-            linearCombo = Math.Clamp(linearCombo, 0, 1);
-
-            if (linearCombo == 0 || linearCombo == 1)
-                return linearCombo;
-
-            // Numerically invert the same approximation, preserving round trips.
-            double lower = 0;
-            double upper = 1;
-
-            for (int i = 0; i < 48; i++)
-            {
-                double middle = (lower + upper) * 0.5;
-
-                if (lazerToLinearCombo(middle) < linearCombo)
-                    lower = middle;
-                else
-                    upper = middle;
-            }
-
-            return (lower + upper) * 0.5;
-        }
     }
 }
