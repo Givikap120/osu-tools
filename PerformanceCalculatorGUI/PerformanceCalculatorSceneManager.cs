@@ -19,6 +19,7 @@ using osu.Game.Rulesets;
 using PerformanceCalculatorGUI.Components;
 using PerformanceCalculatorGUI.Screens;
 using PerformanceCalculatorGUI.Screens.MyCollections;
+using PerformanceCalculatorGUI.Screens.Multiplayer;
 using PerformanceCalculatorGUI.Screens.Profile;
 
 namespace PerformanceCalculatorGUI
@@ -100,6 +101,10 @@ namespace PerformanceCalculatorGUI
                                                 new ScreenSelectionButton("Beatmap Leaderboard", FontAwesome.Solid.ListAlt)
                                                 {
                                                     Action = () => setScreen(new BeatmapLeaderboardScreen())
+                                                },
+                                                new ScreenSelectionButton("Multiplayer", FontAwesome.Solid.Users)
+                                                {
+                                                    Action = () => setScreen(new MultiplayerScreen())
                                                 },
                                                 new ScreenSelectionButton("Replay Editor", FontAwesome.Solid.Hammer)
                                                 {
