@@ -127,26 +127,6 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 
             content.Add(createHeader(colours, textures, host));
 
-            var includeCheckbox = new OsuCheckbox
-            {
-                RelativeSizeAxes = Axes.None,
-                AutoSizeAxes = Axes.Y,
-                Width = 260,
-                Anchor = Anchor.CentreRight,
-                Origin = Anchor.CentreRight,
-                LabelText = "Include in match summary"
-            };
-
-            includeCheckbox.Current.BindTo(IncludeInSummary);
-
-            content.Add(new Container
-            {
-                RelativeSizeAxes = Axes.X,
-                Height = 36,
-                Padding = new MarginPadding { Left = 18, Right = 18 },
-                Child = includeCheckbox
-            });
-
             if (game.Scores.Count == 0)
             {
                 content.Add(text("No scores were submitted.", 16));
@@ -191,14 +171,16 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         private OsuClickableContainer createHeader(OverlayColourProvider colours, LargeTextureStore textures, GameHost host)
         {
             history.Beatmaps.TryGetValue(game.BeatmapId, out var beatmap);
+
             var header = new OsuClickableContainer
             {
                 RelativeSizeAxes = Axes.X,
-                Height = 106,
+                Height = 100,
                 Masking = true,
                 CornerRadius = corner_radius,
                 Action = () => host.OpenUrlExternally($"https://osu.ppy.sh/beatmaps/{game.BeatmapId}")
             };
+
             header.Add(new Box { RelativeSizeAxes = Axes.Both, Colour = colours.Background3 });
 
             var set = beatmap == null ? null : history.BeatmapSets.GetValueOrDefault(beatmap.BeatmapSetId);
@@ -230,6 +212,29 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 Spacing = new Vector2(0, 5),
                 Children = new Drawable[] { text(matchInfo + freestyleInfo + matchType, 15), text(beatmapTitle, 23) }
             });
+
+            var includeCheckbox = new OsuCheckbox
+            {
+                RelativeSizeAxes = Axes.None,
+                AutoSizeAxes = Axes.Y,
+                Width = 240,
+                Anchor = Anchor.CentreRight,
+                Origin = Anchor.CentreRight,
+                LabelText = "Include in match summary"
+            };
+
+            includeCheckbox.Current.BindTo(IncludeInSummary);
+
+            header.Add(new Container
+            {
+                Origin = Anchor.BottomRight,
+                Anchor = Anchor.BottomRight,
+                RelativeSizeAxes = Axes.X,
+                AutoSizeAxes = Axes.Y,
+                Padding = new MarginPadding(12),
+                Child = includeCheckbox
+            });
+
             return header;
         }
 
@@ -261,13 +266,13 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                     TeamResults = new Container
                     {
                         RelativeSizeAxes = Axes.X,
-                        Height = 70,
+                        Height = 60,
                         Padding = new MarginPadding { Left = 18, Right = 18, Top = 0, Bottom = 0 },
                     },
                     new Container
                     {
                         RelativeSizeAxes = Axes.X,
-                        Height = 38,
+                        Height = 40,
                         Children = new Drawable[]
                         {
                             new Box { RelativeSizeAxes = Axes.Both, Colour = owner.colours.Background5 },
