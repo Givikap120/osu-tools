@@ -115,14 +115,14 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                         rows.Add(scoreRow(score, teamColour(team), colours, ruleset, host));
 
                 foreach (var score in game.Scores.Where(s => game.TeamFor(s) is not ("red" or "blue")).OrderByDescending(s => s.TotalScore))
-                    rows.Add(scoreRow(score, colours.Content2, colours, ruleset, host));
+                    rows.Add(scoreRow(score, null, colours, ruleset, host));
 
                 content.Add(createTeamFooter(colours));
             }
             else
             {
                 foreach (var score in game.Scores.OrderByDescending(s => s.TotalScore))
-                    rows.Add(scoreRow(score, colours.Content2, colours, ruleset, host));
+                    rows.Add(scoreRow(score, null, colours, ruleset, host));
             }
         }
 
@@ -171,9 +171,9 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             return header;
         }
 
-        private Drawable scoreRow(RoomScore score, Colour4 team, OverlayColourProvider colours, Ruleset ruleset, GameHost host)
+        private Drawable scoreRow(RoomScore score, Colour4? team, OverlayColourProvider colours, Ruleset ruleset, GameHost host)
         {
-            string difficulty = game.Freestyle ? $" · [{history.Beatmaps.GetValueOrDefault(score.BeatmapId)?.Version ?? score.BeatmapId.ToString()}]" : string.Empty;
+            string difficulty = history.Beatmaps.GetValueOrDefault(score.BeatmapId)?.Version ?? score.BeatmapId.ToString();
 
             Enum.TryParse<CountryCode>(history.Users.GetValueOrDefault(score.UserId)?.CountryCode, true, out var country);
             if (!Enum.TryParse<ScoreRank>(score.Rank, true, out var rank) || !score.Passed)
@@ -202,6 +202,8 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 }
             };
 
+            const float freestyle_padding = -8;
+
             var player = new OsuClickableContainer
             {
                 RelativeSizeAxes = Axes.Both,
@@ -213,21 +215,55 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                         Anchor = Anchor.CentreLeft,
                         Origin = Anchor.CentreLeft,
                         Size = new Vector2(26, 18),
+                        Y = game.Freestyle ? freestyle_padding : 0,
                         FillMode = FillMode.Fit
                     },
                     new Container
                     {
                         RelativeSizeAxes = Axes.Both,
                         Padding = new MarginPadding { Left = 34, Right = 8 },
-                        Child = text(history.Username(score.UserId) + difficulty, 16, colours.Content1).With(t =>
+                        Child = text(history.Username(score.UserId), 16, colours.Content1).With(t =>
                         {
                             t.Anchor = Anchor.CentreLeft;
                             t.Origin = Anchor.CentreLeft;
+                            t.Y = game.Freestyle ? freestyle_padding : 0;
                             t.Font = OsuFont.GetFont(size: 16, weight: FontWeight.Bold);
                         })
                     }
                 }
             };
+
+            if (game.Freestyle)
+            {
+                player.Add(new Container
+                {
+                    RelativeSizeAxes = Axes.X,
+                    Height = 14,
+                    Anchor = Anchor.BottomLeft,
+                    Origin = Anchor.BottomLeft,
+                    Children = new Drawable[]
+                    {
+                    new SpriteIcon
+                    {
+                        Icon = FontAwesome.Regular.DotCircle,
+                        Size = new Vector2(11),
+                        Anchor = Anchor.CentreLeft,
+                        Origin = Anchor.CentreLeft,
+                        Colour = colours.Content2
+                    },
+                    new Container
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                        Padding = new MarginPadding { Left = 17, Right = 8 },
+                        Child = text(difficulty, 13, colours.Content2).With(t =>
+                        {
+                            t.Anchor = Anchor.CentreLeft;
+                            t.Origin = Anchor.CentreLeft;
+                        })
+                    }
+                    }
+                });
+            }
 
             const float rank_width = 44;
             const float rank_gap = 10;
@@ -302,7 +338,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 Children = new Drawable[]
                 {
                     new Box { RelativeSizeAxes = Axes.Both, Colour = colours.Background3 },
-                    new Box { RelativeSizeAxes = Axes.Y, Width = 5, Colour = team },
+                    team != null ? new Box { RelativeSizeAxes = Axes.Y, Width = 5, Colour = (Colour4)team } : Empty(),
                     layout
                 }
             };
