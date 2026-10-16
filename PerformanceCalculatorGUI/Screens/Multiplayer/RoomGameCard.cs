@@ -44,6 +44,32 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             CornerRadius = corner_radius;
         }
 
+        private readonly Dictionary<string, List<Drawable>> columnContents = new();
+
+        private Drawable alignedColumn(string key, Drawable content, Anchor anchor = Anchor.BottomLeft, Anchor contentAnchor = Anchor.CentreRight)
+        {
+            if (!columnContents.TryGetValue(key, out var group))
+                columnContents[key] = group = new List<Drawable>();
+
+            group.Add(content);
+
+            content.Anchor = contentAnchor;
+            content.Origin = contentAnchor;
+
+            var cell = new Container
+            {
+                Anchor = anchor,
+                Origin = anchor,
+                Child = content
+            };
+
+            cell.OnUpdate += _ => cell.Size = new Vector2(
+                group.Max(d => d.Width),
+                group.Max(d => d.Height));
+
+            return cell;
+        }
+
         [BackgroundDependencyLoader]
         private void load(OverlayColourProvider colours, LargeTextureStore textures, GameHost host)
         {
@@ -162,18 +188,16 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 Spacing = new Vector2(14, 0),
                 Children = new Drawable[]
                 {
-                    new FillFlowContainer
+                    alignedColumn("mods", new FillFlowContainer
                     {
                         AutoSizeAxes = Axes.Both,
-                        Anchor = Anchor.CentreLeft,
-                        Origin = Anchor.CentreLeft,
                         Direction = FillDirection.Horizontal,
                         Spacing = new Vector2(2, 0),
                         Children = score.Mods.Select(m => new ModIcon(m.ToObject<APIMod>()!.ToMod(ruleset))
                         {
                             Scale = new Vector2(0.32f)
                         }).ToArray()
-                    },
+                    }, Anchor.CentreLeft, Anchor.CentreLeft),
                     scoreDetails(score, colours)
                 }
             };
@@ -338,7 +362,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             };
         }
 
-        private static Drawable metric(string label, string value, float size, Colour4 colour, Colour4 labelColour) => new FillFlowContainer
+        private Drawable metric(string label, string value, float size, Colour4 colour, Colour4 labelColour) => alignedColumn(label, new FillFlowContainer
         {
             AutoSizeAxes = Axes.Both,
             Anchor = Anchor.BottomLeft,
@@ -364,7 +388,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                     Origin = Anchor.BottomLeft
                 }
             }
-        };
+        });
 
         private Drawable createTeamFooter(OverlayColourProvider colours)
         {
