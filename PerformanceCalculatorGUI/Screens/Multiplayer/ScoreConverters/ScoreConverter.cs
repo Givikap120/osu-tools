@@ -2,16 +2,8 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using osu.Game.Beatmaps;
-using osu.Game.IO;
-using osu.Game.Online.API;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Scoring;
 using PerformanceCalculatorGUI.Configuration;
@@ -56,7 +48,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
             {
                 ScoreType.Lazer => LazerScoreConversionHelper.GetUniversalComboScore(this),
                 ScoreType.Legacy => 0,
-                ScoreType.ScoreV2 => 0,
+                ScoreType.ScoreV2 => ScoreV2ConversionHelper.GetUniversalComboScore(this),
                 _ => throw new ArgumentOutOfRangeException(nameof(source), source, null)
             };
         }
@@ -70,7 +62,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer.ScoreConverters
             {
                 ScoreType.Lazer => LazerScoreConversionHelper.CalculateScore(this),
                 ScoreType.Legacy => 0,
-                ScoreType.ScoreV2 => 0,
+                ScoreType.ScoreV2 => ScoreV2ConversionHelper.CalculateScore(this),
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
             };
         }
