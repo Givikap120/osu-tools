@@ -144,7 +144,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 
             bool showWins = summary.SoloMaps > 0;
 
-            results.Add(row("PLAYER", "MAPS", showWins ? "WINS" : "", "AVG SCORE", "AVG Z", null, true));
+            results.Add(row("PLAYER", "MAPS", showWins ? "WINS" : "", "AVG SCORE", "RATING", null, true));
 
             foreach (var player in summary.Players)
             {
@@ -180,7 +180,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 };
 
                 results.Add(row(identity, player.Played.ToString(), showWins ? player.Wins.ToString() : "",
-                    ScoreConverter.FormatScore((long)Math.Round(player.AverageScore), parent.CurrentType), player.AverageZ.ToString("+0.00;-0.00;0.00"), teamColour));
+                    ScoreConverter.FormatScore((long)Math.Round(player.AverageScore), parent.CurrentType), player.Rating.ToString("0.00"), teamColour));
             }
         }
 

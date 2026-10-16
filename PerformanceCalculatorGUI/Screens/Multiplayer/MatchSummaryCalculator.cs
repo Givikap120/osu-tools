@@ -13,10 +13,11 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
         public int Played;
         public int Wins;
         public double ScoreSum;
-        public double ZSum;
+        public double RelativeScoreSum;
+
         public readonly HashSet<string> Teams = new();
         public double AverageScore => Played == 0 ? 0 : ScoreSum / Played;
-        public double AverageZ => Played == 0 ? 0 : ZSum / Played;
+        public double Rating => 2.0 * RelativeScoreSum / (Played + 2);
     }
 
     public sealed class MatchSummary
@@ -59,8 +60,6 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                     .ToArray();
 
                 double mean = values.Average();
-                double deviation = Math.Sqrt(
-                    values.Average(value => (value - mean) * (value - mean)));
                 double highest = values.Max();
 
                 for (int i = 0; i < cards.Length; i++)
@@ -76,9 +75,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
 
                     player.Played++;
                     player.ScoreSum += values[i];
-                    player.ZSum += deviation > 0
-                        ? (values[i] - mean) / deviation
-                        : 0;
+                    player.RelativeScoreSum += mean > 0 ? values[i] / mean : 0;
 
                     if (game.HasTeams && card.Team is "red" or "blue")
                         player.Teams.Add(card.Team);
@@ -128,14 +125,14 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
             bool duel = result.TeamMaps == 0 && players.Count == 2;
 
             result.Players = (duel
-                    ? players.Values
-                        .OrderByDescending(player => player.Wins)
-                        .ThenByDescending(player => player.AverageZ)
-                    : players.Values
-                        .OrderByDescending(player => player.AverageZ)
-                        .ThenByDescending(player => player.Wins))
-                .ThenBy(player => player.UserId)
-                .ToList();
+                ? players.Values
+                    .OrderByDescending(player => player.Wins)
+                    .ThenByDescending(player => player.Rating)
+                : players.Values
+                    .OrderByDescending(player => player.Rating)
+                    .ThenByDescending(player => player.Wins))
+            .ThenBy(player => player.UserId)
+            .ToList();
 
             return result;
         }
