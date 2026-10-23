@@ -206,7 +206,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                 });
 
             string mode = game.RulesetId switch { 0 => "osu!", 1 => "osu!taiko", 2 => "osu!catch", 3 => "osu!mania", _ => $"Ruleset {game.RulesetId}" };
-            string matchInfo = $"{game.Details.StartedAt.ToLocalTime():yyyy-MM-dd HH:mm:ss} · {mode}";
+            string matchInfo = $"{game.Details.StartedAt?.ToLocalTime():yyyy-MM-dd HH:mm:ss} · {mode}";
             string freestyleInfo = game.Freestyle ? " · Freestyle" : string.Empty;
             string matchType = $" · {game.Details.RoomType.Replace('_', ' ')}";
             string beatmapTitle = set == null ? $"Unavailable beatmap ({game.BeatmapId})" : $"{set.Artist} — {set.Title}";

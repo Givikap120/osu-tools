@@ -69,7 +69,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                         teams[score.Value<long>("user_id")] = team;
                 }
 
-                DateTimeOffset? endTime = game["end_time"]?.ToObject<DateTimeOffset>();
+                DateTimeOffset? endTime = game["end_time"]?.ToObject<DateTimeOffset?>();
 
                 result.Games.Add(new RoomGame
                 {
@@ -85,7 +85,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
                         .ToList(),
                     Details = new RoomGameDetails
                     {
-                        StartedAt = game["start_time"]!.ToObject<DateTimeOffset>(),
+                        StartedAt = game["start_time"]!.ToObject<DateTimeOffset?>(),
                         RoomType = game.Value<string>("team_type") switch
                         {
                             "team-vs" => "team_versus",

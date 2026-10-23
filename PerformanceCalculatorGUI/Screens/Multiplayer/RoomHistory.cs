@@ -69,7 +69,7 @@ namespace PerformanceCalculatorGUI.Screens.Multiplayer
     public class RoomGameDetails
     {
         [JsonProperty("room_type")] public string RoomType { get; set; } = string.Empty;
-        [JsonProperty("started_at")] public DateTimeOffset StartedAt { get; set; }
+        [JsonProperty("started_at")] public DateTimeOffset? StartedAt { get; set; }
         [JsonProperty("teams", NullValueHandling = NullValueHandling.Ignore)] public Dictionary<long, string> Teams { get; set; } = new Dictionary<long, string>();
     }
 
